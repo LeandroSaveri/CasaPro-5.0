@@ -1,3 +1,7 @@
+// ============================================
+// ARQUIVO: src/App.tsx (CORRIGIDO - SEM Canvas2D DUPLICADO)
+// ============================================
+
 import React, { useState, useEffect } from 'react';
 import { useProjectStore } from '@/store/projectStore';
 import { useUIStore } from '@/store/uiStore';
@@ -10,7 +14,7 @@ import FurniturePanel from '@/components/ui/FurniturePanel';
 import AIAssistant from '@/components/ui/AIAssistant';
 import PropertiesPanel from '@/components/ui/PropertiesPanel';
 import WelcomeScreen from '@/components/welcome/WelcomeScreen';
-import CreateProjectModal from '@/components/modals/CreateProjectModal';
+import CreateProjectModal, { ProjectConfig } from '@/components/modals/CreateProjectModal';
 import AIGenerationModal from '@/components/modals/AIGenerationModal';
 import DesignSuggestionsPanel from '@/components/panels/DesignSuggestionsPanel';
 import LoginModal from '@/components/modals/LoginModal';
@@ -37,13 +41,11 @@ import {
 import { motion, AnimatePresence } from 'framer-motion';
 import './App.css';
 
-// User Menu Component
+// User Menu Component - SIMPLIFICADO (remove duplicatas com MobileMenu)
 const UserMenu: React.FC<{
-  isOpen: boolean;
-  onClose: () => void;
   onLogin: () => void;
   onExport: () => void;
-}> = ({ isOpen, onLogin, onExport }) => {
+}> = ({ onLogin, onExport }) => {
   const { isAuthenticated, user, logout, isSyncing, lastSync, syncAll } = useUserStore();
   const { currentProject, updateProject } = useProjectStore();
   const [showMenu, setShowMenu] = useState(false);
@@ -64,8 +66,6 @@ const UserMenu: React.FC<{
     await syncAll();
     setShowMenu(false);
   };
-
-  if (!isOpen) return null;
 
   return (
     <div className="relative">
@@ -97,7 +97,6 @@ const UserMenu: React.FC<{
         )}
       </button>
 
-      {/* Dropdown Menu */}
       <AnimatePresence>
         {showMenu && isAuthenticated && (
           <motion.div
@@ -106,7 +105,6 @@ const UserMenu: React.FC<{
             exit={{ opacity: 0, y: -10, scale: 0.95 }}
             className="absolute right-0 top-full mt-2 w-56 bg-[#1a1a24] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50"
           >
-            {/* User Info */}
             <div className="p-4 border-b border-white/10">
               <p className="text-white font-medium truncate">{user?.name}</p>
               <p className="text-xs text-white/50 truncate">{user?.email}</p>
@@ -115,7 +113,6 @@ const UserMenu: React.FC<{
               </span>
             </div>
 
-            {/* Menu Items */}
             <div className="p-2">
               <button
                 onClick={handleSave}
@@ -147,7 +144,6 @@ const UserMenu: React.FC<{
               </button>
             </div>
 
-            {/* Logout */}
             <div className="p-2 border-t border-white/10">
               <button
                 onClick={handleLogout}
@@ -161,7 +157,6 @@ const UserMenu: React.FC<{
         )}
       </AnimatePresence>
 
-      {/* Click outside to close */}
       {showMenu && (
         <div 
           className="fixed inset-0 z-40" 
@@ -172,7 +167,7 @@ const UserMenu: React.FC<{
   );
 };
 
-// Mobile Menu Component - VERSÃO PREMIUM COM ÍCONES LUCIDE
+// Mobile Menu Component - CONSOLIDADO (única fonte de ações no mobile)
 const MobileMenu: React.FC<{
   isOpen: boolean;
   onClose: () => void;
@@ -213,7 +208,6 @@ const MobileMenu: React.FC<{
           className="absolute right-0 top-0 h-full w-80 bg-[#0a0a0f]/95 backdrop-blur-xl border-l border-white/10 p-6 flex flex-col gap-6"
           onClick={e => e.stopPropagation()}
         >
-          {/* Header com botão fechar */}
           <div className="flex items-center justify-between">
             <span className="text-white font-semibold text-lg">Menu</span>
             <button 
@@ -224,7 +218,6 @@ const MobileMenu: React.FC<{
             </button>
           </div>
 
-          {/* PROJETO ATUAL */}
           <div className="bg-gradient-to-br from-[#c9a962]/20 via-[#c9a962]/5 to-transparent border border-[#c9a962]/40 rounded-2xl p-5 shadow-lg shadow-[#c9a962]/5">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-10 h-10 rounded-xl bg-[#c9a962]/20 flex items-center justify-center">
@@ -242,7 +235,6 @@ const MobileMenu: React.FC<{
             </p>
           </div>
 
-          {/* INTELIGÊNCIA */}
           <div className="space-y-3">
             <p className="text-xs uppercase tracking-wider text-white/30 font-medium ml-1">
               Inteligência
@@ -281,11 +273,62 @@ const MobileMenu: React.FC<{
             </button>
           </div>
 
-          {/* FERRAMENTAS */}
           <div className="space-y-3">
             <p className="text-xs uppercase tracking-wider text-white/30 font-medium ml-1">
               Ferramentas
             </p>
+
+            <button
+              onClick={() => {
+                setPanel('furniture', !panels.furniture);
+                onClose();
+              }}
+              className={`w-full flex items-center justify-between px-5 py-4 rounded-xl border transition-all group ${
+                panels.furniture 
+                  ? 'bg-[#c9a962]/10 border-[#c9a962]/40' 
+                  : 'bg-white/[0.03] border-white/10 hover:bg-white/[0.06] hover:border-[#c9a962]/30'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center border transition-colors ${
+                  panels.furniture 
+                    ? 'bg-[#c9a962]/20 border-[#c9a962]/40' 
+                    : 'bg-white/5 border-white/10 group-hover:border-[#c9a962]/30'
+                }`}>
+                  <span className={panels.furniture ? 'text-[#c9a962]' : 'text-white/60 group-hover:text-[#c9a962]'}>🛋️</span>
+                </div>
+                <span className={`font-medium transition-colors ${panels.furniture ? 'text-[#c9a962]' : 'text-white/90 group-hover:text-white'}`}>
+                  Móveis
+                </span>
+              </div>
+              <div className={`w-2 h-2 rounded-full transition-colors ${panels.furniture ? 'bg-[#c9a962]' : 'bg-white/20'}`} />
+            </button>
+
+            <button
+              onClick={() => {
+                setPanel('ai', !panels.ai);
+                onClose();
+              }}
+              className={`w-full flex items-center justify-between px-5 py-4 rounded-xl border transition-all group ${
+                panels.ai 
+                  ? 'bg-[#c9a962]/10 border-[#c9a962]/40' 
+                  : 'bg-white/[0.03] border-white/10 hover:bg-white/[0.06] hover:border-[#c9a962]/30'
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center border transition-colors ${
+                  panels.ai 
+                    ? 'bg-[#c9a962]/20 border-[#c9a962]/40' 
+                    : 'bg-white/5 border-white/10 group-hover:border-[#c9a962]/30'
+                }`}>
+                  <Sparkles size={18} className={panels.ai ? 'text-[#c9a962]' : 'text-white/60 group-hover:text-[#c9a962]'} />
+                </div>
+                <span className={`font-medium transition-colors ${panels.ai ? 'text-[#c9a962]' : 'text-white/90 group-hover:text-white'}`}>
+                  Assistente IA
+                </span>
+              </div>
+              <div className={`w-2 h-2 rounded-full transition-colors ${panels.ai ? 'bg-[#c9a962]' : 'bg-white/20'}`} />
+            </button>
 
             <button
               onClick={() => {
@@ -314,40 +357,6 @@ const MobileMenu: React.FC<{
             </button>
           </div>
 
-          {/* AÇÕES */}
-          <div className="space-y-3">
-            <p className="text-xs uppercase tracking-wider text-white/30 font-medium ml-1">
-              Ações
-            </p>
-
-            <button
-              onClick={onClose}
-              className="w-full flex items-center justify-between px-5 py-4 rounded-xl bg-white/[0.03] border border-white/10 hover:bg-white/[0.06] hover:border-[#c9a962]/30 transition-all group"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center border border-white/10 group-hover:border-[#c9a962]/30 transition-colors">
-                  <Save size={18} className="text-white/60 group-hover:text-[#c9a962] transition-colors" />
-                </div>
-                <span className="text-white/90 font-medium group-hover:text-white transition-colors">Salvar</span>
-              </div>
-              <ArrowLeft size={16} className="text-white/20 -rotate-180 group-hover:text-[#c9a962] transition-colors" />
-            </button>
-
-            <button
-              onClick={onClose}
-              className="w-full flex items-center justify-between px-5 py-4 rounded-xl bg-white/[0.03] border border-white/10 hover:bg-white/[0.06] hover:border-[#c9a962]/30 transition-all group"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center border border-white/10 group-hover:border-[#c9a962]/30 transition-colors">
-                  <Download size={18} className="text-white/60 group-hover:text-[#c9a962] transition-colors" />
-                </div>
-                <span className="text-white/90 font-medium group-hover:text-white transition-colors">Exportar</span>
-              </div>
-              <ArrowLeft size={16} className="text-white/20 -rotate-180 group-hover:text-[#c9a962] transition-colors" />
-            </button>
-          </div>
-
-          {/* BOTÃO VOLTAR PARA INÍCIO */}
           <div className="mt-2">
             <button
               onClick={() => {
@@ -365,7 +374,6 @@ const MobileMenu: React.FC<{
             </button>
           </div>
 
-          {/* FECHAR PROJETO */}
           <div className="mt-auto pt-4 border-t border-white/10">
             <button
               onClick={() => {
@@ -404,7 +412,6 @@ const EditorInterface: React.FC<{ onBackToWelcome: () => void }> = ({ onBackToWe
 
   const { isAuthenticated, syncProject } = useUserStore();
 
-  // Estados para modais
   const [showAIGenerationModal, setShowAIGenerationModal] = useState(false);
   const [showDesignSuggestions, setShowDesignSuggestions] = useState(false);
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -412,7 +419,6 @@ const EditorInterface: React.FC<{ onBackToWelcome: () => void }> = ({ onBackToWe
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
 
-  // Keyboard shortcut for admin panel (Ctrl+Shift+A)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.ctrlKey && e.shiftKey && e.key === 'A') {
@@ -424,7 +430,6 @@ const EditorInterface: React.FC<{ onBackToWelcome: () => void }> = ({ onBackToWe
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Auto-save when project changes
   useEffect(() => {
     if (currentProject && isAuthenticated) {
       const timeout = setTimeout(() => {
@@ -434,7 +439,6 @@ const EditorInterface: React.FC<{ onBackToWelcome: () => void }> = ({ onBackToWe
     }
   }, [currentProject, isAuthenticated, syncProject]);
 
-  // Mostrar painel de propriedades quando elemento é selecionado
   useEffect(() => {
     if (selectedElement) {
       setPanel('properties', true);
@@ -443,7 +447,6 @@ const EditorInterface: React.FC<{ onBackToWelcome: () => void }> = ({ onBackToWe
 
   return (
     <div className="min-h-screen flex bg-[#0a0a0f] overflow-hidden">
-      {/* Toolbar - Esconde no mobile, ou vira overlay */}
       <AnimatePresence mode="wait">
         {sidebarOpen && (
           <motion.div
@@ -458,13 +461,9 @@ const EditorInterface: React.FC<{ onBackToWelcome: () => void }> = ({ onBackToWe
         )}
       </AnimatePresence>
 
-      {/* Área principal do canvas */}
       <div className="flex-1 relative flex flex-col min-w-0 min-h-0">
-        {/* Header do projeto - Responsivo */}
         <div className="flex-shrink-0 h-14 md:h-16 flex items-center justify-between px-2 md:px-4 bg-[#0a0a0f]/90 backdrop-blur-xl border-b border-white/10 z-30">
-          {/* Lado esquerdo: Voltar + Toggle + Info */}
           <div className="flex items-center gap-1 md:gap-3 min-w-0 flex-1">
-            {/* Botão VOLTAR para Welcome - REMOVIDO DAQUI, AGORA ESTÁ NO MENU MOBILE */}
             <button
               onClick={toggleSidebar}
               className="p-2 hover:bg-white/10 rounded-lg transition-colors flex-shrink-0 hidden sm:block"
@@ -490,7 +489,6 @@ const EditorInterface: React.FC<{ onBackToWelcome: () => void }> = ({ onBackToWe
             </div>
           </div>
           
-          {/* Centro: View Mode Toggle - ÚNICO LOCAL DO TOGGLE */}
           <div className="flex items-center justify-center flex-shrink-0">
             <div className="flex items-center bg-white/5 border border-white/10 rounded-lg p-0.5 md:p-1">
               <button
@@ -516,9 +514,8 @@ const EditorInterface: React.FC<{ onBackToWelcome: () => void }> = ({ onBackToWe
             </div>
           </div>
 
-          {/* Lado direito: Ações - Desktop completo, Mobile simplificado */}
           <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
-            {/* Desktop: todos os botões */}
+            {/* Desktop: botões completos - SÓ APARECEM EM lg */}
             <div className="hidden lg:flex items-center gap-2">
               <button
                 onClick={() => setPanel('furniture', !panels.furniture)}
@@ -577,29 +574,7 @@ const EditorInterface: React.FC<{ onBackToWelcome: () => void }> = ({ onBackToWe
               <div className="h-6 w-px bg-white/20 mx-1" />
             </div>
 
-            {/* Tablet: botões compactos */}
-            <div className="hidden md:flex lg:hidden items-center gap-1">
-              <button
-                onClick={() => setPanel('furniture', !panels.furniture)}
-                className={`p-2 rounded-lg ${panels.furniture ? 'bg-[#c9a962]/20 text-[#c9a962]' : 'text-white/60'}`}
-              >
-                🛋️
-              </button>
-              <button
-                onClick={() => setPanel('ai', !panels.ai)}
-                className={`p-2 rounded-lg ${panels.ai ? 'bg-[#c9a962]/20 text-[#c9a962]' : 'text-white/60'}`}
-              >
-                <Sparkles size={18} />
-              </button>
-              <button
-                onClick={() => setPanel('properties', !panels.properties)}
-                className={`p-2 rounded-lg ${panels.properties ? 'bg-[#c9a962]/20 text-[#c9a962]' : 'text-white/60'}`}
-              >
-                ⚙️
-              </button>
-            </div>
-
-            {/* Mobile: menu hambúrguer */}
+            {/* Mobile: menu hambúrguer - APARECE EM lg:hidden */}
             <button
               onClick={() => setShowMobileMenu(true)}
               className="lg:hidden p-2 hover:bg-white/10 rounded-lg transition-colors"
@@ -607,17 +582,13 @@ const EditorInterface: React.FC<{ onBackToWelcome: () => void }> = ({ onBackToWe
               <Menu size={20} className="text-white/60" />
             </button>
 
-            {/* User Menu - sempre visível */}
             <UserMenu
-              isOpen={true}
-              onClose={() => {}}
               onLogin={() => setShowLoginModal(true)}
               onExport={() => setShowExportModal(true)}
             />
           </div>
         </div>
 
-        {/* Canvas - Ocupa o espaço restante */}
         <div className="flex-1 relative overflow-hidden min-h-0">
           <AnimatePresence mode="wait">
             <motion.div
@@ -634,7 +605,6 @@ const EditorInterface: React.FC<{ onBackToWelcome: () => void }> = ({ onBackToWe
         </div>
       </div>
 
-      {/* Painéis laterais - Desktop: lateral, Mobile: overlay */}
       <AnimatePresence>
         {panels.furniture && (
           <motion.div
@@ -677,7 +647,6 @@ const EditorInterface: React.FC<{ onBackToWelcome: () => void }> = ({ onBackToWe
         )}
       </AnimatePresence>
 
-      {/* Mobile Menu - VERSÃO PREMIUM */}
       <MobileMenu
         isOpen={showMobileMenu}
         onClose={() => setShowMobileMenu(false)}
@@ -690,7 +659,6 @@ const EditorInterface: React.FC<{ onBackToWelcome: () => void }> = ({ onBackToWe
         onBackToWelcome={onBackToWelcome}
       />
 
-      {/* Modals */}
       <AIGenerationModal
         isOpen={showAIGenerationModal}
         onClose={() => setShowAIGenerationModal(false)}
@@ -722,15 +690,14 @@ const EditorInterface: React.FC<{ onBackToWelcome: () => void }> = ({ onBackToWe
   );
 };
 
-// Componente principal
+// Componente principal - CORRIGIDO para usar CreateProjectModal
 function App() {
   const [showWelcome, setShowWelcome] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const { currentProject, createProject, clearCurrentProject } = useProjectStore();
+  const { currentProject, createProject, clearCurrentProject, updateProject } = useProjectStore();
   const { loadTemplates, loadStyles } = useTemplateStore();
   const { loadPlans, initialize } = useUserStore();
 
-  // Load initial data
   useEffect(() => {
     loadTemplates();
     loadStyles();
@@ -738,38 +705,65 @@ function App() {
     initialize();
   }, [loadTemplates, loadStyles, loadPlans, initialize]);
 
-  // Se já tem projeto, mostrar editor
   useEffect(() => {
     if (currentProject) {
       setShowWelcome(false);
     }
   }, [currentProject]);
 
-  // NOVO: Criar projeto diretamente sem modal de template
+  // CORRIGIDO: Abre o modal de criação em vez de criar direto
   const handleCreateProject = () => {
-    // Cria projeto com valores padrão
-    createProject('Novo Projeto', 'Projeto residencial');
+    setShowCreateModal(true);
+  };
+
+  // CORRIGIDO: Recebe configuração completa do modal
+  const handleCreateWithConfig = (config: ProjectConfig) => {
+    // Cria projeto com nome e descrição
+    createProject(config.name, config.description);
     
-    // Não abre mais o modal de template, vai direto para o canvas
+    // Aplica configurações adicionais
+    const currentProject = useProjectStore.getState().currentProject;
+    if (currentProject) {
+      const updates: any = {
+        settings: {
+          ...currentProject.settings,
+          unit: config.unit,
+          defaultWallHeight: config.wallHeight,
+          defaultWallThickness: config.wallThickness,
+          terrainSize: { x: config.terrainSize.width, y: config.terrainSize.depth },
+        },
+        exterior: {
+          ...currentProject.exterior,
+          terrainSize: { x: config.terrainSize.width, y: config.terrainSize.depth },
+        }
+      };
+      
+      // Aplica template se selecionado
+      if (config.template) {
+        updates.exterior.terrainSize = config.template.terrainSize;
+        updates.settings.terrainSize = config.template.terrainSize;
+        updates.settings.defaultWallHeight = config.template.defaultWallHeight;
+      }
+      
+      updateProject(updates);
+    }
+    
     setShowCreateModal(false);
     setShowWelcome(false);
   };
 
   const handleOpenProjects = () => {
-    // Pode implementar lista de projetos depois
     setShowCreateModal(true);
   };
 
   const handleExploreTemplates = () => {
-    // Por enquanto cria projeto direto também
-    handleCreateProject();
+    setShowCreateModal(true);
   };
 
   const handleSubscribePro = () => {
     alert('Assinatura Pro - Em breve!');
   };
 
-  // Voltar para Welcome e fechar projeto
   const handleBackToWelcome = () => {
     clearCurrentProject();
     setShowWelcome(true);
@@ -787,7 +781,7 @@ function App() {
         <CreateProjectModal
           isOpen={showCreateModal}
           onClose={() => setShowCreateModal(false)}
-          onCreate={handleCreateProject}
+          onCreate={handleCreateWithConfig}
         />
       </>
     );
