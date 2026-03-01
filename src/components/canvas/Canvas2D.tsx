@@ -16,7 +16,7 @@ interface SnapPoint {
 
 const Canvas2D: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const canvasContainerRef = useRef<HTMLDivElement>(null);
   const [isPanning, setIsPanning] = useState(false);
   const [panStart, setPanStart] = useState<Point>({ x: 0, y: 0 });
   const [mousePos, setMousePos] = useState<Point>({ x: 0, y: 0 });
@@ -727,12 +727,13 @@ const Canvas2D: React.FC = () => {
     };
   }, [isDrawing, drawStart, drawCurrent, angleLock, calculateAngle, snapAngle]);
 
-  // Resize handler
+  // Resize handler - USA O CONTAINER DO CANVAS, NÃO O CONTAINER PRINCIPAL
   useEffect(() => {
     const handleResize = () => {
-      if (containerRef.current && canvasRef.current) {
-        canvasRef.current.width = containerRef.current.clientWidth;
-        canvasRef.current.height = containerRef.current.clientHeight;
+      if (canvasContainerRef.current && canvasRef.current) {
+        const rect = canvasContainerRef.current.getBoundingClientRect();
+        canvasRef.current.width = rect.width;
+        canvasRef.current.height = rect.height;
       }
     };
     
@@ -752,107 +753,111 @@ const Canvas2D: React.FC = () => {
   }, []);
 
   return (
-    <div ref={containerRef} className="w-full h-full relative" style={{ touchAction: 'none' }}>
-      <canvas
-        ref={canvasRef}
-        className={`${isPanning ? 'cursor-grabbing' : toolMode === 'select' ? 'cursor-default' : 'cursor-crosshair'}`}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerLeave={() => {
-          setIsPanning(false);
-          if (isDrawing) endDrawing();
-          setSnapIndicator(null);
-        }}
-        onWheel={handleWheel}
-        style={{ touchAction: 'none' }}
-      />
-      
-      {/* Floating Toolbar */}
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 p-2 bg-[#1a1a1f]/90 backdrop-blur-xl border border-white/10 rounded-xl">
-        {/* Zoom Controls */}
-        <div className="flex items-center gap-1">
-          <button
-            onClick={() => setCanvasScale(scale * 1.2)}
-            className="w-9 h-9 flex items-center justify-center hover:bg-white/10 rounded-lg transition-colors text-white/70 hover:text-white"
-            title="Zoom In"
-          >
-            +
-          </button>
-          <span className="text-xs text-white/50 w-16 text-center">
-            {scale.toFixed(0)}%
-          </span>
-          <button
-            onClick={() => setCanvasScale(scale * 0.8)}
-            className="w-9 h-9 flex items-center justify-center hover:bg-white/10 rounded-lg transition-colors text-white/70 hover:text-white"
-            title="Zoom Out"
-          >
-            -
-          </button>
-        </div>
-        
-        <div className="w-px h-6 bg-white/10" />
-        
-        {/* Snap Toggle */}
-        <button
-          onClick={() => setSnapEnabled(!snapEnabled)}
-          className={`w-9 h-9 flex items-center justify-center rounded-lg transition-colors ${
-            snapEnabled 
-              ? 'bg-[#c9a962]/20 text-[#c9a962]' 
-              : 'hover:bg-white/10 text-white/50'
-          }`}
-          title="Snap to Grid/Points"
-        >
-          <Magnet size={16} />
-        </button>
-        
-        {/* Measurements Toggle */}
-        <button
-          onClick={() => setShowMeasurements(!showMeasurements)}
-          className={`w-9 h-9 flex items-center justify-center rounded-lg transition-colors ${
-            showMeasurements 
-              ? 'bg-[#c9a962]/20 text-[#c9a962]' 
-              : 'hover:bg-white/10 text-white/50'
-          }`}
-          title="Show Measurements"
-        >
-          <Ruler size={16} />
-        </button>
-        
-        <div className="w-px h-6 bg-white/10" />
-        
-        {/* Reset View */}
-        <button
-          onClick={() => {
-            setCanvasScale(20);
-            setCanvasOffset({ x: 0, y: 0 });
+    <div className="flex flex-col h-full" style={{ touchAction: 'none' }}>
+      {/* Canvas Container - flex-1 para ocupar espaço disponível */}
+      <div ref={canvasContainerRef} className="flex-1 min-h-0 relative">
+        <canvas
+          ref={canvasRef}
+          className={`absolute inset-0 w-full h-full ${isPanning ? 'cursor-grabbing' : toolMode === 'select' ? 'cursor-default' : 'cursor-crosshair'}`}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerUp}
+          onPointerLeave={() => {
+            setIsPanning(false);
+            if (isDrawing) endDrawing();
+            setSnapIndicator(null);
           }}
-          className="w-9 h-9 flex items-center justify-center hover:bg-white/10 rounded-lg transition-colors text-white/70 hover:text-white"
-          title="Reset View"
-        >
-          ⌖
-        </button>
+          onWheel={handleWheel}
+          style={{ touchAction: 'none' }}
+        />
       </div>
       
-      {/* Info Panel */}
-      <div className="absolute bottom-6 left-6 p-3 bg-[#1a1a1f]/90 backdrop-blur-xl border border-white/10 rounded-xl">
-        <div className="text-xs text-white/50">
-          <div>Pos: {mousePos.x.toFixed(0)}, {mousePos.y.toFixed(0)}</div>
-          {snapIndicator && (
-            <div className="text-[#c9a962]">
-              Snap: {snapIndicator.type}
-            </div>
-          )}
-          {angleLock && (
-            <div className="text-[#c9a962]">
-              Ângulo travado: {lockedAngle?.toFixed(0)}°
-            </div>
-          )}
+      {/* Controls Bar - Flex layout, no absolute positioning */}
+      <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-[#1a1a1f]/90 backdrop-blur-xl border-t border-white/10 flex-shrink-0">
+        {/* Info Panel */}
+        <div className="flex items-center gap-3">
+          <div className="text-xs text-white/50">
+            <div>Pos: {mousePos.x.toFixed(0)}, {mousePos.y.toFixed(0)}</div>
+            {snapIndicator && (
+              <div className="text-[#c9a962]">
+                Snap: {snapIndicator.type}
+              </div>
+            )}
+            {angleLock && (
+              <div className="text-[#c9a962]">
+                Ângulo travado: {lockedAngle?.toFixed(0)}°
+              </div>
+            )}
+          </div>
         </div>
-      </div>
-      
-      {/* Scale Indicator */}
-      <div className="absolute bottom-6 right-6 px-3 py-2 bg-[#1a1a1f]/90 backdrop-blur-xl border border-white/10 rounded-lg">
+
+        {/* Floating Toolbar */}
+        <div className="flex items-center gap-2">
+          {/* Zoom Controls */}
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setCanvasScale(scale * 1.2)}
+              className="w-9 h-9 flex items-center justify-center hover:bg-white/10 rounded-lg transition-colors text-white/70 hover:text-white"
+              title="Zoom In"
+            >
+              +
+            </button>
+            <span className="text-xs text-white/50 w-16 text-center">
+              {scale.toFixed(0)}%
+            </span>
+            <button
+              onClick={() => setCanvasScale(scale * 0.8)}
+              className="w-9 h-9 flex items-center justify-center hover:bg-white/10 rounded-lg transition-colors text-white/70 hover:text-white"
+              title="Zoom Out"
+            >
+              -
+            </button>
+          </div>
+          
+          <div className="w-px h-6 bg-white/10" />
+          
+          {/* Snap Toggle */}
+          <button
+            onClick={() => setSnapEnabled(!snapEnabled)}
+            className={`w-9 h-9 flex items-center justify-center rounded-lg transition-colors ${
+              snapEnabled 
+                ? 'bg-[#c9a962]/20 text-[#c9a962]' 
+                : 'hover:bg-white/10 text-white/50'
+            }`}
+            title="Snap to Grid/Points"
+          >
+            <Magnet size={16} />
+          </button>
+          
+          {/* Measurements Toggle */}
+          <button
+            onClick={() => setShowMeasurements(!showMeasurements)}
+            className={`w-9 h-9 flex items-center justify-center rounded-lg transition-colors ${
+              showMeasurements 
+                ? 'bg-[#c9a962]/20 text-[#c9a962]' 
+                : 'hover:bg-white/10 text-white/50'
+            }`}
+            title="Show Measurements"
+          >
+            <Ruler size={16} />
+          </button>
+          
+          <div className="w-px h-6 bg-white/10" />
+          
+          {/* Reset View */}
+          <button
+            onClick={() => {
+              setCanvasScale(20);
+              setCanvasOffset({ x: 0, y: 0 });
+            }}
+            className="w-9 h-9 flex items-center justify-center hover:bg-white/10 rounded-lg transition-colors text-white/70 hover:text-white"
+            title="Reset View"
+          >
+            ⌖
+          </button>
+        </div>
+
+        {/* Scale Indicator */}
         <div className="flex items-center gap-2 text-xs text-white/60">
           <Grid3X3 size={14} />
           <span>{currentProject?.settings.gridSize || 0.5}m grid</span>
