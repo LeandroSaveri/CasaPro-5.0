@@ -1,20 +1,11 @@
+// ============================================
+// ARQUIVO 8: src/components/modals/ExportModal.tsx
+// ============================================
+
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import {
-  X,
-  FileText,
-  Image,
-  Box,
-  Code,
-  Download,
-  Loader2,
-  CheckCircle,
-  Settings,
-  ChevronDown,
-  ChevronUp,
-} from 'lucide-react';
-import { cloudService, type ExportOptions } from '../../services/cloudService';
-import type { Project } from '../../types';
+import { X, Download, FileText, Image, Box, Loader2, Check } from 'lucide-react';
+import type { Project, ExportFormat, ExportOptions } from '@/types';
 
 interface ExportModalProps {
   isOpen: boolean;
@@ -22,52 +13,13 @@ interface ExportModalProps {
   project: Project;
 }
 
-type ExportFormat = 'pdf' | 'png' | 'jpg' | 'glb' | 'json';
-
-interface FormatOption {
-  id: ExportFormat;
-  name: string;
-  description: string;
-  icon: React.ReactNode;
-  extension: string;
-}
-
-const formats: FormatOption[] = [
-  {
-    id: 'pdf',
-    name: 'PDF',
-    description: 'Relatório completo com medições e especificações',
-    icon: <FileText className="w-6 h-6" />,
-    extension: 'pdf',
-  },
-  {
-    id: 'png',
-    name: 'PNG',
-    description: 'Imagem de alta qualidade do projeto 3D',
-    icon: <Image className="w-6 h-6" />,
-    extension: 'png',
-  },
-  {
-    id: 'jpg',
-    name: 'JPG',
-    description: 'Imagem compactada do projeto 3D',
-    icon: <Image className="w-6 h-6" />,
-    extension: 'jpg',
-  },
-  {
-    id: 'glb',
-    name: 'GLB',
-    description: 'Modelo 3D para importar em outros softwares',
-    icon: <Box className="w-6 h-6" />,
-    extension: 'glb',
-  },
-  {
-    id: 'json',
-    name: 'JSON',
-    description: 'Dados do projeto em formato JSON',
-    icon: <Code className="w-6 h-6" />,
-    extension: 'json',
-  },
+const exportFormats: { id: ExportFormat; name: string; icon: React.ReactNode; description: string }[] = [
+  { id: 'pdf', name: 'PDF', icon: <FileText className="w-5 h-5" />, description: 'Documento com plantas e medidas' },
+  { id: 'png', name: 'PNG', icon: <Image className="w-5 h-5" />, description: 'Imagem de alta qualidade' },
+  { id: 'jpg', name: 'JPG', icon: <Image className="w-5 h-5" />, description: 'Imagem compacta' },
+  { id: 'dwg', name: 'DWG', icon: <FileText className="w-5 h-5" />, description: 'AutoCAD compatível' },
+  { id: 'obj', name: 'OBJ', icon: <Box className="w-5 h-5" />, description: 'Modelo 3D universal' },
+  { id: 'fbx', name: 'FBX', icon: <Box className="w-5 h-5" />, description: 'Modelo 3D avançado' },
 ];
 
 export const ExportModal: React.FC<ExportModalProps> = ({
@@ -76,56 +28,20 @@ export const ExportModal: React.FC<ExportModalProps> = ({
   project,
 }) => {
   const [selectedFormat, setSelectedFormat] = useState<ExportFormat>('pdf');
-  const [showOptions, setShowOptions] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
-  const [exportComplete, setExportComplete] = useState(false);
-  const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
-
-  const [options, setOptions] = useState<ExportOptions>({
-    format: 'pdf',
-    quality: 'high',
-    includeMeasurements: true,
-    includeFurniture: true,
-  });
+  const [isComplete, setIsComplete] = useState(false);
 
   const handleExport = async () => {
     setIsExporting(true);
-    setExportComplete(false);
-
-    const result = await cloudService.exportProject(project, {
-      ...options,
-      format: selectedFormat,
-    });
-
-    setIsExporting(false);
-
-    if (result.success && result.url) {
-      setDownloadUrl(result.url);
-      setExportComplete(true);
-
-      // Auto-trigger download
-      const link = document.createElement('a');
-      link.href = result.url;
-      link.download = `${project.name}.${formats.find(f => f.id === selectedFormat)?.extension}`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-    }
-  };
-
-  const resetAndClose = () => {
-    setSelectedFormat('pdf');
-    setShowOptions(false);
-    setIsExporting(false);
-    setExportComplete(false);
-    setDownloadUrl(null);
-    setOptions({
-      format: 'pdf',
-      quality: 'high',
-      includeMeasurements: true,
-      includeFurniture: true,
-    });
-    onClose();
+    // Simula exportação - substituir por lógica real
+    setTimeout(() => {
+      setIsExporting(false);
+      setIsComplete(true);
+      setTimeout(() => {
+        setIsComplete(false);
+        onClose();
+      }, 1500);
+    }, 2000);
   };
 
   if (!isOpen) return null;
@@ -136,210 +52,105 @@ export const ExportModal: React.FC<ExportModalProps> = ({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
-        onClick={resetAndClose}
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+        onClick={onClose}
       >
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-          className="relative w-full max-w-lg bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden"
-          onClick={e => e.stopPropagation()}
+          className="relative w-full max-w-2xl bg-[#1a1a1f] border border-white/10 rounded-2xl overflow-hidden"
+          onClick={(e) => e.stopPropagation()}
         >
-          {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
-            <div>
-              <h2 className="text-xl font-bold text-gray-900 dark:text-white">
-                Exportar Projeto
-              </h2>
-              <p className="text-sm text-gray-500 dark:text-gray-400">
-                {project.name}
-              </p>
+          <div className="flex items-center justify-between p-6 border-b border-white/10">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[#c9a962]/20 flex items-center justify-center border border-[#c9a962]/30">
+                <Download className="w-5 h-5 text-[#c9a962]" />
+              </div>
+              <div>
+                <h2 className="text-xl font-bold text-white">Exportar Projeto</h2>
+                <p className="text-sm text-white/60">{project.name}</p>
+              </div>
             </div>
             <button
-              onClick={resetAndClose}
-              className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+              onClick={onClose}
+              className="p-2 hover:bg-white/10 rounded-lg transition-colors text-white/60 hover:text-white"
             >
-              <X className="w-5 h-5" />
+              <X size={20} />
             </button>
           </div>
 
-          {/* Content */}
           <div className="p-6 space-y-6">
-            {/* Success State */}
-            {exportComplete ? (
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="text-center py-8"
-              >
-                <div className="w-16 h-16 bg-green-100 dark:bg-green-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <CheckCircle className="w-8 h-8 text-green-600 dark:text-green-400" />
-                </div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                  Exportação concluída!
-                </h3>
-                <p className="text-gray-500 dark:text-gray-400 mb-6">
-                  Seu arquivo foi baixado automaticamente
-                </p>
-                {downloadUrl && (
-                  <a
-                    href={downloadUrl}
-                    download={`${project.name}.${formats.find(f => f.id === selectedFormat)?.extension}`}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-                  >
-                    <Download className="w-4 h-4" />
-                    Baixar novamente
-                  </a>
-                )}
-              </motion.div>
-            ) : (
-              <>
-                {/* Format Selection */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-                    Formato de exportação
-                  </label>
-                  <div className="grid grid-cols-1 gap-2">
-                    {formats.map((format) => (
-                      <button
-                        key={format.id}
-                        onClick={() => setSelectedFormat(format.id)}
-                        className={`flex items-center gap-4 p-4 rounded-xl border-2 transition-all text-left ${
-                          selectedFormat === format.id
-                            ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
-                            : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
-                        }`}
-                      >
-                        <div className={`p-2 rounded-lg ${
-                          selectedFormat === format.id
-                            ? 'bg-blue-500 text-white'
-                            : 'bg-gray-100 dark:bg-gray-800 text-gray-500'
-                        }`}>
-                          {format.icon}
-                        </div>
-                        <div className="flex-1">
-                          <h3 className="font-medium text-gray-900 dark:text-white">
-                            {format.name}
-                          </h3>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">
-                            {format.description}
-                          </p>
-                        </div>
-                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                          selectedFormat === format.id
-                            ? 'border-blue-500 bg-blue-500'
-                            : 'border-gray-300 dark:border-gray-600'
-                        }`}>
-                          {selectedFormat === format.id && (
-                            <div className="w-2 h-2 bg-white rounded-full" />
-                          )}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Options */}
-                <div>
+            <div>
+              <label className="block text-sm font-medium text-white/80 mb-3">
+                Formato de Exportação
+              </label>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {exportFormats.map((format) => (
                   <button
-                    onClick={() => setShowOptions(!showOptions)}
-                    className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors"
+                    key={format.id}
+                    onClick={() => setSelectedFormat(format.id)}
+                    className={`p-4 rounded-xl border-2 transition-all text-left ${
+                      selectedFormat === format.id
+                        ? 'border-[#c9a962] bg-[#c9a962]/10'
+                        : 'border-white/10 hover:border-white/20 bg-white/5'
+                    }`}
                   >
-                    <Settings className="w-4 h-4" />
-                    Opções avançadas
-                    {showOptions ? (
-                      <ChevronUp className="w-4 h-4" />
-                    ) : (
-                      <ChevronDown className="w-4 h-4" />
-                    )}
+                    <div className={`mb-2 ${selectedFormat === format.id ? 'text-[#c9a962]' : 'text-white/60'}`}>
+                      {format.icon}
+                    </div>
+                    <div className="font-medium text-white text-sm">{format.name}</div>
+                    <div className="text-xs text-white/50 mt-1">{format.description}</div>
                   </button>
+                ))}
+              </div>
+            </div>
 
-                  <AnimatePresence>
-                    {showOptions && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                        className="overflow-hidden"
-                      >
-                        <div className="pt-4 space-y-4">
-                          {/* Quality */}
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                              Qualidade
-                            </label>
-                            <div className="flex gap-2">
-                              {(['low', 'medium', 'high'] as const).map((q) => (
-                                <button
-                                  key={q}
-                                  onClick={() => setOptions({ ...options, quality: q })}
-                                  className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
-                                    options.quality === q
-                                      ? 'bg-blue-600 text-white'
-                                      : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
-                                  }`}
-                                >
-                                  {q === 'low' && 'Baixa'}
-                                  {q === 'medium' && 'Média'}
-                                  {q === 'high' && 'Alta'}
-                                </button>
-                              ))}
-                            </div>
-                          </div>
-
-                          {/* Checkboxes */}
-                          <div className="space-y-2">
-                            <label className="flex items-center gap-3 cursor-pointer">
-                              <input
-                                type="checkbox"
-                                checked={options.includeMeasurements}
-                                onChange={(e) => setOptions({ ...options, includeMeasurements: e.target.checked })}
-                                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                              />
-                              <span className="text-sm text-gray-700 dark:text-gray-300">
-                                Incluir medições
-                              </span>
-                            </label>
-                            <label className="flex items-center gap-3 cursor-pointer">
-                              <input
-                                type="checkbox"
-                                checked={options.includeFurniture}
-                                onChange={(e) => setOptions({ ...options, includeFurniture: e.target.checked })}
-                                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                              />
-                              <span className="text-sm text-gray-700 dark:text-gray-300">
-                                Incluir móveis
-                              </span>
-                            </label>
-                          </div>
-                        </div>
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+            <div className="flex items-center gap-2 p-4 bg-white/5 rounded-xl border border-white/10">
+              <div className="w-10 h-10 rounded-lg bg-[#c9a962]/20 flex items-center justify-center">
+                <span className="text-lg">📐</span>
+              </div>
+              <div>
+                <div className="text-sm font-medium text-white">Incluir dimensões</div>
+                <div className="text-xs text-white/50">Medidas e cotas no export</div>
+              </div>
+              <div className="ml-auto">
+                <div className="w-5 h-5 rounded border border-[#c9a962] bg-[#c9a962] flex items-center justify-center">
+                  <Check className="w-3 h-3 text-[#0a0a0f]" />
                 </div>
+              </div>
+            </div>
+          </div>
 
-                {/* Export Button */}
-                <button
-                  onClick={handleExport}
-                  disabled={isExporting}
-                  className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isExporting ? (
-                    <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      Exportando...
-                    </>
-                  ) : (
-                    <>
-                      <Download className="w-5 h-5" />
-                      Exportar como {formats.find(f => f.id === selectedFormat)?.name}
-                    </>
-                  )}
-                </button>
-              </>
-            )}
+          <div className="flex items-center justify-end gap-3 p-6 border-t border-white/10">
+            <button
+              onClick={onClose}
+              className="px-4 py-2 rounded-lg text-white/60 hover:text-white hover:bg-white/5 transition-all"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleExport}
+              disabled={isExporting || isComplete}
+              className="flex items-center gap-2 px-6 py-2 rounded-lg bg-[#c9a962] text-[#0a0a0f] font-medium hover:bg-[#d4b56a] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isComplete ? (
+                <>
+                  <Check className="w-4 h-4" />
+                  <span>Concluído!</span>
+                </>
+              ) : isExporting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Exportando...</span>
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4" />
+                  <span>Exportar</span>
+                </>
+              )}
+            </button>
           </div>
         </motion.div>
       </motion.div>
