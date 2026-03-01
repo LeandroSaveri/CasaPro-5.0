@@ -316,7 +316,7 @@ const EditorInterface: React.FC<{ onBackToWelcome: () => void }> = ({ onBackToWe
   }, [selectedElement, setPanel]);
 
   return (
-    <div className="min-h-[100dvh] h-[100dvh] flex bg-[#0a0a0f] overflow-hidden">
+    <div className="min-h-screen flex bg-[#0a0a0f] overflow-hidden">
       {/* Toolbar - Esconde no mobile, ou vira overlay */}
       <AnimatePresence mode="wait">
         {sidebarOpen && (
@@ -325,7 +325,7 @@ const EditorInterface: React.FC<{ onBackToWelcome: () => void }> = ({ onBackToWe
             animate={{ width: 80, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="flex-shrink-0 max-md:absolute max-md:left-0 max-md:top-16 max-md:h-[calc(100dvh-64px)] max-md:z-40"
+            className="flex-shrink-0 max-md:absolute max-md:left-0 max-md:top-16 max-md:h-[calc(100%-64px)] max-md:z-40"
           >
             <Toolbar />
           </motion.div>
@@ -333,7 +333,7 @@ const EditorInterface: React.FC<{ onBackToWelcome: () => void }> = ({ onBackToWe
       </AnimatePresence>
 
       {/* Área principal do canvas */}
-      <div className="flex-1 relative flex flex-col min-w-0">
+      <div className="flex-1 relative flex flex-col min-w-0 min-h-0">
         {/* Header do projeto - Responsivo */}
         <div className="flex-shrink-0 h-14 md:h-16 flex items-center justify-between px-2 md:px-4 bg-[#0a0a0f]/90 backdrop-blur-xl border-b border-white/10 z-30">
           {/* Lado esquerdo: Voltar + Toggle + Info */}
@@ -372,7 +372,7 @@ const EditorInterface: React.FC<{ onBackToWelcome: () => void }> = ({ onBackToWe
             </div>
           </div>
           
-          {/* Centro: View Mode Toggle */}
+          {/* Centro: View Mode Toggle - ÚNICO LOCAL DO TOGGLE */}
           <div className="flex items-center justify-center flex-shrink-0">
             <div className="flex items-center bg-white/5 border border-white/10 rounded-lg p-0.5 md:p-1">
               <button
@@ -500,7 +500,7 @@ const EditorInterface: React.FC<{ onBackToWelcome: () => void }> = ({ onBackToWe
         </div>
 
         {/* Canvas - Ocupa o espaço restante */}
-        <div className="flex-1 relative overflow-hidden">
+        <div className="flex-1 relative overflow-hidden min-h-0">
           <AnimatePresence mode="wait">
             <motion.div
               key={viewMode}
@@ -524,7 +524,7 @@ const EditorInterface: React.FC<{ onBackToWelcome: () => void }> = ({ onBackToWe
             animate={{ width: 320, opacity: 1, x: 0 }}
             exit={{ width: 0, opacity: 0, x: 20 }}
             transition={{ duration: 0.2 }}
-            className="flex-shrink-0 overflow-hidden max-md:absolute max-md:right-0 max-md:top-14 max-md:h-[calc(100dvh-56px)] max-md:z-40 bg-[#0a0a0f] border-l border-white/10"
+            className="flex-shrink-0 overflow-hidden max-md:absolute max-md:right-0 max-md:top-14 max-md:h-[calc(100%-56px)] max-md:z-40 bg-[#0a0a0f] border-l border-white/10"
           >
             <FurniturePanel />
           </motion.div>
@@ -538,7 +538,7 @@ const EditorInterface: React.FC<{ onBackToWelcome: () => void }> = ({ onBackToWe
             animate={{ width: 320, opacity: 1, x: 0 }}
             exit={{ width: 0, opacity: 0, x: 20 }}
             transition={{ duration: 0.2 }}
-            className="flex-shrink-0 overflow-hidden max-md:absolute max-md:right-0 max-md:top-14 max-md:h-[calc(100dvh-56px)] max-md:z-40 bg-[#0a0a0f] border-l border-white/10"
+            className="flex-shrink-0 overflow-hidden max-md:absolute max-md:right-0 max-md:top-14 max-md:h-[calc(100%-56px)] max-md:z-40 bg-[#0a0a0f] border-l border-white/10"
           >
             <AIAssistant />
           </motion.div>
@@ -552,7 +552,7 @@ const EditorInterface: React.FC<{ onBackToWelcome: () => void }> = ({ onBackToWe
             animate={{ width: 288, opacity: 1, x: 0 }}
             exit={{ width: 0, opacity: 0, x: 20 }}
             transition={{ duration: 0.2 }}
-            className="flex-shrink-0 overflow-hidden max-md:absolute max-md:right-0 max-md:top-14 max-md:h-[calc(100dvh-56px)] max-md:z-40 bg-[#0a0a0f] border-l border-white/10"
+            className="flex-shrink-0 overflow-hidden max-md:absolute max-md:right-0 max-md:top-14 max-md:h-[calc(100%-56px)] max-md:z-40 bg-[#0a0a0f] border-l border-white/10"
           >
             <PropertiesPanel />
           </motion.div>
