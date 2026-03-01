@@ -1,7 +1,3 @@
-// ============================================
-// ARQUIVO: src/App.tsx
-// ============================================
-
 import React, { useState, useEffect } from 'react';
 import { useProjectStore } from '@/store/projectStore';
 import { useUIStore } from '@/store/uiStore';
@@ -14,8 +10,7 @@ import FurniturePanel from '@/components/ui/FurniturePanel';
 import AIAssistant from '@/components/ui/AIAssistant';
 import PropertiesPanel from '@/components/ui/PropertiesPanel';
 import WelcomeScreen from '@/components/welcome/WelcomeScreen';
-import CreateProjectModal from '@/components/modals/CreateProjectModal';
-import type { ProjectConfig } from '@/components/modals/CreateProjectModal';
+import CreateProjectModal, { ProjectConfig } from '@/components/modals/CreateProjectModal';
 import AIGenerationModal from '@/components/modals/AIGenerationModal';
 import DesignSuggestionsPanel from '@/components/panels/DesignSuggestionsPanel';
 import LoginModal from '@/components/modals/LoginModal';
@@ -723,7 +718,7 @@ function App() {
     createProject(config.name, config.description);
     
     // Aplica configurações adicionais
-    const currentProject = useProjectStore.getState().currentProject;
+    const { currentProject } = useProjectStore.getState();
     if (currentProject) {
       const updates: any = {
         settings: {
