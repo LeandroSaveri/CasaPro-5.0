@@ -29,7 +29,10 @@ import {
   Loader2,
   ArrowLeft,
   Menu,
-  X
+  X,
+  Settings,
+  FolderOpen,
+  Palette
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import './App.css';
@@ -169,7 +172,7 @@ const UserMenu: React.FC<{
   );
 };
 
-// Mobile Menu Component - VERSÃO PREMIUM GLASS
+// Mobile Menu Component - VERSÃO PREMIUM COM ÍCONES LUCIDE
 const MobileMenu: React.FC<{
   isOpen: boolean;
   onClose: () => void;
@@ -179,6 +182,7 @@ const MobileMenu: React.FC<{
   setShowAIGenerationModal: (v: boolean) => void;
   setShowDesignSuggestions: (v: boolean) => void;
   onCloseProject: () => void;
+  onBackToWelcome: () => void;
 }> = ({
   isOpen,
   onClose,
@@ -187,7 +191,8 @@ const MobileMenu: React.FC<{
   panels,
   setShowAIGenerationModal,
   setShowDesignSuggestions,
-  onCloseProject
+  onCloseProject,
+  onBackToWelcome
 }) => {
   if (!isOpen) return null;
 
@@ -210,31 +215,36 @@ const MobileMenu: React.FC<{
         >
           {/* Header com botão fechar */}
           <div className="flex items-center justify-between">
-            <span className="text-white font-semibold">Menu</span>
+            <span className="text-white font-semibold text-lg">Menu</span>
             <button 
               onClick={onClose}
-              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+              className="p-2 hover:bg-white/10 rounded-xl transition-colors"
             >
-              <X size={20} className="text-white/60" />
+              <X size={24} className="text-white/60" />
             </button>
           </div>
 
           {/* PROJETO ATUAL */}
-          <div className="bg-gradient-to-br from-[#c9a962]/10 to-transparent border border-[#c9a962]/30 rounded-2xl p-4">
-            <p className="text-xs uppercase tracking-wider text-white/40 mb-2">
-              Projeto Atual
-            </p>
-            <p className="text-white font-semibold truncate">
+          <div className="bg-gradient-to-br from-[#c9a962]/20 via-[#c9a962]/5 to-transparent border border-[#c9a962]/40 rounded-2xl p-5 shadow-lg shadow-[#c9a962]/5">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-xl bg-[#c9a962]/20 flex items-center justify-center">
+                <FolderOpen size={20} className="text-[#c9a962]" />
+              </div>
+              <p className="text-xs uppercase tracking-wider text-[#c9a962] font-medium">
+                Projeto Atual
+              </p>
+            </div>
+            <p className="text-white font-semibold text-lg truncate">
               {currentProject?.name || 'Novo Projeto'}
             </p>
-            <p className="text-xs text-white/50 mt-1">
+            <p className="text-sm text-white/40 mt-1">
               Unidade: {currentProject?.settings?.unit === 'meters' ? 'Metros' : 'Pés'}
             </p>
           </div>
 
           {/* INTELIGÊNCIA */}
-          <div className="space-y-2">
-            <p className="text-xs uppercase tracking-wider text-white/40">
+          <div className="space-y-3">
+            <p className="text-xs uppercase tracking-wider text-white/30 font-medium ml-1">
               Inteligência
             </p>
 
@@ -243,10 +253,15 @@ const MobileMenu: React.FC<{
                 setShowDesignSuggestions(true);
                 onClose();
               }}
-              className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all group"
+              className="w-full flex items-center justify-between px-5 py-4 rounded-xl bg-white/[0.03] border border-white/10 hover:bg-white/[0.06] hover:border-[#c9a962]/30 transition-all group"
             >
-              <span className="text-white/80 group-hover:text-white transition-colors">Sugestões</span>
-              <span className="text-[#c9a962]">✨</span>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-amber-500/20 to-amber-600/10 flex items-center justify-center border border-amber-500/20 group-hover:border-amber-500/40 transition-colors">
+                  <Sparkles size={18} className="text-amber-400" />
+                </div>
+                <span className="text-white/90 font-medium group-hover:text-white transition-colors">Sugestões</span>
+              </div>
+              <ArrowLeft size={16} className="text-white/20 -rotate-180 group-hover:text-[#c9a962] transition-colors" />
             </button>
 
             <button
@@ -254,16 +269,21 @@ const MobileMenu: React.FC<{
                 setShowAIGenerationModal(true);
                 onClose();
               }}
-              className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all group"
+              className="w-full flex items-center justify-between px-5 py-4 rounded-xl bg-white/[0.03] border border-white/10 hover:bg-white/[0.06] hover:border-[#c9a962]/30 transition-all group"
             >
-              <span className="text-white/80 group-hover:text-white transition-colors">Gerar Projeto</span>
-              <span className="text-[#c9a962]">🎨</span>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-violet-500/20 to-purple-600/10 flex items-center justify-center border border-violet-500/20 group-hover:border-violet-500/40 transition-colors">
+                  <Palette size={18} className="text-violet-400" />
+                </div>
+                <span className="text-white/90 font-medium group-hover:text-white transition-colors">Gerar Projeto</span>
+              </div>
+              <ArrowLeft size={16} className="text-white/20 -rotate-180 group-hover:text-[#c9a962] transition-colors" />
             </button>
           </div>
 
           {/* FERRAMENTAS */}
-          <div className="space-y-2">
-            <p className="text-xs uppercase tracking-wider text-white/40">
+          <div className="space-y-3">
+            <p className="text-xs uppercase tracking-wider text-white/30 font-medium ml-1">
               Ferramentas
             </p>
 
@@ -272,49 +292,92 @@ const MobileMenu: React.FC<{
                 setPanel('properties', !panels.properties);
                 onClose();
               }}
-              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-all group ${
+              className={`w-full flex items-center justify-between px-5 py-4 rounded-xl border transition-all group ${
                 panels.properties 
-                  ? 'bg-[#c9a962]/10 border-[#c9a962]/30' 
-                  : 'bg-white/5 border-white/10 hover:bg-white/10'
+                  ? 'bg-[#c9a962]/10 border-[#c9a962]/40' 
+                  : 'bg-white/[0.03] border-white/10 hover:bg-white/[0.06] hover:border-[#c9a962]/30'
               }`}
             >
-              <span className={`transition-colors ${panels.properties ? 'text-[#c9a962]' : 'text-white/80 group-hover:text-white'}`}>
-                Propriedades
-              </span>
-              <span className={panels.properties ? 'text-[#c9a962]' : 'text-[#c9a962]'}>⚙️</span>
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center border transition-colors ${
+                  panels.properties 
+                    ? 'bg-[#c9a962]/20 border-[#c9a962]/40' 
+                    : 'bg-white/5 border-white/10 group-hover:border-[#c9a962]/30'
+                }`}>
+                  <Settings size={18} className={panels.properties ? 'text-[#c9a962]' : 'text-white/60 group-hover:text-[#c9a962]'} />
+                </div>
+                <span className={`font-medium transition-colors ${panels.properties ? 'text-[#c9a962]' : 'text-white/90 group-hover:text-white'}`}>
+                  Propriedades
+                </span>
+              </div>
+              <div className={`w-2 h-2 rounded-full transition-colors ${panels.properties ? 'bg-[#c9a962]' : 'bg-white/20'}`} />
             </button>
           </div>
 
           {/* AÇÕES */}
-          <div className="space-y-2">
+          <div className="space-y-3">
+            <p className="text-xs uppercase tracking-wider text-white/30 font-medium ml-1">
+              Ações
+            </p>
+
             <button
               onClick={onClose}
-              className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all group"
+              className="w-full flex items-center justify-between px-5 py-4 rounded-xl bg-white/[0.03] border border-white/10 hover:bg-white/[0.06] hover:border-[#c9a962]/30 transition-all group"
             >
-              <span className="text-white/80 group-hover:text-white transition-colors">Salvar</span>
-              <span className="text-[#c9a962]">💾</span>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center border border-white/10 group-hover:border-[#c9a962]/30 transition-colors">
+                  <Save size={18} className="text-white/60 group-hover:text-[#c9a962] transition-colors" />
+                </div>
+                <span className="text-white/90 font-medium group-hover:text-white transition-colors">Salvar</span>
+              </div>
+              <ArrowLeft size={16} className="text-white/20 -rotate-180 group-hover:text-[#c9a962] transition-colors" />
             </button>
 
             <button
               onClick={onClose}
-              className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all group"
+              className="w-full flex items-center justify-between px-5 py-4 rounded-xl bg-white/[0.03] border border-white/10 hover:bg-white/[0.06] hover:border-[#c9a962]/30 transition-all group"
             >
-              <span className="text-white/80 group-hover:text-white transition-colors">Exportar</span>
-              <span className="text-[#c9a962]">📤</span>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center border border-white/10 group-hover:border-[#c9a962]/30 transition-colors">
+                  <Download size={18} className="text-white/60 group-hover:text-[#c9a962] transition-colors" />
+                </div>
+                <span className="text-white/90 font-medium group-hover:text-white transition-colors">Exportar</span>
+              </div>
+              <ArrowLeft size={16} className="text-white/20 -rotate-180 group-hover:text-[#c9a962] transition-colors" />
+            </button>
+          </div>
+
+          {/* BOTÃO VOLTAR PARA INÍCIO */}
+          <div className="mt-2">
+            <button
+              onClick={() => {
+                onBackToWelcome();
+                onClose();
+              }}
+              className="w-full flex items-center justify-between px-5 py-4 rounded-xl bg-white/[0.03] border border-white/10 hover:bg-white/[0.06] hover:border-white/20 transition-all group"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center border border-white/10 group-hover:border-white/30 transition-colors">
+                  <ArrowLeft size={18} className="text-white/60 group-hover:text-white transition-colors" />
+                </div>
+                <span className="text-white/70 font-medium group-hover:text-white transition-colors">Voltar para Início</span>
+              </div>
             </button>
           </div>
 
           {/* FECHAR PROJETO */}
-          <div className="mt-auto">
+          <div className="mt-auto pt-4 border-t border-white/10">
             <button
               onClick={() => {
                 onCloseProject();
                 onClose();
               }}
-              className="w-full px-4 py-3 rounded-xl border border-white/10 hover:bg-white/5 transition-all text-white/60 hover:text-white flex items-center justify-center gap-2"
+              className="w-full flex items-center justify-center gap-3 px-5 py-4 rounded-xl border border-white/10 hover:bg-white/[0.03] hover:border-white/20 transition-all text-white/50 hover:text-white/80"
             >
-              <span>🔁</span>
-              <span>Fechar Projeto</span>
+              <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center">
+                <FolderOpen size={16} className="text-white/40" />
+              </div>
+              <span className="font-medium">Fechar Projeto</span>
             </button>
           </div>
         </motion.div>
@@ -401,15 +464,7 @@ const EditorInterface: React.FC<{ onBackToWelcome: () => void }> = ({ onBackToWe
         <div className="flex-shrink-0 h-14 md:h-16 flex items-center justify-between px-2 md:px-4 bg-[#0a0a0f]/90 backdrop-blur-xl border-b border-white/10 z-30">
           {/* Lado esquerdo: Voltar + Toggle + Info */}
           <div className="flex items-center gap-1 md:gap-3 min-w-0 flex-1">
-            {/* Botão VOLTAR para Welcome */}
-            <button
-              onClick={onBackToWelcome}
-              className="p-2 hover:bg-white/10 rounded-lg transition-colors flex-shrink-0"
-              title="Voltar para início"
-            >
-              <ArrowLeft size={20} className="text-white/60" />
-            </button>
-
+            {/* Botão VOLTAR para Welcome - REMOVIDO DAQUI, AGORA ESTÁ NO MENU MOBILE */}
             <button
               onClick={toggleSidebar}
               className="p-2 hover:bg-white/10 rounded-lg transition-colors flex-shrink-0 hidden sm:block"
@@ -632,6 +687,7 @@ const EditorInterface: React.FC<{ onBackToWelcome: () => void }> = ({ onBackToWe
         setShowAIGenerationModal={setShowAIGenerationModal}
         setShowDesignSuggestions={setShowDesignSuggestions}
         onCloseProject={onBackToWelcome}
+        onBackToWelcome={onBackToWelcome}
       />
 
       {/* Modals */}
@@ -689,36 +745,33 @@ function App() {
     }
   }, [currentProject]);
 
-  const handleCreateProject = (config: ProjectConfig) => {
-    createProject(config.name, config.description);
+  // NOVO: Criar projeto diretamente sem modal de template
+  const handleCreateProject = () => {
+    // Cria projeto com valores padrão
+    createProject('Novo Projeto', 'Projeto residencial');
     
-    if (config.template) {
-      // TODO: Apply template rooms and settings
-    }
-    
-    if (config.style) {
-      // TODO: Apply style colors and materials
-    }
-    
+    // Não abre mais o modal de template, vai direto para o canvas
     setShowCreateModal(false);
     setShowWelcome(false);
   };
 
   const handleOpenProjects = () => {
+    // Pode implementar lista de projetos depois
     setShowCreateModal(true);
   };
 
   const handleExploreTemplates = () => {
-    setShowCreateModal(true);
+    // Por enquanto cria projeto direto também
+    handleCreateProject();
   };
 
   const handleSubscribePro = () => {
     alert('Assinatura Pro - Em breve!');
   };
 
-  // NOVO: Voltar para Welcome e fechar projeto
+  // Voltar para Welcome e fechar projeto
   const handleBackToWelcome = () => {
-    clearCurrentProject(); // Você precisa ter essa função no store
+    clearCurrentProject();
     setShowWelcome(true);
   };
 
@@ -726,7 +779,7 @@ function App() {
     return (
       <>
         <WelcomeScreen 
-          onCreateProject={() => setShowCreateModal(true)}
+          onCreateProject={handleCreateProject}
           onOpenProjects={handleOpenProjects}
           onExploreTemplates={handleExploreTemplates}
           onSubscribePro={handleSubscribePro}
