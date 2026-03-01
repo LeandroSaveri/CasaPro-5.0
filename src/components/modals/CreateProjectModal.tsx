@@ -1,8 +1,11 @@
+// ============================================
+// ARQUIVO 3: src/components/modals/CreateProjectModal.tsx
+// ============================================
+
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, ChevronRight, ChevronLeft, Ruler, Building2, Palette, Sparkles } from 'lucide-react';
 import { useTemplateStore } from '@/store/templateStore';
-import { useUserStore } from '@/store/userStore';
 import type { ProjectTemplate, DesignStyle } from '@/types';
 
 interface CreateProjectModalProps {
@@ -45,7 +48,6 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
 }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const { templates, styles } = useTemplateStore();
-  const { canCreateProject: _canCreateProject, currentPlan: _currentPlan } = useUserStore();
   
   const [config, setConfig] = useState<ProjectConfig>({
     name: '',
@@ -80,7 +82,6 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
     if (!config.name.trim()) return;
     onCreate(config);
     onClose();
-    // Reset state
     setCurrentStep(0);
     setConfig({
       name: '',
@@ -99,11 +100,11 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
   const canProceed = () => {
     switch (currentStep) {
       case 0:
-        return true; // Template is optional
+        return true;
       case 1:
         return config.name.trim().length > 0;
       case 2:
-        return true; // Style is optional
+        return true;
       case 3:
         return !config.useAI || (config.useAI && (config.aiPrompt?.trim().length || 0) > 0);
       default:
@@ -126,425 +127,412 @@ export const CreateProjectModal: React.FC<CreateProjectModalProps> = ({
           initial={{ opacity: 0, scale: 0.95, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 20 }}
-          className="relative w-full max-w-4xl max-h-[90vh] bg-[#1a1a1f] border border-white/10 rounded-2xl overflow-hidden"
+          className="relative w-full max-w-4xl max-h-[90vh] bg-[#1a1a1f] border border-white/10 rounded-2xl overflow-hidden flex flex-col"
           onClick={(e) => e.stopPropagation()}
         >
           {/* Header */}
-          <div className="flex items-center justify-between p-6 border-b border-white/10">
+          <div className="flex items-center justify-between p-6 border-b border-white/10 flex-shrink-0">
             <div>
-              <h2 className="text-xl font-bold">Novo Projeto</h2>
+              <h2 className="text-xl font-bold text-white">Novo Projeto</h2>
               <p className="text-sm text-white/60">Configure seu novo projeto residencial</p>
             </div>
             <button
               onClick={onClose}
-              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+              className="p-2 hover:bg-white/10 rounded-lg transition-colors text-white/60 hover:text-white"
             >
               <X size={20} />
             </button>
           </div>
 
-          {/* Progress Steps */}
-          <div className="flex items-center justify-center gap-2 p-4 border-b border-white/10">
+          {/* Steps Indicator */}
+          <div className="flex items-center justify-center gap-2 p-4 border-b border-white/10 flex-shrink-0">
             {steps.map((step, index) => (
               <React.Fragment key={step.id}>
                 <div
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all ${
+                  className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
                     index === currentStep
-                      ? 'bg-[#c9a962]/20 text-[#c9a962]'
+                      ? 'bg-[#c9a962]/20 text-[#c9a962] border border-[#c9a962]/30'
                       : index < currentStep
-                      ? 'text-white/60'
+                      ? 'bg-white/5 text-white/60'
                       : 'text-white/30'
                   }`}
                 >
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${
-                    index === currentStep
-                      ? 'bg-[#c9a962] text-[#0a0a0f]'
-                      : index < currentStep
-                      ? 'bg-white/20 text-white'
-                      : 'bg-white/10 text-white/50'
-                  }`}>
-                    {index < currentStep ? '✓' : index + 1}
-                  </div>
+                  {step.icon}
                   <span className="text-sm font-medium hidden sm:inline">{step.title}</span>
                 </div>
                 {index < steps.length - 1 && (
-                  <div className={`w-8 h-px ${
-                    index < currentStep ? 'bg-white/30' : 'bg-white/10'
-                  }`} />
+                  <ChevronRight size={16} className="text-white/20" />
                 )}
               </React.Fragment>
             ))}
           </div>
 
           {/* Content */}
-          <div className="p-6 overflow-y-auto max-h-[50vh]">
-            {/* Step 1: Template */}
+          <div className="flex-1 overflow-y-auto p-6">
+            {/* Step 1: Template Selection */}
             {currentStep === 0 && (
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-              >
-                <h3 className="text-lg font-semibold mb-4">Escolha um template (opcional)</h3>
-                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {/* Blank option */}
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-semibold text-white mb-2">Escolha um Template</h3>
+                  <p className="text-sm text-white/60">Selecione um template para começar ou comece do zero</p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {/* Empty Project Option */}
                   <button
                     onClick={() => setConfig({ ...config, template: null })}
-                    className={`p-4 rounded-xl border-2 transition-all text-left ${
+                    className={`p-6 rounded-xl border-2 transition-all text-left ${
                       config.template === null
                         ? 'border-[#c9a962] bg-[#c9a962]/10'
-                        : 'border-white/10 hover:border-white/30 bg-white/5'
+                        : 'border-white/10 hover:border-white/20 bg-white/5'
                     }`}
                   >
-                    <div className="text-3xl mb-2">📄</div>
-                    <div className="font-semibold">Em branco</div>
-                    <div className="text-sm text-white/60">Comece do zero</div>
+                    <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center mb-4">
+                      <span className="text-2xl">📄</span>
+                    </div>
+                    <h4 className="font-semibold text-white mb-1">Projeto em Branco</h4>
+                    <p className="text-sm text-white/50">Comece do zero com configurações padrão</p>
                   </button>
 
-                  {/* Templates */}
+                  {/* Template Options */}
                   {templates.map((template) => (
                     <button
                       key={template.id}
                       onClick={() => setConfig({ ...config, template })}
-                      className={`p-4 rounded-xl border-2 transition-all text-left ${
+                      className={`p-6 rounded-xl border-2 transition-all text-left ${
                         config.template?.id === template.id
                           ? 'border-[#c9a962] bg-[#c9a962]/10'
-                          : 'border-white/10 hover:border-white/30 bg-white/5'
+                          : 'border-white/10 hover:border-white/20 bg-white/5'
                       }`}
                     >
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-2xl">🏠</span>
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${
-                          template.difficulty === 'beginner' ? 'bg-green-500/20 text-green-400' :
-                          template.difficulty === 'intermediate' ? 'bg-yellow-500/20 text-yellow-400' :
-                          'bg-red-500/20 text-red-400'
-                        }`}>
-                          {template.difficulty === 'beginner' ? 'Fácil' :
-                           template.difficulty === 'intermediate' ? 'Médio' : 'Difícil'}
-                        </span>
+                      <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center mb-4">
+                        <span className="text-2xl">{template.icon || '🏠'}</span>
                       </div>
-                      <div className="font-semibold">{template.name}</div>
-                      <div className="text-sm text-white/60">{template.description}</div>
-                      <div className="flex gap-2 mt-2 text-xs text-white/40">
-                        <span>{template.terrainSize.x}m × {template.terrainSize.y}m</span>
+                      <h4 className="font-semibold text-white mb-1">{template.name}</h4>
+                      <p className="text-sm text-white/50 mb-2">{template.description}</p>
+                      <div className="flex items-center gap-2 text-xs text-white/40">
+                        <span>{template.rooms} cômodos</span>
                         <span>•</span>
-                        <span>{template.rooms.length} cômodos</span>
+                        <span>{template.area}m²</span>
                       </div>
                     </button>
                   ))}
                 </div>
-              </motion.div>
+              </div>
             )}
 
             {/* Step 2: Configuration */}
             {currentStep === 1 && (
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="space-y-6"
-              >
+              <div className="space-y-6">
                 <div>
-                  <label className="block text-sm font-medium mb-2">Nome do projeto *</label>
-                  <input
-                    type="text"
-                    value={config.name}
-                    onChange={(e) => setConfig({ ...config, name: e.target.value })}
-                    placeholder="Ex: Minha Casa dos Sonhos"
-                    className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-xl focus:border-[#c9a962] focus:outline-none transition-colors"
-                    autoFocus
-                  />
+                  <h3 className="text-lg font-semibold text-white mb-2">Configurações do Projeto</h3>
+                  <p className="text-sm text-white/60">Defina as informações básicas do projeto</p>
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium mb-2">Descrição (opcional)</label>
-                  <textarea
-                    value={config.description}
-                    onChange={(e) => setConfig({ ...config, description: e.target.value })}
-                    placeholder="Descreva seu projeto..."
-                    rows={2}
-                    className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-xl focus:border-[#c9a962] focus:outline-none transition-colors resize-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium mb-3">Tamanho do terreno</label>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    {terrainPresets.map((preset) => (
-                      <button
-                        key={preset.name}
-                        onClick={() => {
-                          if (preset.name === 'Personalizado') {
-                            setCustomTerrain(true);
-                          } else {
-                            setCustomTerrain(false);
-                            setConfig({
-                              ...config,
-                              terrainSize: { width: preset.width, depth: preset.depth },
-                            });
-                          }
-                        }}
-                        className={`p-3 rounded-xl border-2 transition-all ${
-                          (preset.name !== 'Personalizado' &&
-                            config.terrainSize.width === preset.width &&
-                            config.terrainSize.depth === preset.depth) ||
-                          (preset.name === 'Personalizado' && customTerrain)
-                            ? 'border-[#c9a962] bg-[#c9a962]/10'
-                            : 'border-white/10 hover:border-white/30 bg-white/5'
-                        }`}
-                      >
-                        <div className="text-2xl mb-1">{preset.icon}</div>
-                        <div className="text-sm font-medium">{preset.name}</div>
-                        {preset.width > 0 && (
-                          <div className="text-xs text-white/50">
-                            {preset.width}m × {preset.depth}m
-                          </div>
-                        )}
-                      </button>
-                    ))}
+                <div className="space-y-4">
+                  {/* Project Name */}
+                  <div>
+                    <label className="block text-sm font-medium text-white/80 mb-2">
+                      Nome do Projeto *
+                    </label>
+                    <input
+                      type="text"
+                      value={config.name}
+                      onChange={(e) => setConfig({ ...config, name: e.target.value })}
+                      placeholder="Ex: Minha Casa dos Sonhos"
+                      className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-white/30 focus:border-[#c9a962]/50 focus:outline-none transition-colors"
+                    />
                   </div>
 
-                  {customTerrain && (
-                    <div className="mt-4 grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-xs text-white/60 mb-1">Largura (m)</label>
-                        <input
-                          type="number"
-                          value={config.terrainSize.width}
-                          onChange={(e) =>
-                            setConfig({
-                              ...config,
-                              terrainSize: {
-                                ...config.terrainSize,
-                                width: parseFloat(e.target.value) || 0,
-                              },
-                            })
-                          }
-                          className="w-full px-3 py-2 bg-white/5 border border-white/20 rounded-lg focus:border-[#c9a962] focus:outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-white/60 mb-1">Comprimento (m)</label>
-                        <input
-                          type="number"
-                          value={config.terrainSize.depth}
-                          onChange={(e) =>
-                            setConfig({
-                              ...config,
-                              terrainSize: {
-                                ...config.terrainSize,
-                                depth: parseFloat(e.target.value) || 0,
-                              },
-                            })
-                          }
-                          className="w-full px-3 py-2 bg-white/5 border border-white/20 rounded-lg focus:border-[#c9a962] focus:outline-none"
-                        />
-                      </div>
+                  {/* Description */}
+                  <div>
+                    <label className="block text-sm font-medium text-white/80 mb-2">
+                      Descrição
+                    </label>
+                    <textarea
+                      value={config.description}
+                      onChange={(e) => setConfig({ ...config, description: e.target.value })}
+                      placeholder="Descreva seu projeto..."
+                      rows={3}
+                      className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-white/30 focus:border-[#c9a962]/50 focus:outline-none transition-colors resize-none"
+                    />
+                  </div>
+
+                  {/* Unit Selection */}
+                  <div>
+                    <label className="block text-sm font-medium text-white/80 mb-2">
+                      Unidade de Medida
+                    </label>
+                    <div className="flex gap-2">
+                      {(['meters', 'centimeters', 'feet'] as const).map((unit) => (
+                        <button
+                          key={unit}
+                          onClick={() => setConfig({ ...config, unit })}
+                          className={`px-4 py-2 rounded-lg border transition-all ${
+                            config.unit === unit
+                              ? 'border-[#c9a962] bg-[#c9a962]/20 text-[#c9a962]'
+                              : 'border-white/10 hover:border-white/20 text-white/60'
+                          }`}
+                        >
+                          {unit === 'meters' ? 'Metros' : unit === 'centimeters' ? 'Centímetros' : 'Pés'}
+                        </button>
+                      ))}
                     </div>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium mb-2">Unidade de medida</label>
-                    <select
-                      value={config.unit}
-                      onChange={(e) => setConfig({ ...config, unit: e.target.value as any })}
-                      className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-xl focus:border-[#c9a962] focus:outline-none"
-                    >
-                      <option value="meters">Metros (m)</option>
-                      <option value="centimeters">Centímetros (cm)</option>
-                      <option value="feet">Pés (ft)</option>
-                    </select>
                   </div>
+
+                  {/* Terrain Size */}
                   <div>
-                    <label className="block text-sm font-medium mb-2">Altura padrão das paredes</label>
-                    <div className="flex items-center gap-2">
+                    <label className="block text-sm font-medium text-white/80 mb-2">
+                      Tamanho do Terreno
+                    </label>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+                      {terrainPresets.map((preset) => (
+                        <button
+                          key={preset.name}
+                          onClick={() => {
+                            if (preset.name === 'Personalizado') {
+                              setCustomTerrain(true);
+                            } else {
+                              setCustomTerrain(false);
+                              setConfig({
+                                ...config,
+                                terrainSize: { width: preset.width, depth: preset.depth },
+                              });
+                            }
+                          }}
+                          className={`p-3 rounded-xl border transition-all ${
+                            config.terrainSize.width === preset.width && config.terrainSize.depth === preset.depth && !customTerrain
+                              ? 'border-[#c9a962] bg-[#c9a962]/10'
+                              : preset.name === 'Personalizado' && customTerrain
+                              ? 'border-[#c9a962] bg-[#c9a962]/10'
+                              : 'border-white/10 hover:border-white/20 bg-white/5'
+                          }`}
+                        >
+                          <div className="text-2xl mb-1">{preset.icon}</div>
+                          <div className="text-sm font-medium text-white">{preset.name}</div>
+                          {preset.width > 0 && (
+                            <div className="text-xs text-white/50">
+                              {preset.width}m × {preset.depth}m
+                            </div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+
+                    {(customTerrain || config.terrainSize.width !== 0) && (
+                      <div className="flex gap-4">
+                        <div className="flex-1">
+                          <label className="block text-xs text-white/50 mb-1">Largura (m)</label>
+                          <input
+                            type="number"
+                            value={config.terrainSize.width}
+                            onChange={(e) =>
+                              setConfig({
+                                ...config,
+                                terrainSize: { ...config.terrainSize, width: parseFloat(e.target.value) || 0 },
+                              })
+                            }
+                            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:border-[#c9a962]/50 focus:outline-none"
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <label className="block text-xs text-white/50 mb-1">Profundidade (m)</label>
+                          <input
+                            type="number"
+                            value={config.terrainSize.depth}
+                            onChange={(e) =>
+                              setConfig({
+                                ...config,
+                                terrainSize: { ...config.terrainSize, depth: parseFloat(e.target.value) || 0 },
+                              })
+                            }
+                            className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white focus:border-[#c9a962]/50 focus:outline-none"
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Wall Settings */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-white/80 mb-2">
+                        Altura da Parede (m)
+                      </label>
                       <input
                         type="number"
-                        value={config.wallHeight}
-                        onChange={(e) =>
-                          setConfig({ ...config, wallHeight: parseFloat(e.target.value) || 2.8 })
-                        }
                         step="0.1"
-                        className="flex-1 px-4 py-3 bg-white/5 border border-white/20 rounded-xl focus:border-[#c9a962] focus:outline-none"
+                        value={config.wallHeight}
+                        onChange={(e) => setConfig({ ...config, wallHeight: parseFloat(e.target.value) || 2.8 })}
+                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:border-[#c9a962]/50 focus:outline-none"
                       />
-                      <span className="text-white/60">m</span>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-white/80 mb-2">
+                        Espessura da Parede (m)
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        value={config.wallThickness}
+                        onChange={(e) => setConfig({ ...config, wallThickness: parseFloat(e.target.value) || 0.15 })}
+                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white focus:border-[#c9a962]/50 focus:outline-none"
+                      />
                     </div>
                   </div>
                 </div>
-              </motion.div>
+              </div>
             )}
 
-            {/* Step 3: Style */}
+            {/* Step 3: Style Selection */}
             {currentStep === 2 && (
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-              >
-                <h3 className="text-lg font-semibold mb-4">Escolha um estilo (opcional)</h3>
-                <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {/* No style option */}
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-semibold text-white mb-2">Estilo de Design</h3>
+                  <p className="text-sm text-white/60">Escolha um estilo para seu projeto</p>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {/* No Style Option */}
                   <button
                     onClick={() => setConfig({ ...config, style: null })}
-                    className={`p-4 rounded-xl border-2 transition-all text-left ${
+                    className={`p-6 rounded-xl border-2 transition-all text-left ${
                       config.style === null
                         ? 'border-[#c9a962] bg-[#c9a962]/10'
-                        : 'border-white/10 hover:border-white/30 bg-white/5'
+                        : 'border-white/10 hover:border-white/20 bg-white/5'
                     }`}
                   >
-                    <div className="text-3xl mb-2">🎨</div>
-                    <div className="font-semibold">Sem estilo definido</div>
-                    <div className="text-sm text-white/60">Escolha depois</div>
+                    <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center mb-4">
+                      <span className="text-2xl">🎨</span>
+                    </div>
+                    <h4 className="font-semibold text-white mb-1">Sem Estilo Definido</h4>
+                    <p className="text-sm text-white/50">Escolha depois durante o projeto</p>
                   </button>
 
-                  {/* Styles */}
+                  {/* Style Options */}
                   {styles.map((style) => (
                     <button
                       key={style.id}
                       onClick={() => setConfig({ ...config, style })}
-                      className={`p-4 rounded-xl border-2 transition-all text-left ${
+                      className={`p-6 rounded-xl border-2 transition-all text-left ${
                         config.style?.id === style.id
                           ? 'border-[#c9a962] bg-[#c9a962]/10'
-                          : 'border-white/10 hover:border-white/30 bg-white/5'
+                          : 'border-white/10 hover:border-white/20 bg-white/5'
                       }`}
                     >
-                      <div className="text-3xl mb-2">{style.icon}</div>
-                      <div className="font-semibold">{style.name}</div>
-                      <div className="text-sm text-white/60">{style.description}</div>
-                      <div className="flex gap-1 mt-3">
-                        {style.materials.floor.slice(0, 3).map((_, i) => (
-                          <div
-                            key={i}
-                            className="w-6 h-6 rounded-full border border-white/20"
-                            style={{ backgroundColor: style.colors[i === 0 ? 'primary' : i === 1 ? 'secondary' : 'accent'] }}
-                          />
+                      <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center mb-4">
+                        <span className="text-2xl">{style.icon || '🏛️'}</span>
+                      </div>
+                      <h4 className="font-semibold text-white mb-1">{style.name}</h4>
+                      <p className="text-sm text-white/50 mb-2">{style.description}</p>
+                      <div className="flex flex-wrap gap-1">
+                        {style.tags?.slice(0, 3).map((tag) => (
+                          <span
+                            key={tag}
+                            className="px-2 py-0.5 bg-white/10 rounded text-xs text-white/60"
+                          >
+                            {tag}
+                          </span>
                         ))}
                       </div>
                     </button>
                   ))}
                 </div>
-              </motion.div>
+              </div>
             )}
 
-            {/* Step 4: AI */}
+            {/* Step 4: AI Generation */}
             {currentStep === 3 && (
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-              >
-                <div className="text-center mb-6">
-                  <div className="inline-flex items-center justify-center w-16 h-16 bg-[#c9a962]/20 rounded-full mb-4">
-                    <Sparkles size={32} className="text-[#c9a962]" />
-                  </div>
-                  <h3 className="text-lg font-semibold">Gerar com Inteligência Artificial?</h3>
-                  <p className="text-sm text-white/60">
-                    A IA pode criar um layout inicial baseado na sua descrição
-                  </p>
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-semibold text-white mb-2">Geração com IA</h3>
+                  <p className="text-sm text-white/60">Use inteligência artificial para gerar seu projeto</p>
                 </div>
 
-                <div className="flex justify-center gap-4 mb-6">
+                <div className="space-y-4">
+                  {/* AI Toggle */}
                   <button
-                    onClick={() => setConfig({ ...config, useAI: false })}
-                    className={`px-6 py-3 rounded-xl border-2 transition-all ${
-                      !config.useAI
-                        ? 'border-[#c9a962] bg-[#c9a962]/10'
-                        : 'border-white/10 hover:border-white/30'
-                    }`}
-                  >
-                    Não, começar manualmente
-                  </button>
-                  <button
-                    onClick={() => setConfig({ ...config, useAI: true })}
-                    className={`px-6 py-3 rounded-xl border-2 transition-all ${
+                    onClick={() => setConfig({ ...config, useAI: !config.useAI })}
+                    className={`w-full p-6 rounded-xl border-2 transition-all text-left ${
                       config.useAI
                         ? 'border-[#c9a962] bg-[#c9a962]/10'
-                        : 'border-white/10 hover:border-white/30'
+                        : 'border-white/10 hover:border-white/20 bg-white/5'
                     }`}
                   >
-                    Sim, usar IA
+                    <div className="flex items-center gap-4">
+                      <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+                        config.useAI ? 'bg-[#c9a962]/20' : 'bg-white/10'
+                      }`}>
+                        <Sparkles size={24} className={config.useAI ? 'text-[#c9a962]' : 'text-white/60'} />
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-white mb-1">Gerar com IA</h4>
+                        <p className="text-sm text-white/50">
+                          Descreva o que você quer e nossa IA criará o projeto para você
+                        </p>
+                      </div>
+                      <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                        config.useAI ? 'border-[#c9a962] bg-[#c9a962]' : 'border-white/30'
+                      }`}>
+                        {config.useAI && <span className="text-[#0a0a0f] text-xs">✓</span>}
+                      </div>
+                    </div>
                   </button>
-                </div>
 
-                {config.useAI && (
-                  <motion.div
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    className="space-y-4"
-                  >
-                    <div>
-                      <label className="block text-sm font-medium mb-2">
-                        Descreva o que você quer
+                  {/* AI Prompt */}
+                  {config.useAI && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="space-y-3"
+                    >
+                      <label className="block text-sm font-medium text-white/80">
+                        Descrição do Projeto *
                       </label>
                       <textarea
                         value={config.aiPrompt}
                         onChange={(e) => setConfig({ ...config, aiPrompt: e.target.value })}
-                        placeholder="Ex: Casa moderna com 3 quartos, suíte master, área gourmet com piscina e cozinha integrada..."
-                        rows={4}
-                        className="w-full px-4 py-3 bg-white/5 border border-white/20 rounded-xl focus:border-[#c9a962] focus:outline-none transition-colors resize-none"
-                        autoFocus
+                        placeholder="Ex: Uma casa moderna com 3 quartos, sala ampla, cozinha integrada e área de lazer com piscina..."
+                        rows={5}
+                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-white/30 focus:border-[#c9a962]/50 focus:outline-none transition-colors resize-none"
                       />
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {[
-                        'Casa moderna minimalista',
-                        'Sobrado contemporâneo',
-                        'Casa com área gourmet',
-                        'Studio compacto',
-                        'Casa rústica aconchegante',
-                      ].map((suggestion) => (
-                        <button
-                          key={suggestion}
-                          onClick={() => setConfig({ ...config, aiPrompt: suggestion })}
-                          className="px-3 py-1.5 text-sm bg-white/5 border border-white/20 rounded-lg hover:bg-white/10 hover:border-white/30 transition-all"
-                        >
-                          {suggestion}
-                        </button>
-                      ))}
-                    </div>
-                  </motion.div>
-                )}
-              </motion.div>
+                      <p className="text-xs text-white/40">
+                        Seja específico sobre cômodos, estilo e características desejadas
+                      </p>
+                    </motion.div>
+                  )}
+                </div>
+              </div>
             )}
           </div>
 
           {/* Footer */}
-          <div className="flex items-center justify-between p-6 border-t border-white/10">
+          <div className="flex items-center justify-between p-6 border-t border-white/10 flex-shrink-0">
             <button
               onClick={handleBack}
               disabled={currentStep === 0}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all ${
-                currentStep === 0
-                  ? 'opacity-0 pointer-events-none'
-                  : 'hover:bg-white/10'
-              }`}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-white/60 hover:text-white hover:bg-white/5 transition-all disabled:opacity-30 disabled:cursor-not-allowed"
             >
               <ChevronLeft size={18} />
-              Voltar
+              <span>Voltar</span>
             </button>
 
             <div className="flex items-center gap-3">
-              {currentStep < steps.length - 1 ? (
-                <button
-                  onClick={handleNext}
-                  disabled={!canProceed()}
-                  className="flex items-center gap-2 px-6 py-2.5 bg-[#c9a962] text-[#0a0a0f] rounded-lg font-semibold hover:bg-[#d4b76d] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                >
-                  Próximo
-                  <ChevronRight size={18} />
-                </button>
-              ) : (
-                <button
-                  onClick={handleCreate}
-                  disabled={!canProceed()}
-                  className="flex items-center gap-2 px-6 py-2.5 bg-[#c9a962] text-[#0a0a0f] rounded-lg font-semibold hover:bg-[#d4b76d] disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                >
-                  <Sparkles size={18} />
-                  Criar Projeto
-                </button>
-              )}
+              <button
+                onClick={onClose}
+                className="px-4 py-2 rounded-lg text-white/60 hover:text-white hover:bg-white/5 transition-all"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleNext}
+                disabled={!canProceed()}
+                className="flex items-center gap-2 px-6 py-2 rounded-lg bg-[#c9a962] text-[#0a0a0f] font-medium hover:bg-[#d4b56a] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <span>{currentStep === steps.length - 1 ? 'Criar Projeto' : 'Próximo'}</span>
+                {currentStep < steps.length - 1 && <ChevronRight size={18} />}
+              </button>
             </div>
           </div>
         </motion.div>
