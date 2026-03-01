@@ -4,9 +4,8 @@ import { useUIStore } from '@/store/uiStore';
 import type { Point, Wall, Room } from '@/types';
 import { Ruler, Grid3X3, Magnet } from 'lucide-react';
 
-// Snap angles configuration
 const SNAP_ANGLES = [0, 45, 90, 135, 180, 225, 270, 315];
-const ANGLE_SNAP_THRESHOLD = 8; // degrees
+const ANGLE_SNAP_THRESHOLD = 8;
 
 interface SnapPoint {
   point: Point;
@@ -25,6 +24,8 @@ const Canvas2D: React.FC = () => {
   const [snapEnabled, setSnapEnabled] = useState(true);
   const [angleLock, setAngleLock] = useState(false);
   const [lockedAngle, setLockedAngle] = useState<number | null>(null);
+  // NOVO: Estado para dimensões do container
+  const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
   
   const { 
     currentProject, 
@@ -48,7 +49,6 @@ const Canvas2D: React.FC = () => {
 
   const { scale, offset } = canvas2D;
 
-  // Convert world coordinates to canvas
   const worldToCanvas = useCallback((point: Point): Point => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
@@ -59,7 +59,6 @@ const Canvas2D: React.FC = () => {
     };
   }, [scale, offset]);
 
-  // Convert canvas coordinates to world
   const canvasToWorld = useCallback((point: Point): Point => {
     const canvas = canvasRef.current;
     if (!canvas) return { x: 0, y: 0 };
@@ -70,7 +69,6 @@ const Canvas2D: React.FC = () => {
     };
   }, [scale, offset]);
 
-  // Snap to grid
   const snapToGrid = useCallback((point: Point): Point => {
     if (!currentProject?.settings.snapToGrid || !snapEnabled) return point;
     const gridSize = currentProject.settings.gridSize;
@@ -80,7 +78,6 @@ const Canvas2D: React.FC = () => {
     };
   }, [currentProject?.settings.snapToGrid, currentProject?.settings.gridSize, snapEnabled]);
 
-  // Calculate angle between two points
   const calculateAngle = useCallback((start: Point, end: Point): number => {
     const dx = end.x - start.x;
     const dy = end.y - start.y;
@@ -89,14 +86,9 @@ const Canvas2D: React.FC = () => {
     return angle;
   }, []);
 
-  // Snap angle to nearest snap angle
   const snapAngle = useCallback((angle: number): number => {
     if (!snapEnabled || !currentProject?.settings.snapToAngle) return angle;
-    
-    // If angle is locked, return locked angle
-    if (angleLock && lockedAngle !== null) {
-      return lockedAngle;
-    }
+    if (angleLock && lockedAngle !== null) return lockedAngle;
     
     const snapAngles = currentProject?.settings.snapAngles || SNAP_ANGLES;
     
@@ -109,14 +101,12 @@ const Canvas2D: React.FC = () => {
     return angle;
   }, [snapEnabled, currentProject?.settings.snapToAngle, currentProject?.settings.snapAngles, angleLock, lockedAngle]);
 
-  // Find snap points (endpoints, intersections, midpoints)
   const findSnapPoints = useCallback((point: Point): SnapPoint[] => {
     if (!currentProject || !snapEnabled) return [];
     
     const snapPoints: SnapPoint[] = [];
-    const snapThreshold = 0.3; // meters
-    
-    // Grid snap
+    const snapThreshold = 0.3;
+
     const gridPoint = snapToGrid(point);
     const gridDist = Math.sqrt(
       Math.pow(gridPoint.x - point.x, 2) + 
@@ -126,9 +116,7 @@ const Canvas2D: React.FC = () => {
       snapPoints.push({ point: gridPoint, type: 'grid', priority: 1 });
     }
     
-    // Wall endpoints and midpoints
     currentProject.walls.forEach(wall => {
-      // Start point
       const startDist = Math.sqrt(
         Math.pow(wall.start.x - point.x, 2) + 
         Math.pow(wall.start.y - point.y, 2)
@@ -137,7 +125,6 @@ const Canvas2D: React.FC = () => {
         snapPoints.push({ point: wall.start, type: 'endpoint', priority: 3 });
       }
       
-      // End point
       const endDist = Math.sqrt(
         Math.pow(wall.end.x - point.x, 2) + 
         Math.pow(wall.end.y - point.y, 2)
@@ -146,7 +133,6 @@ const Canvas2D: React.FC = () => {
         snapPoints.push({ point: wall.end, type: 'endpoint', priority: 3 });
       }
       
-      // Midpoint
       const midPoint: Point = {
         x: (wall.start.x + wall.end.x) / 2,
         y: (wall.start.y + wall.end.y) / 2,
@@ -160,7 +146,6 @@ const Canvas2D: React.FC = () => {
       }
     });
     
-    // Room corners
     currentProject.rooms.forEach(room => {
       room.points.forEach(corner => {
         const cornerDist = Math.sqrt(
@@ -176,7 +161,6 @@ const Canvas2D: React.FC = () => {
     return snapPoints.sort((a, b) => b.priority - a.priority);
   }, [currentProject, snapEnabled, snapToGrid]);
 
-  // Get best snap point
   const getBestSnapPoint = useCallback((point: Point): Point => {
     const snapPoints = findSnapPoints(point);
     if (snapPoints.length > 0) {
@@ -187,7 +171,6 @@ const Canvas2D: React.FC = () => {
     return point;
   }, [findSnapPoints]);
 
-  // Apply angle snap when drawing
   const applyAngleSnap = useCallback((start: Point, end: Point): Point => {
     if (!snapEnabled) return end;
     
@@ -208,7 +191,6 @@ const Canvas2D: React.FC = () => {
     return end;
   }, [snapEnabled, calculateAngle, snapAngle]);
 
-  // Draw grid
   const drawGrid = (ctx: CanvasRenderingContext2D, width: number, height: number) => {
     if (!currentProject?.settings.showGrid) return;
     
@@ -220,13 +202,11 @@ const Canvas2D: React.FC = () => {
     ctx.lineWidth = 1;
     ctx.beginPath();
     
-    // Vertical lines
     for (let x = startX; x < width; x += gridSize) {
       ctx.moveTo(x, 0);
       ctx.lineTo(x, height);
     }
     
-    // Horizontal lines
     for (let y = startY; y < height; y += gridSize) {
       ctx.moveTo(0, y);
       ctx.lineTo(width, y);
@@ -234,7 +214,6 @@ const Canvas2D: React.FC = () => {
     
     ctx.stroke();
     
-    // Major grid lines (every 5 units)
     ctx.strokeStyle = 'rgba(201, 169, 98, 0.1)';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
@@ -255,7 +234,6 @@ const Canvas2D: React.FC = () => {
     
     ctx.stroke();
     
-    // Origin axes
     if (currentProject?.settings.showAxes) {
       ctx.strokeStyle = 'rgba(201, 169, 98, 0.4)';
       ctx.lineWidth = 2;
@@ -270,20 +248,17 @@ const Canvas2D: React.FC = () => {
     }
   };
 
-  // Draw wall
   const drawWall = (ctx: CanvasRenderingContext2D, wall: Wall, isSelected: boolean) => {
     const start = worldToCanvas(wall.start);
     const end = worldToCanvas(wall.end);
     const thickness = Math.max(wall.thickness * scale, 2);
     
-    // Calculate perpendicular vector
     const dx = end.x - start.x;
     const dy = end.y - start.y;
     const length = Math.sqrt(dx * dx + dy * dy);
     const perpX = (-dy / length) * thickness / 2;
     const perpY = (dx / length) * thickness / 2;
     
-    // Draw wall body
     ctx.fillStyle = isSelected ? '#c9a962' : wall.color;
     ctx.beginPath();
     ctx.moveTo(start.x + perpX, start.y + perpY);
@@ -293,12 +268,10 @@ const Canvas2D: React.FC = () => {
     ctx.closePath();
     ctx.fill();
     
-    // Draw wall border
     ctx.strokeStyle = isSelected ? '#ffffff' : 'rgba(0, 0, 0, 0.3)';
     ctx.lineWidth = isSelected ? 2 : 1;
     ctx.stroke();
     
-    // Draw measurements
     if (showMeasurements && currentProject?.settings.showMeasurements) {
       const wallLength = Math.sqrt(
         Math.pow(wall.end.x - wall.start.x, 2) + 
@@ -308,7 +281,6 @@ const Canvas2D: React.FC = () => {
       const midX = (start.x + end.x) / 2;
       const midY = (start.y + end.y) / 2;
       
-      // Background for text
       const text = `${wallLength.toFixed(2)}m`;
       ctx.font = 'bold 11px Inter, sans-serif';
       const textWidth = ctx.measureText(text).width;
@@ -316,7 +288,6 @@ const Canvas2D: React.FC = () => {
       ctx.fillStyle = 'rgba(10, 10, 15, 0.8)';
       ctx.fillRect(midX - textWidth / 2 - 4, midY - 16, textWidth + 8, 18);
       
-      // Text
       ctx.fillStyle = isSelected ? '#c9a962' : '#ffffff';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
@@ -324,13 +295,11 @@ const Canvas2D: React.FC = () => {
     }
   };
 
-  // Draw room
   const drawRoom = (ctx: CanvasRenderingContext2D, room: Room, isSelected: boolean) => {
     if (room.points.length < 3) return;
     
     const canvasPoints = room.points.map(p => worldToCanvas(p));
     
-    // Fill room
     ctx.fillStyle = isSelected ? `${room.color}60` : `${room.color}30`;
     ctx.beginPath();
     ctx.moveTo(canvasPoints[0].x, canvasPoints[0].y);
@@ -340,12 +309,10 @@ const Canvas2D: React.FC = () => {
     ctx.closePath();
     ctx.fill();
     
-    // Draw room border
     ctx.strokeStyle = isSelected ? '#c9a962' : room.color;
     ctx.lineWidth = isSelected ? 2 : 1.5;
     ctx.stroke();
     
-    // Draw room name and area
     const centroid = room.points.reduce((acc, p) => ({ x: acc.x + p.x, y: acc.y + p.y }), { x: 0, y: 0 });
     centroid.x /= room.points.length;
     centroid.y /= room.points.length;
@@ -362,7 +329,6 @@ const Canvas2D: React.FC = () => {
     ctx.fillText(`${room.area.toFixed(1)}m²`, center.x, center.y + 8);
   };
 
-  // Draw door
   const drawDoor = (ctx: CanvasRenderingContext2D, door: any, isSelected: boolean) => {
     const wall = currentProject?.walls.find(w => w.id === door.wallId);
     if (!wall) return;
@@ -375,21 +341,18 @@ const Canvas2D: React.FC = () => {
     const y = start.y + (end.y - start.y) * t;
     const doorWidthPx = door.width * scale;
     
-    // Draw door swing arc
     ctx.strokeStyle = isSelected ? '#c9a962' : '#8B4513';
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.arc(x, y, doorWidthPx / 2, 0, Math.PI / 2);
     ctx.stroke();
     
-    // Draw door line
     ctx.beginPath();
     ctx.moveTo(x, y);
     ctx.lineTo(x + doorWidthPx / 2, y);
     ctx.stroke();
   };
 
-  // Draw window
   const drawWindow = (ctx: CanvasRenderingContext2D, window: any, isSelected: boolean) => {
     const wall = currentProject?.walls.find(w => w.id === window.wallId);
     if (!wall) return;
@@ -402,7 +365,6 @@ const Canvas2D: React.FC = () => {
     const y = start.y + (end.y - start.y) * t;
     const windowWidthPx = window.width * scale;
     
-    // Draw window frame
     ctx.strokeStyle = isSelected ? '#c9a962' : '#87CEEB';
     ctx.lineWidth = 3;
     ctx.beginPath();
@@ -412,12 +374,10 @@ const Canvas2D: React.FC = () => {
     ctx.lineTo(x + windowWidthPx / 2, y + 4);
     ctx.stroke();
     
-    // Glass effect
     ctx.fillStyle = 'rgba(135, 206, 235, 0.3)';
     ctx.fillRect(x - windowWidthPx / 2, y - 4, windowWidthPx, 8);
   };
 
-  // Draw furniture
   const drawFurniture = (ctx: CanvasRenderingContext2D, furniture: any, isSelected: boolean) => {
     const pos = worldToCanvas(furniture.position);
     const width = furniture.scale.x * scale;
@@ -427,7 +387,6 @@ const Canvas2D: React.FC = () => {
     ctx.translate(pos.x, pos.y);
     ctx.rotate(-furniture.rotation);
     
-    // Draw furniture body
     ctx.fillStyle = isSelected ? 'rgba(201, 169, 98, 0.5)' : furniture.color;
     ctx.strokeStyle = isSelected ? '#c9a962' : 'rgba(255, 255, 255, 0.5)';
     ctx.lineWidth = isSelected ? 2 : 1;
@@ -435,7 +394,6 @@ const Canvas2D: React.FC = () => {
     ctx.fillRect(-width / 2, -depth / 2, width, depth);
     ctx.strokeRect(-width / 2, -depth / 2, width, depth);
     
-    // Draw furniture name
     ctx.fillStyle = '#ffffff';
     ctx.font = '9px Inter, sans-serif';
     ctx.textAlign = 'center';
@@ -445,14 +403,12 @@ const Canvas2D: React.FC = () => {
     ctx.restore();
   };
 
-  // Draw preview line when drawing
   const drawPreview = (ctx: CanvasRenderingContext2D) => {
     if (!isDrawing || !drawStart || !drawCurrent) return;
     
     const start = worldToCanvas(drawStart);
     const end = worldToCanvas(drawCurrent);
     
-    // Draw preview line
     ctx.strokeStyle = '#c9a962';
     ctx.lineWidth = 2;
     ctx.setLineDash([8, 4]);
@@ -462,7 +418,6 @@ const Canvas2D: React.FC = () => {
     ctx.stroke();
     ctx.setLineDash([]);
     
-    // Draw distance measurement
     const distance = Math.sqrt(
       Math.pow(drawCurrent.x - drawStart.x, 2) + 
       Math.pow(drawCurrent.y - drawStart.y, 2)
@@ -471,7 +426,6 @@ const Canvas2D: React.FC = () => {
     const midX = (start.x + end.x) / 2;
     const midY = (start.y + end.y) / 2;
     
-    // Background
     const text = `${distance.toFixed(2)}m`;
     ctx.font = 'bold 12px Inter, sans-serif';
     const textWidth = ctx.measureText(text).width;
@@ -479,13 +433,11 @@ const Canvas2D: React.FC = () => {
     ctx.fillStyle = 'rgba(10, 10, 15, 0.9)';
     ctx.fillRect(midX - textWidth / 2 - 6, midY - 22, textWidth + 12, 22);
     
-    // Text
     ctx.fillStyle = '#c9a962';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(text, midX, midY - 11);
     
-    // Draw angle indicator
     const angle = calculateAngle(drawStart, drawCurrent);
     const angleText = `${angle.toFixed(0)}°`;
     const angleTextWidth = ctx.measureText(angleText).width;
@@ -497,7 +449,6 @@ const Canvas2D: React.FC = () => {
     ctx.fillText(angleText, start.x, start.y - 19);
   };
 
-  // Draw snap indicator
   const drawSnapIndicator = (ctx: CanvasRenderingContext2D) => {
     if (!snapIndicator) return;
     
@@ -509,7 +460,6 @@ const Canvas2D: React.FC = () => {
     ctx.arc(point.x, point.y, 8, 0, Math.PI * 2);
     ctx.stroke();
     
-    // Crosshair
     ctx.beginPath();
     ctx.moveTo(point.x - 12, point.y);
     ctx.lineTo(point.x + 12, point.y);
@@ -518,7 +468,6 @@ const Canvas2D: React.FC = () => {
     ctx.stroke();
   };
 
-  // Main render function
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -526,53 +475,41 @@ const Canvas2D: React.FC = () => {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     
-    // Clear canvas
     ctx.fillStyle = '#0a0a0f';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
-    // Draw grid
     drawGrid(ctx, canvas.width, canvas.height);
     
     if (!currentProject) return;
     
-    // Draw rooms (behind walls)
     currentProject.rooms.forEach(room => {
       drawRoom(ctx, room, selectedElement === room.id && selectedElementType === 'room');
     });
     
-    // Draw walls
     currentProject.walls.forEach(wall => {
       drawWall(ctx, wall, selectedElement === wall.id && selectedElementType === 'wall');
     });
     
-    // Draw doors
     currentProject.doors.forEach(door => {
       drawDoor(ctx, door, selectedElement === door.id && selectedElementType === 'door');
     });
     
-    // Draw windows
     currentProject.windows.forEach(window => {
       drawWindow(ctx, window, selectedElement === window.id && selectedElementType === 'window');
     });
     
-    // Draw furniture
     currentProject.furniture.forEach(furniture => {
       drawFurniture(ctx, furniture, selectedElement === furniture.id && selectedElementType === 'furniture');
     });
     
-    // Draw preview
     drawPreview(ctx);
-    
-    // Draw snap indicator
     drawSnapIndicator(ctx);
-  }, [currentProject, scale, offset, isDrawing, drawStart, drawCurrent, selectedElement, selectedElementType, snapIndicator, showMeasurements]);
+  }, [currentProject, scale, offset, isDrawing, drawStart, drawCurrent, selectedElement, selectedElementType, snapIndicator, showMeasurements, containerSize]);
 
-  // Get canvas coordinates from pointer event (works for mouse and touch)
   const getCanvasPoint = (e: React.PointerEvent): Point | null => {
     const canvas = canvasRef.current;
     if (!canvas) return null;
     
-    // Use native offsetX/Y when available (most reliable, already relative to canvas)
     const nativeEvent = e.nativeEvent as PointerEvent;
     if (nativeEvent.offsetX !== undefined && nativeEvent.offsetY !== undefined) {
       return {
@@ -581,7 +518,6 @@ const Canvas2D: React.FC = () => {
       };
     }
     
-    // Fallback to clientX/Y calculation
     const rect = canvas.getBoundingClientRect();
     return {
       x: e.clientX - rect.left,
@@ -589,27 +525,23 @@ const Canvas2D: React.FC = () => {
     };
   };
 
-  // Pointer event handlers (supports mouse and touch)
   const handlePointerDown = (e: React.PointerEvent) => {
     e.preventDefault();
     
     const canvas = canvasRef.current;
     if (!canvas) return;
     
-    // Capture pointer to ensure move events work outside canvas
     canvas.setPointerCapture(e.pointerId);
     
     const canvasPoint = getCanvasPoint(e);
     if (!canvasPoint) return;
     
-    // Middle mouse or Alt+Click = Pan
     if (e.button === 1 || (e.button === 0 && e.altKey)) {
       setIsPanning(true);
       setPanStart(canvasPoint);
       return;
     }
     
-    // Left click/touch = Drawing/Selection
     if (e.button === 0) {
       const worldPoint = canvasToWorld(canvasPoint);
       const snappedPoint = getBestSnapPoint(worldPoint);
@@ -630,7 +562,6 @@ const Canvas2D: React.FC = () => {
     
     setMousePos(canvasPoint);
     
-    // Panning
     if (isPanning) {
       const dx = canvasPoint.x - panStart.x;
       const dy = canvasPoint.y - panStart.y;
@@ -639,14 +570,10 @@ const Canvas2D: React.FC = () => {
       return;
     }
     
-    // Drawing
     if (isDrawing && drawStart) {
       const worldPoint = canvasToWorld(canvasPoint);
       let snappedPoint = getBestSnapPoint(worldPoint);
-      
-      // Apply angle snap
       snappedPoint = applyAngleSnap(drawStart, snappedPoint);
-      
       updateDrawing(snappedPoint);
     }
   };
@@ -659,7 +586,7 @@ const Canvas2D: React.FC = () => {
       try {
         canvas.releasePointerCapture(e.pointerId);
       } catch {
-        // Pointer may not be captured, ignore error
+        // Ignore
       }
     }
     
@@ -675,7 +602,6 @@ const Canvas2D: React.FC = () => {
       const worldPoint = canvasToWorld(canvasPoint);
       let snappedPoint = getBestSnapPoint(worldPoint);
       
-      // Apply angle snap
       if (drawStart) {
         snappedPoint = applyAngleSnap(drawStart, snappedPoint);
       }
@@ -691,15 +617,8 @@ const Canvas2D: React.FC = () => {
     setCanvasScale(scale * delta);
   };
 
-  // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Space = Pan mode temporarily
-      if (e.code === 'Space' && !e.repeat) {
-        // Could implement temporary pan mode
-      }
-      
-      // Shift = Angle lock
       if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
         if (!angleLock) {
           setAngleLock(true);
@@ -727,34 +646,49 @@ const Canvas2D: React.FC = () => {
     };
   }, [isDrawing, drawStart, drawCurrent, angleLock, calculateAngle, snapAngle]);
 
-  // Resize handler - USA O CONTAINER DO CANVAS, NÃO O CONTAINER PRINCIPAL
+  // CORRIGIDO: Resize handler com ResizeObserver para melhor responsividade
   useEffect(() => {
     const handleResize = () => {
       if (canvasContainerRef.current && canvasRef.current) {
         const rect = canvasContainerRef.current.getBoundingClientRect();
-        canvasRef.current.width = rect.width;
-        canvasRef.current.height = rect.height;
+        const newWidth = Math.max(1, rect.width);
+        const newHeight = Math.max(1, rect.height);
+        
+        canvasRef.current.width = newWidth;
+        canvasRef.current.height = newHeight;
+        
+        setContainerSize({ width: newWidth, height: newHeight });
       }
     };
     
-    // Handle orientation change with delay for mobile browsers
+    // ResizeObserver para detectar mudanças de tamanho do container
+    let resizeObserver: ResizeObserver | null = null;
+    
+    if (canvasContainerRef.current) {
+      resizeObserver = new ResizeObserver(() => {
+        handleResize();
+      });
+      resizeObserver.observe(canvasContainerRef.current);
+    }
+    
+    // Fallback para orientation change em mobile
     const handleOrientationChange = () => {
       setTimeout(handleResize, 100);
     };
     
     handleResize();
-    window.addEventListener('resize', handleResize);
     window.addEventListener('orientationchange', handleOrientationChange);
     
     return () => {
-      window.removeEventListener('resize', handleResize);
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
       window.removeEventListener('orientationchange', handleOrientationChange);
     };
   }, []);
 
   return (
     <div className="flex flex-col h-full" style={{ touchAction: 'none' }}>
-      {/* Canvas Container - flex-1 para ocupar espaço disponível */}
       <div ref={canvasContainerRef} className="flex-1 min-h-0 relative">
         <canvas
           ref={canvasRef}
@@ -772,9 +706,7 @@ const Canvas2D: React.FC = () => {
         />
       </div>
       
-      {/* Controls Bar - Flex layout, no absolute positioning */}
       <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-[#1a1a1f]/90 backdrop-blur-xl border-t border-white/10 flex-shrink-0">
-        {/* Info Panel */}
         <div className="flex items-center gap-3">
           <div className="text-xs text-white/50">
             <div>Pos: {mousePos.x.toFixed(0)}, {mousePos.y.toFixed(0)}</div>
@@ -791,9 +723,7 @@ const Canvas2D: React.FC = () => {
           </div>
         </div>
 
-        {/* Floating Toolbar */}
         <div className="flex items-center gap-2">
-          {/* Zoom Controls */}
           <div className="flex items-center gap-1">
             <button
               onClick={() => setCanvasScale(scale * 1.2)}
@@ -816,7 +746,6 @@ const Canvas2D: React.FC = () => {
           
           <div className="w-px h-6 bg-white/10" />
           
-          {/* Snap Toggle */}
           <button
             onClick={() => setSnapEnabled(!snapEnabled)}
             className={`w-9 h-9 flex items-center justify-center rounded-lg transition-colors ${
@@ -829,7 +758,6 @@ const Canvas2D: React.FC = () => {
             <Magnet size={16} />
           </button>
           
-          {/* Measurements Toggle */}
           <button
             onClick={() => setShowMeasurements(!showMeasurements)}
             className={`w-9 h-9 flex items-center justify-center rounded-lg transition-colors ${
@@ -844,7 +772,6 @@ const Canvas2D: React.FC = () => {
           
           <div className="w-px h-6 bg-white/10" />
           
-          {/* Reset View */}
           <button
             onClick={() => {
               setCanvasScale(20);
@@ -857,7 +784,6 @@ const Canvas2D: React.FC = () => {
           </button>
         </div>
 
-        {/* Scale Indicator */}
         <div className="flex items-center gap-2 text-xs text-white/60">
           <Grid3X3 size={14} />
           <span>{currentProject?.settings.gridSize || 0.5}m grid</span>
