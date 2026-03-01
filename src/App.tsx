@@ -26,7 +26,10 @@ import {
   Save,
   Cloud,
   CloudOff,
-  Loader2
+  Loader2,
+  ArrowLeft,
+  Menu,
+  X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import './App.css';
@@ -65,7 +68,7 @@ const UserMenu: React.FC<{
     <div className="relative">
       <button
         onClick={() => isAuthenticated ? setShowMenu(!showMenu) : onLogin()}
-        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-all"
+        className="flex items-center gap-2 px-2 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-all"
       >
         {isAuthenticated && user ? (
           <>
@@ -86,7 +89,7 @@ const UserMenu: React.FC<{
         ) : (
           <>
             <User className="w-5 h-5 text-white/60" />
-            <span className="text-sm text-white/80">Entrar</span>
+            <span className="text-sm text-white/80 hidden sm:inline">Entrar</span>
           </>
         )}
       </button>
@@ -166,8 +169,99 @@ const UserMenu: React.FC<{
   );
 };
 
+// Mobile Menu Component
+const MobileMenu: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  panels: any;
+  setPanel: (key: string, value: boolean) => void;
+  setShowAIGenerationModal: (v: boolean) => void;
+  setShowDesignSuggestions: (v: boolean) => void;
+}> = ({ isOpen, onClose, panels, setPanel, setShowAIGenerationModal, setShowDesignSuggestions }) => {
+  if (!isOpen) return null;
+
+  const menuItems = [
+    { id: 'furniture', icon: '🛋️', label: 'Móveis', active: panels.furniture },
+    { id: 'ai', icon: <Sparkles size={18} />, label: 'IA', active: panels.ai },
+    { id: 'properties', icon: '⚙️', label: 'Propriedades', active: panels.properties },
+  ];
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm"
+        onClick={onClose}
+      >
+        <motion.div
+          initial={{ x: '100%' }}
+          animate={{ x: 0 }}
+          exit={{ x: '100%' }}
+          transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+          className="absolute right-0 top-0 h-full w-72 bg-[#0a0a0f] border-l border-white/10 p-4"
+          onClick={e => e.stopPropagation()}
+        >
+          <div className="flex items-center justify-between mb-6">
+            <span className="font-semibold">Menu</span>
+            <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg">
+              <X size={20} />
+            </button>
+          </div>
+
+          <div className="space-y-2">
+            <p className="text-xs text-white/40 uppercase tracking-wider mb-2">Painéis</p>
+            {menuItems.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => {
+                  setPanel(item.id, !panels[item.id]);
+                  onClose();
+                }}
+                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
+                  item.active 
+                    ? 'bg-[#c9a962]/20 text-[#c9a962] border border-[#c9a962]/30' 
+                    : 'bg-white/5 text-white/80 hover:bg-white/10'
+                }`}
+              >
+                <span>{item.icon}</span>
+                {item.label}
+              </button>
+            ))}
+
+            <div className="h-px bg-white/10 my-4" />
+
+            <p className="text-xs text-white/40 uppercase tracking-wider mb-2">IA</p>
+            <button
+              onClick={() => {
+                setShowDesignSuggestions(true);
+                onClose();
+              }}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30"
+            >
+              <Lightbulb size={18} />
+              Sugestões
+            </button>
+            <button
+              onClick={() => {
+                setShowAIGenerationModal(true);
+                onClose();
+              }}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-violet-600 to-purple-600 text-white"
+            >
+              <Wand2 size={18} />
+              Gerar com IA
+            </button>
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
+  );
+};
+
 // Interface principal do editor
-const EditorInterface: React.FC = () => {
+const EditorInterface: React.FC<{ onBackToWelcome: () => void }> = ({ onBackToWelcome }) => {
   const { 
     viewMode, 
     currentProject, 
@@ -190,6 +284,7 @@ const EditorInterface: React.FC = () => {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
 
   // Keyboard shortcut for admin panel (Ctrl+Shift+A)
   useEffect(() => {
@@ -208,8 +303,7 @@ const EditorInterface: React.FC = () => {
     if (currentProject && isAuthenticated) {
       const timeout = setTimeout(() => {
         syncProject(currentProject);
-      }, 30000); // Auto-save after 30 seconds
-
+      }, 30000);
       return () => clearTimeout(timeout);
     }
   }, [currentProject, isAuthenticated, syncProject]);
@@ -222,8 +316,8 @@ const EditorInterface: React.FC = () => {
   }, [selectedElement, setPanel]);
 
   return (
-    <div className="h-screen flex bg-[#0a0a0f] overflow-hidden">
-      {/* Toolbar - Sempre visível */}
+    <div className="min-h-[100dvh] h-[100dvh] flex bg-[#0a0a0f] overflow-hidden">
+      {/* Toolbar - Esconde no mobile, ou vira overlay */}
       <AnimatePresence mode="wait">
         {sidebarOpen && (
           <motion.div
@@ -231,7 +325,7 @@ const EditorInterface: React.FC = () => {
             animate={{ width: 80, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="flex-shrink-0"
+            className="flex-shrink-0 max-md:absolute max-md:left-0 max-md:top-16 max-md:h-[calc(100dvh-64px)] max-md:z-40"
           >
             <Toolbar />
           </motion.div>
@@ -239,13 +333,23 @@ const EditorInterface: React.FC = () => {
       </AnimatePresence>
 
       {/* Área principal do canvas */}
-      <div className="flex-1 relative">
-        {/* Header do projeto */}
-        <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-4 py-3 bg-[#0a0a0f]/90 backdrop-blur-xl border-b border-white/10">
-          <div className="flex items-center gap-4">
+      <div className="flex-1 relative flex flex-col min-w-0">
+        {/* Header do projeto - Responsivo */}
+        <div className="flex-shrink-0 h-14 md:h-16 flex items-center justify-between px-2 md:px-4 bg-[#0a0a0f]/90 backdrop-blur-xl border-b border-white/10 z-30">
+          {/* Lado esquerdo: Voltar + Toggle + Info */}
+          <div className="flex items-center gap-1 md:gap-3 min-w-0 flex-1">
+            {/* Botão VOLTAR para Welcome */}
+            <button
+              onClick={onBackToWelcome}
+              className="p-2 hover:bg-white/10 rounded-lg transition-colors flex-shrink-0"
+              title="Voltar para início"
+            >
+              <ArrowLeft size={20} className="text-white/60" />
+            </button>
+
             <button
               onClick={toggleSidebar}
-              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+              className="p-2 hover:bg-white/10 rounded-lg transition-colors flex-shrink-0 hidden sm:block"
               title="Toggle Sidebar"
             >
               <div className="w-5 h-5 flex flex-col justify-center gap-1">
@@ -254,22 +358,26 @@ const EditorInterface: React.FC = () => {
                 <div className="w-full h-0.5 bg-white/60" />
               </div>
             </button>
-            <div className="h-6 w-px bg-white/20" />
-            <div>
-              <div className="text-white font-semibold">{currentProject?.name}</div>
-              <div className="text-xs text-white/50">
+            
+            <div className="h-6 w-px bg-white/20 hidden sm:block flex-shrink-0" />
+            
+            <div className="min-w-0">
+              <div className="text-white font-semibold truncate text-sm md:text-base">
+                {currentProject?.name}
+              </div>
+              <div className="text-xs text-white/50 hidden sm:block">
                 {viewMode === '2d' ? 'Planta 2D' : 'Visualização 3D'} • 
-                {currentProject?.settings.unit === 'meters' ? ' Metros' : ' Pés'}
+                {currentProject?.settings?.unit === 'meters' ? ' Metros' : ' Pés'}
               </div>
             </div>
           </div>
           
-          <div className="flex items-center gap-2">
-            {/* View Mode Toggle */}
-            <div className="flex items-center bg-white/5 border border-white/10 rounded-lg p-1">
+          {/* Centro: View Mode Toggle */}
+          <div className="flex items-center justify-center flex-shrink-0">
+            <div className="flex items-center bg-white/5 border border-white/10 rounded-lg p-0.5 md:p-1">
               <button
                 onClick={() => setViewMode('2d')}
-                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                className={`px-2 md:px-3 py-1 md:py-1.5 rounded-md text-xs md:text-sm font-medium transition-all ${
                   viewMode === '2d'
                     ? 'bg-[#c9a962] text-[#0a0a0f]'
                     : 'text-white/60 hover:text-white'
@@ -279,7 +387,7 @@ const EditorInterface: React.FC = () => {
               </button>
               <button
                 onClick={() => setViewMode('3d')}
-                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
+                className={`px-2 md:px-3 py-1 md:py-1.5 rounded-md text-xs md:text-sm font-medium transition-all ${
                   viewMode === '3d'
                     ? 'bg-[#c9a962] text-[#0a0a0f]'
                     : 'text-white/60 hover:text-white'
@@ -288,68 +396,100 @@ const EditorInterface: React.FC = () => {
                 3D
               </button>
             </div>
+          </div>
 
-            <div className="h-6 w-px bg-white/20 mx-1" />
+          {/* Lado direito: Ações - Desktop completo, Mobile simplificado */}
+          <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
+            {/* Desktop: todos os botões */}
+            <div className="hidden lg:flex items-center gap-2">
+              <button
+                onClick={() => setPanel('furniture', !panels.furniture)}
+                className={`px-3 py-2 rounded-lg text-sm transition-all flex items-center gap-2 ${
+                  panels.furniture 
+                    ? 'bg-[#c9a962]/20 text-[#c9a962] border border-[#c9a962]/30' 
+                    : 'bg-white/5 text-white/70 hover:bg-white/10 border border-transparent'
+                }`}
+              >
+                <span>🛋️</span>
+                <span>Móveis</span>
+              </button>
+              
+              <button
+                onClick={() => setPanel('ai', !panels.ai)}
+                className={`px-3 py-2 rounded-lg text-sm transition-all flex items-center gap-2 ${
+                  panels.ai 
+                    ? 'bg-[#c9a962]/20 text-[#c9a962] border border-[#c9a962]/30' 
+                    : 'bg-white/5 text-white/70 hover:bg-white/10 border border-transparent'
+                }`}
+              >
+                <Sparkles size={16} />
+                <span>IA</span>
+              </button>
+              
+              <button
+                onClick={() => setPanel('properties', !panels.properties)}
+                className={`px-3 py-2 rounded-lg text-sm transition-all flex items-center gap-2 ${
+                  panels.properties 
+                    ? 'bg-[#c9a962]/20 text-[#c9a962] border border-[#c9a962]/30' 
+                    : 'bg-white/5 text-white/70 hover:bg-white/10 border border-transparent'
+                }`}
+              >
+                <span>⚙️</span>
+                <span>Propriedades</span>
+              </button>
 
-            {/* Panel Toggles */}
+              <div className="h-6 w-px bg-white/20 mx-1" />
+
+              <button
+                onClick={() => setShowDesignSuggestions(true)}
+                className="px-3 py-2 rounded-lg text-sm transition-all flex items-center gap-2 bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 border border-amber-500/30"
+              >
+                <Lightbulb size={16} />
+                <span>Sugestões</span>
+              </button>
+              
+              <button
+                onClick={() => setShowAIGenerationModal(true)}
+                className="px-3 py-2 rounded-lg text-sm transition-all flex items-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white hover:opacity-90"
+              >
+                <Wand2 size={16} />
+                <span>Gerar com IA</span>
+              </button>
+
+              <div className="h-6 w-px bg-white/20 mx-1" />
+            </div>
+
+            {/* Tablet: botões compactos */}
+            <div className="hidden md:flex lg:hidden items-center gap-1">
+              <button
+                onClick={() => setPanel('furniture', !panels.furniture)}
+                className={`p-2 rounded-lg ${panels.furniture ? 'bg-[#c9a962]/20 text-[#c9a962]' : 'text-white/60'}`}
+              >
+                🛋️
+              </button>
+              <button
+                onClick={() => setPanel('ai', !panels.ai)}
+                className={`p-2 rounded-lg ${panels.ai ? 'bg-[#c9a962]/20 text-[#c9a962]' : 'text-white/60'}`}
+              >
+                <Sparkles size={18} />
+              </button>
+              <button
+                onClick={() => setPanel('properties', !panels.properties)}
+                className={`p-2 rounded-lg ${panels.properties ? 'bg-[#c9a962]/20 text-[#c9a962]' : 'text-white/60'}`}
+              >
+                ⚙️
+              </button>
+            </div>
+
+            {/* Mobile: menu hambúrguer */}
             <button
-              onClick={() => setPanel('furniture', !panels.furniture)}
-              className={`px-3 py-2 rounded-lg text-sm transition-all flex items-center gap-2 ${
-                panels.furniture 
-                  ? 'bg-[#c9a962]/20 text-[#c9a962] border border-[#c9a962]/30' 
-                  : 'bg-white/5 text-white/70 hover:bg-white/10 border border-transparent'
-              }`}
+              onClick={() => setShowMobileMenu(true)}
+              className="lg:hidden p-2 hover:bg-white/10 rounded-lg transition-colors"
             >
-              <span>🛋️</span>
-              <span className="hidden sm:inline">Móveis</span>
-            </button>
-            
-            <button
-              onClick={() => setPanel('ai', !panels.ai)}
-              className={`px-3 py-2 rounded-lg text-sm transition-all flex items-center gap-2 ${
-                panels.ai 
-                  ? 'bg-[#c9a962]/20 text-[#c9a962] border border-[#c9a962]/30' 
-                  : 'bg-white/5 text-white/70 hover:bg-white/10 border border-transparent'
-              }`}
-            >
-              <Sparkles size={16} />
-              <span className="hidden sm:inline">IA</span>
-            </button>
-            
-            <button
-              onClick={() => setPanel('properties', !panels.properties)}
-              className={`px-3 py-2 rounded-lg text-sm transition-all flex items-center gap-2 ${
-                panels.properties 
-                  ? 'bg-[#c9a962]/20 text-[#c9a962] border border-[#c9a962]/30' 
-                  : 'bg-white/5 text-white/70 hover:bg-white/10 border border-transparent'
-              }`}
-            >
-              <span>⚙️</span>
-              <span className="hidden sm:inline">Propriedades</span>
+              <Menu size={20} className="text-white/60" />
             </button>
 
-            <div className="h-6 w-px bg-white/20 mx-1" />
-
-            {/* AI Buttons */}
-            <button
-              onClick={() => setShowDesignSuggestions(true)}
-              className="px-3 py-2 rounded-lg text-sm transition-all flex items-center gap-2 bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 border border-amber-500/30"
-            >
-              <Lightbulb size={16} />
-              <span className="hidden sm:inline">Sugestões</span>
-            </button>
-            
-            <button
-              onClick={() => setShowAIGenerationModal(true)}
-              className="px-3 py-2 rounded-lg text-sm transition-all flex items-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white hover:opacity-90"
-            >
-              <Wand2 size={16} />
-              <span className="hidden sm:inline">Gerar com IA</span>
-            </button>
-
-            <div className="h-6 w-px bg-white/20 mx-1" />
-
-            {/* User Menu */}
+            {/* User Menu - sempre visível */}
             <UserMenu
               isOpen={true}
               onClose={() => {}}
@@ -359,8 +499,8 @@ const EditorInterface: React.FC = () => {
           </div>
         </div>
 
-        {/* Canvas */}
-        <div className="h-full pt-16">
+        {/* Canvas - Ocupa o espaço restante */}
+        <div className="flex-1 relative overflow-hidden">
           <AnimatePresence mode="wait">
             <motion.div
               key={viewMode}
@@ -368,7 +508,7 @@ const EditorInterface: React.FC = () => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
-              className="h-full"
+              className="absolute inset-0"
             >
               {viewMode === '2d' ? <Canvas2D /> : <Canvas3D />}
             </motion.div>
@@ -376,15 +516,15 @@ const EditorInterface: React.FC = () => {
         </div>
       </div>
 
-      {/* Painéis laterais */}
+      {/* Painéis laterais - Desktop: lateral, Mobile: overlay */}
       <AnimatePresence>
         {panels.furniture && (
           <motion.div
-            initial={{ width: 0, opacity: 0 }}
-            animate={{ width: 320, opacity: 1 }}
-            exit={{ width: 0, opacity: 0 }}
+            initial={{ width: 0, opacity: 0, x: 20 }}
+            animate={{ width: 320, opacity: 1, x: 0 }}
+            exit={{ width: 0, opacity: 0, x: 20 }}
             transition={{ duration: 0.2 }}
-            className="flex-shrink-0 overflow-hidden"
+            className="flex-shrink-0 overflow-hidden max-md:absolute max-md:right-0 max-md:top-14 max-md:h-[calc(100dvh-56px)] max-md:z-40 bg-[#0a0a0f] border-l border-white/10"
           >
             <FurniturePanel />
           </motion.div>
@@ -394,11 +534,11 @@ const EditorInterface: React.FC = () => {
       <AnimatePresence>
         {panels.ai && (
           <motion.div
-            initial={{ width: 0, opacity: 0 }}
-            animate={{ width: 320, opacity: 1 }}
-            exit={{ width: 0, opacity: 0 }}
+            initial={{ width: 0, opacity: 0, x: 20 }}
+            animate={{ width: 320, opacity: 1, x: 0 }}
+            exit={{ width: 0, opacity: 0, x: 20 }}
             transition={{ duration: 0.2 }}
-            className="flex-shrink-0 overflow-hidden"
+            className="flex-shrink-0 overflow-hidden max-md:absolute max-md:right-0 max-md:top-14 max-md:h-[calc(100dvh-56px)] max-md:z-40 bg-[#0a0a0f] border-l border-white/10"
           >
             <AIAssistant />
           </motion.div>
@@ -408,16 +548,26 @@ const EditorInterface: React.FC = () => {
       <AnimatePresence>
         {panels.properties && (
           <motion.div
-            initial={{ width: 0, opacity: 0 }}
-            animate={{ width: 288, opacity: 1 }}
-            exit={{ width: 0, opacity: 0 }}
+            initial={{ width: 0, opacity: 0, x: 20 }}
+            animate={{ width: 288, opacity: 1, x: 0 }}
+            exit={{ width: 0, opacity: 0, x: 20 }}
             transition={{ duration: 0.2 }}
-            className="flex-shrink-0 overflow-hidden"
+            className="flex-shrink-0 overflow-hidden max-md:absolute max-md:right-0 max-md:top-14 max-md:h-[calc(100dvh-56px)] max-md:z-40 bg-[#0a0a0f] border-l border-white/10"
           >
             <PropertiesPanel />
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Mobile Menu */}
+      <MobileMenu
+        isOpen={showMobileMenu}
+        onClose={() => setShowMobileMenu(false)}
+        panels={panels}
+        setPanel={setPanel}
+        setShowAIGenerationModal={setShowAIGenerationModal}
+        setShowDesignSuggestions={setShowDesignSuggestions}
+      />
 
       {/* Modals */}
       <AIGenerationModal
@@ -443,7 +593,6 @@ const EditorInterface: React.FC = () => {
         />
       )}
 
-      {/* Admin Panel - Hidden, accessible via Ctrl+Shift+A */}
       <AdminPanel
         isOpen={showAdminPanel}
         onClose={() => setShowAdminPanel(false)}
@@ -456,7 +605,7 @@ const EditorInterface: React.FC = () => {
 function App() {
   const [showWelcome, setShowWelcome] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const { currentProject, createProject } = useProjectStore();
+  const { currentProject, createProject, clearCurrentProject } = useProjectStore();
   const { loadTemplates, loadStyles } = useTemplateStore();
   const { loadPlans, initialize } = useUserStore();
 
@@ -476,37 +625,36 @@ function App() {
   }, [currentProject]);
 
   const handleCreateProject = (config: ProjectConfig) => {
-    // Create project with configuration
     createProject(config.name, config.description);
     
-    // Apply template if selected
     if (config.template) {
       // TODO: Apply template rooms and settings
     }
     
-    // Apply style if selected
     if (config.style) {
       // TODO: Apply style colors and materials
     }
     
-    // Close modal and show editor
     setShowCreateModal(false);
     setShowWelcome(false);
   };
 
   const handleOpenProjects = () => {
-    // TODO: Implement projects list view
     setShowCreateModal(true);
   };
 
   const handleExploreTemplates = () => {
-    // TODO: Navigate to templates tab
     setShowCreateModal(true);
   };
 
   const handleSubscribePro = () => {
-    // TODO: Navigate to pricing
     alert('Assinatura Pro - Em breve!');
+  };
+
+  // NOVO: Voltar para Welcome e fechar projeto
+  const handleBackToWelcome = () => {
+    clearCurrentProject(); // Você precisa ter essa função no store
+    setShowWelcome(true);
   };
 
   if (showWelcome) {
@@ -527,7 +675,7 @@ function App() {
     );
   }
 
-  return <EditorInterface />;
+  return <EditorInterface onBackToWelcome={handleBackToWelcome} />;
 }
 
 export default App;
