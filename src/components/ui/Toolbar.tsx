@@ -72,7 +72,7 @@ const Toolbar: React.FC = () => {
   const canRedo = historyIndex < history.length - 1;
 
   return (
-    <div className="flex flex-col bg-[#1a1a1a] border-r border-[#444] p-2 gap-2 overflow-y-auto min-h-0 flex-1">
+    <div className="flex flex-col bg-[#1a1a1a] border-r border-[#444] p-2 gap-2 overflow-y-auto min-h-0">
       {/* Logo */}
       <div className="flex items-center justify-center py-4 border-b border-[#444] flex-shrink-0">
         <div className="text-[#c9a962] font-bold text-lg">CasaPro</div>
