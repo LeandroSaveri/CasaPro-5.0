@@ -1,5 +1,5 @@
 // ============================================
-// ARQUIVO: src/App.tsx (CORRIGIDO - SEM Canvas2D DUPLICADO)
+// ARQUIVO: src/App.tsx 
 // ============================================
 
 import React, { useState, useEffect } from 'react';
