@@ -49,6 +49,7 @@ interface ProjectState {
   loadProject: (project: Project) => void;
   updateProject: (updates: Partial<Project>) => void;
   saveProject: () => void;
+  clearCurrentProject: () => void;
   
   // Ferramentas
   setToolMode: (mode: ToolMode) => void;
@@ -200,13 +201,23 @@ export const useProjectStore = create<ProjectState>()(
         set({ currentProject: updated });
       },
 
-      saveProject: () => {
-        const { addToHistory } = get();
-        addToHistory();
-      },
+saveProject: () => {
+  const { addToHistory } = get();
+  addToHistory();
+},
 
-      setToolMode: (mode) => set({ toolMode: mode }),
-      setViewMode: (mode) => set({ viewMode: mode }),
+clearCurrentProject: () => {
+  set({
+    currentProject: null,
+    history: [],
+    historyIndex: -1,
+    selectedElement: null,
+    selectedElementType: null,
+  });
+},
+
+setToolMode: (mode) => set({ toolMode: mode }),
+setViewMode: (mode) => set({ viewMode: mode }),
 
       startDrawing: (point) => set({ 
         isDrawing: true, 
