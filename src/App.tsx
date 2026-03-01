@@ -10,7 +10,7 @@ import FurniturePanel from '@/components/ui/FurniturePanel';
 import AIAssistant from '@/components/ui/AIAssistant';
 import PropertiesPanel from '@/components/ui/PropertiesPanel';
 import WelcomeScreen from '@/components/welcome/WelcomeScreen';
-import CreateProjectModal, { type ProjectConfig } from '@/components/modals/CreateProjectModal';
+import CreateProjectModal from '@/components/modals/CreateProjectModal';
 import AIGenerationModal from '@/components/modals/AIGenerationModal';
 import DesignSuggestionsPanel from '@/components/panels/DesignSuggestionsPanel';
 import LoginModal from '@/components/modals/LoginModal';
