@@ -1,494 +1,392 @@
 // ============================================
-// TIPOS PRINCIPAIS - CasaPro AI Premium
+// ARQUIVO 5: src/types/index.ts
 // ============================================
 
-// --- Tipos Geométricos Básicos ---
-export interface Point {
+// ============================================
+// TIPOS BÁSICOS
+// ============================================
+
+export interface Vector2D {
   x: number;
   y: number;
 }
 
-export interface Point3D {
+export interface Vector3D {
   x: number;
   y: number;
   z: number;
 }
 
-export interface Size {
+export interface Dimensions {
   width: number;
   height: number;
   depth: number;
 }
 
-export interface Bounds {
-  min: Point;
-  max: Point;
-}
+export type ID = string;
 
-// --- Elementos da Planta ---
-export interface Wall {
-  id: string;
-  start: Point;
-  end: Point;
-  thickness: number;
-  height: number;
-  color: string;
-  material?: string;
-  layer?: string;
-  metadata?: {
-    length?: number;
-    angle?: number;
-  };
-}
+// ============================================
+// TIPOS DE PROJETO
+// ============================================
 
-export interface Room {
-  id: string;
-  name: string;
-  points: Point[];
-  color: string;
-  floorMaterial: string;
-  wallMaterial?: string;
-  ceilingMaterial?: string;
-  area: number;
-  perimeter?: number;
-  layer?: string;
-  metadata?: {
-    center?: Point;
-    bounds?: Bounds;
-  };
-}
-
-export interface Door {
-  id: string;
-  wallId: string;
-  position: number; // 0-1 posição ao longo da parede
-  width: number;
-  height: number;
-  type: 'single' | 'double' | 'sliding' | 'pocket' | 'folding';
-  angle: number;
-  swingDirection?: 'left' | 'right' | 'inward' | 'outward';
-  material?: string;
-  frameColor?: string;
-  layer?: string;
-}
-
-export interface Window {
-  id: string;
-  wallId: string;
-  position: number;
-  width: number;
-  height: number;
-  sillHeight: number;
-  type: 'fixed' | 'sliding' | 'casement' | 'awning' | 'bay';
-  material?: string;
-  frameColor?: string;
-  hasBlinds?: boolean;
-  layer?: string;
-}
-
-// --- Móveis e Objetos ---
-export interface Furniture {
-  id: string;
-  type: string;
-  category: string;
-  subcategory?: string;
-  position: Point;
-  position3D?: Point3D;
-  rotation: number;
-  rotation3D?: Point3D;
-  scale: Point;
-  width: number;
-  height: number;
-  depth: number;
-  color: string;
-  material: string;
-  name: string;
-  visible: boolean;
-  locked: boolean;
-  metadata?: {
-    brand?: string;
-    model?: string;
-    price?: number;
-    url?: string;
-  };
-}
-
-// --- Materiais e Texturas ---
-export interface Material {
-  id: string;
-  name: string;
-  type: 'floor' | 'wall' | 'furniture' | 'exterior' | 'ceiling';
-  color: string;
-  textureUrl?: string;
-  normalMap?: string;
-  roughnessMap?: string;
-  metalnessMap?: string;
-  properties: {
-    roughness: number;
-    metalness: number;
-    reflectivity: number;
-    transparency: number;
-    emissive?: string;
-    emissiveIntensity?: number;
-  };
-  category: string;
-  tags: string[];
-}
-
-// --- Estilos de Design ---
-export interface DesignStyle {
-  id: string;
-  name: string;
-  description: string;
-  icon: string;
-  colors: {
-    primary: string;
-    secondary: string;
-    accent: string;
-    background: string;
-    text: string;
-  };
-  materials: {
-    floor: string[];
-    wall: string[];
-    furniture: string[];
-  };
-  lighting: {
-    intensity: number;
-    color: string;
-    ambientIntensity: number;
-  };
-  furnitureCategories: string[];
-}
-
-// --- Templates de Projeto ---
-export interface ProjectTemplate {
-  id: string;
-  name: string;
-  description: string;
-  thumbnail: string;
-  category: string;
-  difficulty: 'beginner' | 'intermediate' | 'advanced';
-  terrainSize: Point;
-  defaultWallHeight: number;
-  rooms: Array<{
-    name: string;
-    width: number;
-    depth: number;
-    position: Point;
-  }>;
-  preloadedFurniture?: Furniture[];
-  recommendedStyle?: string;
-}
-
-// --- Configurações do Projeto ---
 export interface ProjectSettings {
   unit: 'meters' | 'centimeters' | 'feet' | 'inches';
   gridSize: number;
+  showGrid: boolean;
+  showAxes: boolean;
   snapToGrid: boolean;
   snapToAngle: boolean;
   snapAngles: number[];
   showMeasurements: boolean;
-  showGrid: boolean;
-  showAxes: boolean;
   defaultWallHeight: number;
   defaultWallThickness: number;
-  defaultFloorMaterial: string;
-  defaultWallMaterial: string;
-  terrainSize: Point;
-  layers: Layer[];
+  terrainSize: Vector2D;
 }
 
-export interface Layer {
-  id: string;
-  name: string;
-  visible: boolean;
-  locked: boolean;
-  color: string;
-  opacity: number;
-  type: 'structure' | 'electrical' | 'plumbing' | 'furniture' | 'decor' | 'custom';
+export interface Terrain {
+  size: Vector2D;
+  elevation: number[][];
+  texture?: string;
 }
 
-// --- Design Externo ---
-export interface ExteriorDesign {
-  facadeMaterial: string;
-  facadeColor: string;
-  roofType: 'flat' | 'gable' | 'hip' | 'mansard' | 'shed';
-  roofMaterial: string;
-  roofColor: string;
-  hasGarage: boolean;
-  garageSize?: Size;
-  hasPool: boolean;
-  poolSize?: Size;
-  hasGarden: boolean;
-  gardenArea?: Bounds;
-  terrainSize: Point;
-  terrainShape: Point[];
-  terrain?: {
-    width: number;
-    depth: number;
-  };
-  fenceType?: string;
-  fenceHeight?: number;
-  gateType?: string;
+export interface Exterior {
+  terrainSize: Vector2D;
+  terrain?: Terrain;
+  landscaping?: LandscapingElement[];
 }
 
-// --- Projeto Completo ---
+export interface LandscapingElement {
+  id: ID;
+  type: 'tree' | 'bush' | 'flower' | 'grass' | 'path' | 'deck' | 'pool';
+  position: Vector3D;
+  scale: Vector3D;
+  rotation: number;
+}
+
 export interface Project {
-  id: string;
+  id: ID;
   name: string;
   description: string;
   createdAt: Date;
   updatedAt: Date;
-  ownerId?: string;
-  isTemplate: boolean;
-  isPublic: boolean;
-  thumbnail?: string;
+  settings: ProjectSettings;
   walls: Wall[];
   rooms: Room[];
   doors: Door[];
   windows: Window[];
   furniture: Furniture[];
-  exterior: ExteriorDesign;
-  settings: ProjectSettings;
-  appliedStyle?: string;
-  version: number;
+  exterior: Exterior;
   tags: string[];
-}
-
-// --- Modos de Ferramenta ---
-export type ToolMode = 
-  | 'select' 
-  | 'wall' 
-  | 'room' 
-  | 'door' 
-  | 'window' 
-  | 'furniture' 
-  | 'measure' 
-  | 'eraser'
-  | 'pan'
-  | 'zoom'
-  | 'text'
-  | 'dimension';
-
-export type ViewMode = '2d' | '3d';
-
-export type CameraMode3D = 'orbit' | 'walk' | 'top' | 'firstPerson';
-
-// --- Estado do Canvas ---
-export interface CanvasState {
-  scale: number;
-  offset: Point;
-  rotation: number;
-  isPanning: boolean;
-  isDrawing: boolean;
-  drawStart: Point | null;
-  drawCurrent: Point | null;
-  snapPoint: Point | null;
-  hoveredElement: string | null;
-  selectionBox: { start: Point; end: Point } | null;
-}
-
-// --- Iluminação 3D ---
-export interface LightingSettings {
-  ambientIntensity: number;
-  ambientColor: string;
-  sunPosition: Point3D;
-  sunIntensity: number;
-  sunColor: string;
-  shadowsEnabled: boolean;
-  shadowQuality: 'low' | 'medium' | 'high' | 'ultra';
-  timeOfDay: number; // 0-24
-  exposure: number;
-  fogEnabled: boolean;
-  fogDensity: number;
-  fogColor: string;
-}
-
-// --- Recomendações de IA ---
-export interface AIRecommendation {
-  id: string;
-  type: 'layout' | 'style' | 'color' | 'furniture' | 'lighting' | 'optimization';
-  title: string;
-  description: string;
-  confidence: number;
-  data: any;
-  applied: boolean;
-  timestamp: Date;
-}
-
-export interface AIGeneratedProject {
-  prompt: string;
-  project: Partial<Project>;
-  recommendations: AIRecommendation[];
-  style: DesignStyle;
-  estimatedCost?: number;
-  estimatedArea?: number;
-}
-
-// --- Biblioteca de Móveis ---
-export interface FurnitureItem {
-  id: string;
-  name: string;
-  category: string;
-  subcategory: string;
-  icon: string;
   thumbnail?: string;
-  model3D?: string;
-  defaultWidth: number;
-  defaultHeight: number;
-  defaultDepth: number;
+}
+
+// ============================================
+// TIPOS DE ELEMENTOS ARQUITETÔNICOS
+// ============================================
+
+export interface Wall {
+  id: ID;
+  start: Vector2D;
+  end: Vector2D;
+  height: number;
+  thickness: number;
+  color: string;
+  material?: string;
+  hasBaseboard?: boolean;
+  baseboardHeight?: number;
+}
+
+export interface Room {
+  id: ID;
+  name: string;
+  points: Vector2D[];
+  height: number;
+  color: string;
+  area: number;
+  perimeter: number;
+  type: RoomType;
+  ceilingHeight?: number;
+  floorMaterial?: string;
+  wallMaterial?: string;
+}
+
+export type RoomType = 
+  | 'living' | 'kitchen' | 'bedroom' | 'bathroom' 
+  | 'dining' | 'office' | 'garage' | 'hallway'
+  | 'storage' | 'balcony' | 'garden' | 'other';
+
+export interface Door {
+  id: ID;
+  wallId: ID;
+  position: number; // 0-1 posição ao longo da parede
+  width: number;
+  height: number;
+  type: DoorType;
+  swing: 'left' | 'right' | 'sliding' | 'pocket';
+  material?: string;
+}
+
+export type DoorType = 'single' | 'double' | 'pocket' | 'sliding' | 'folding';
+
+export interface Window {
+  id: ID;
+  wallId: ID;
+  position: number; // 0-1 posição ao longo da parede
+  width: number;
+  height: number;
+  sillHeight: number;
+  type: WindowType;
+  material?: string;
+}
+
+export type WindowType = 'single' | 'double' | 'sliding' | 'casement' | 'fixed' | 'bay';
+
+// ============================================
+// TIPOS DE MÓVEIS
+// ============================================
+
+export interface Furniture {
+  id: ID;
+  name: string;
+  category: FurnitureCategory;
+  position: Vector3D;
+  rotation: number;
+  scale: Vector3D;
+  color: string;
+  material?: string;
+  modelUrl?: string;
+  dimensions: Dimensions;
+}
+
+export type FurnitureCategory =
+  | 'seating' | 'tables' | 'storage' | 'beds'
+  | 'lighting' | 'appliances' | 'decor' | 'plants'
+  | 'electronics' | 'kitchen' | 'bathroom';
+
+export interface FurnitureCatalogItem {
+  id: ID;
+  name: string;
+  category: FurnitureCategory;
+  subcategory: string;
+  style: string[];
+  dimensions: Dimensions;
   colors: string[];
   materials: string[];
-  tags: string[];
-  popular: boolean;
-  premium: boolean;
-  brand?: string;
+  thumbnailUrl: string;
+  modelUrl?: string;
   price?: number;
-  description?: string;
+  tags: string[];
 }
 
 export interface FurnitureCategory {
   id: string;
   name: string;
   icon: string;
-  description: string;
-  itemCount: number;
   subcategories: string[];
 }
 
-// --- Usuário e Autenticação ---
+// ============================================
+// TIPOS DE TEMPLATES E ESTILOS
+// ============================================
+
+export interface ProjectTemplate {
+  id: ID;
+  name: string;
+  description: string;
+  icon?: string;
+  rooms: number;
+  area: number;
+  terrainSize: Vector2D;
+  defaultWallHeight: number;
+  defaultWallThickness: number;
+  category: 'residential' | 'commercial' | 'apartment' | 'industrial' | 'other';
+  tags: string[];
+  previewImage?: string;
+}
+
+export interface DesignStyle {
+  id: ID;
+  name: string;
+  description: string;
+  icon?: string;
+  tags: string[];
+  colors: string[];
+  materials: string[];
+  previewImage?: string;
+}
+
+// ============================================
+// TIPOS DE UI/UX
+// ============================================
+
+export type ToolMode = 'select' | 'wall' | 'room' | 'door' | 'window' | 'furniture' | 'measure';
+
+export type ViewMode = '2d' | '3d';
+
+export interface Canvas2DState {
+  scale: number;
+  offset: Vector2D;
+  gridSize: number;
+  showGrid: boolean;
+  snapToGrid: boolean;
+}
+
+export interface Canvas3DState {
+  cameraPosition: Vector3D;
+  cameraTarget: Vector3D;
+  zoom: number;
+  showShadows: boolean;
+  showLighting: boolean;
+  renderQuality: 'low' | 'medium' | 'high';
+}
+
+export interface PanelsState {
+  furniture: boolean;
+  ai: boolean;
+  properties: boolean;
+  layers: boolean;
+  materials: boolean;
+}
+
+// ============================================
+// TIPOS DE USUÁRIO
+// ============================================
+
 export type UserPlan = 'free' | 'pro' | 'enterprise';
 
 export interface User {
-  id: string;
+  id: ID;
   email: string;
   name: string;
-  avatar?: string;
+  avatar: string;
   plan: UserPlan;
-  planExpiry?: Date;
-  projects: string[];
-  projectsCount: number;
-  maxProjects: number;
-  favorites: {
-    furniture: string[];
-    materials: string[];
-    styles: string[];
-  };
-  settings: UserSettings;
   createdAt: Date;
-  lastLoginAt: Date;
-  lastLogin?: Date;
+  projectsCount: number;
+  storageUsed: number;
+  storageLimit: number;
 }
 
-export interface UserSettings {
-  language: string;
-  theme: 'dark' | 'light' | 'auto';
-  notifications: boolean;
-  autoSave: boolean;
-  autoSaveInterval: number;
-  defaultUnit: string;
-  defaultView: ViewMode;
-  toolbarPosition: 'left' | 'right' | 'top';
-}
-
-// --- Planos de Assinatura ---
-export interface Plan {
+export interface SubscriptionPlan {
   id: string;
   name: string;
-  description: string;
   price: number;
-  currency: string;
   interval: 'month' | 'year';
   features: string[];
   limits: {
     projects: number;
-    exportsPerMonth: number;
-    rendersPerMonth: number;
-    storageGB: number;
-    aiRequestsPerMonth: number;
-    maxFurniturePerProject: number;
+    storage: number;
+    aiGenerations: number;
+    exports: number;
   };
 }
 
-// --- Exportações ---
-export interface ExportOptions {
-  format: 'pdf' | 'png' | 'jpg' | 'glb' | 'obj' | 'dxf';
-  quality: 'low' | 'medium' | 'high' | 'ultra';
-  includeDimensions: boolean;
-  includeAnnotations: boolean;
-  scale?: number;
-  paperSize?: 'A4' | 'A3' | 'A2' | 'A1' | 'Letter';
-  orientation?: 'portrait' | 'landscape';
-}
+// ============================================
+// TIPOS DE IA
+// ============================================
 
-// --- UI e Animações ---
-export interface UIState {
-  sidebarOpen: boolean;
-  sidebarWidth: number;
-  activePanel: string | null;
-  panels: {
-    furniture: boolean;
-    properties: boolean;
-    layers: boolean;
-    materials: boolean;
-    ai: boolean;
+export interface AIGenerationRequest {
+  prompt: string;
+  style?: string;
+  constraints?: {
+    maxRooms?: number;
+    minArea?: number;
+    maxArea?: number;
+    terrainSize?: Vector2D;
   };
-  tooltipsEnabled: boolean;
-  animationsEnabled: boolean;
-  reducedMotion: boolean;
 }
 
-// --- Estatísticas e Analytics ---
-export interface ProjectStats {
-  totalArea: number;
-  builtArea: number;
-  roomCount: number;
-  wallCount: number;
-  doorCount: number;
-  windowCount: number;
-  furnitureCount: number;
-  estimatedCost: number;
-  lastModified: Date;
+export interface AIGenerationResult {
+  success: boolean;
+  project?: Partial<Project>;
+  suggestions?: DesignSuggestion[];
+  error?: string;
 }
 
-// --- Histórico de Ações ---
-export interface HistoryAction {
-  id: string;
-  type: string;
+export interface DesignSuggestion {
+  id: ID;
+  type: 'layout' | 'furniture' | 'color' | 'material' | 'lighting';
+  title: string;
   description: string;
-  timestamp: Date;
-  data: any;
-  undo: () => void;
-  redo: () => void;
+  confidence: number;
+  previewImage?: string;
 }
 
 // ============================================
-// TIPOS ADMIN
+// TIPOS DE EXPORTAÇÃO
 // ============================================
 
-export interface AdminStats {
-  totalUsers: number;
-  activeUsers: number;
-  totalProjects: number;
-  premiumUsers: number;
-  revenue: number;
-  popularFeatures: string[];
-  systemHealth: {
-    status: 'healthy' | 'warning' | 'critical';
-    uptime: number;
-    responseTime: number;
+export type ExportFormat = 'pdf' | 'dwg' | 'obj' | 'fbx' | 'png' | 'jpg';
+
+export interface ExportOptions {
+  format: ExportFormat;
+  scale?: number;
+  includeDimensions?: boolean;
+  includeMaterials?: boolean;
+  quality?: 'low' | 'medium' | 'high';
+  paperSize?: 'A4' | 'A3' | 'A2' | 'A1' | 'letter' | 'legal';
+}
+
+// ============================================
+// TIPOS DE HISTÓRICO
+// ============================================
+
+export interface HistoryAction {
+  id: ID;
+  type: 'create' | 'update' | 'delete' | 'move' | 'rotate' | 'scale';
+  targetType: 'wall' | 'room' | 'door' | 'window' | 'furniture';
+  targetId: ID;
+  previousState: any;
+  newState: any;
+  timestamp: Date;
+}
+
+// ============================================
+// TIPOS DE FILTROS E BUSCA
+// ============================================
+
+export interface FilterCriteria<T> {
+  field: keyof T;
+  operator: 'eq' | 'ne' | 'gt' | 'gte' | 'lt' | 'lte' | 'contains' | 'in';
+  value: any;
+}
+
+export interface SortOptions<T> {
+  field: keyof T;
+  direction: 'asc' | 'desc';
+}
+
+// ============================================
+// TIPOS DE API/RESPONSE
+// ============================================
+
+export interface ApiResponse<T> {
+  success: boolean;
+  data?: T;
+  error?: {
+    code: string;
+    message: string;
+    details?: any;
+  };
+  meta?: {
+    page?: number;
+    limit?: number;
+    total?: number;
+    hasMore?: boolean;
   };
 }
 
-export interface AdminUser extends User {
-  isAdmin: boolean;
-  permissions: string[];
+// ============================================
+// TIPOS DE PONTO (para Canvas)
+// ============================================
+
+export interface Point {
+  x: number;
+  y: number;
 }
 
-export interface ContentManagement {
-  furniture: FurnitureItem[];
-  materials: Material[];
-  styles: DesignStyle[];
-  templates: ProjectTemplate[];
-}
+// ============================================
+// RE-EXPORTS (para compatibilidade)
+// ============================================
+
+export type { Vector2D as Point2D };
+export type { Vector3D as Point3D };
