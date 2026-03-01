@@ -169,22 +169,27 @@ const UserMenu: React.FC<{
   );
 };
 
-// Mobile Menu Component
+// Mobile Menu Component - VERSÃO PREMIUM GLASS
 const MobileMenu: React.FC<{
   isOpen: boolean;
   onClose: () => void;
-  panels: any;
+  currentProject: any;
   setPanel: (key: string, value: boolean) => void;
+  panels: any;
   setShowAIGenerationModal: (v: boolean) => void;
   setShowDesignSuggestions: (v: boolean) => void;
-}> = ({ isOpen, onClose, panels, setPanel, setShowAIGenerationModal, setShowDesignSuggestions }) => {
+  onCloseProject: () => void;
+}> = ({
+  isOpen,
+  onClose,
+  currentProject,
+  setPanel,
+  panels,
+  setShowAIGenerationModal,
+  setShowDesignSuggestions,
+  onCloseProject
+}) => {
   if (!isOpen) return null;
-
-  const menuItems = [
-    { id: 'furniture', icon: '🛋️', label: 'Móveis', active: panels.furniture },
-    { id: 'ai', icon: <Sparkles size={18} />, label: 'IA', active: panels.ai },
-    { id: 'properties', icon: '⚙️', label: 'Propriedades', active: panels.properties },
-  ];
 
   return (
     <AnimatePresence>
@@ -192,7 +197,7 @@ const MobileMenu: React.FC<{
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm"
+        className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm"
         onClick={onClose}
       >
         <motion.div
@@ -200,58 +205,116 @@ const MobileMenu: React.FC<{
           animate={{ x: 0 }}
           exit={{ x: '100%' }}
           transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-          className="absolute right-0 top-0 h-full w-72 bg-[#0a0a0f] border-l border-white/10 p-4"
+          className="absolute right-0 top-0 h-full w-80 bg-[#0a0a0f]/95 backdrop-blur-xl border-l border-white/10 p-6 flex flex-col gap-6"
           onClick={e => e.stopPropagation()}
         >
-          <div className="flex items-center justify-between mb-6">
-            <span className="font-semibold">Menu</span>
-            <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg">
-              <X size={20} />
+          {/* Header com botão fechar */}
+          <div className="flex items-center justify-between">
+            <span className="text-white font-semibold">Menu</span>
+            <button 
+              onClick={onClose}
+              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+            >
+              <X size={20} className="text-white/60" />
             </button>
           </div>
 
+          {/* PROJETO ATUAL */}
+          <div className="bg-gradient-to-br from-[#c9a962]/10 to-transparent border border-[#c9a962]/30 rounded-2xl p-4">
+            <p className="text-xs uppercase tracking-wider text-white/40 mb-2">
+              Projeto Atual
+            </p>
+            <p className="text-white font-semibold truncate">
+              {currentProject?.name || 'Novo Projeto'}
+            </p>
+            <p className="text-xs text-white/50 mt-1">
+              Unidade: {currentProject?.settings?.unit === 'meters' ? 'Metros' : 'Pés'}
+            </p>
+          </div>
+
+          {/* INTELIGÊNCIA */}
           <div className="space-y-2">
-            <p className="text-xs text-white/40 uppercase tracking-wider mb-2">Painéis</p>
-            {menuItems.map((item) => (
-              <button
-                key={item.id}
-                onClick={() => {
-                  setPanel(item.id, !panels[item.id]);
-                  onClose();
-                }}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${
-                  item.active 
-                    ? 'bg-[#c9a962]/20 text-[#c9a962] border border-[#c9a962]/30' 
-                    : 'bg-white/5 text-white/80 hover:bg-white/10'
-                }`}
-              >
-                <span>{item.icon}</span>
-                {item.label}
-              </button>
-            ))}
+            <p className="text-xs uppercase tracking-wider text-white/40">
+              Inteligência
+            </p>
 
-            <div className="h-px bg-white/10 my-4" />
-
-            <p className="text-xs text-white/40 uppercase tracking-wider mb-2">IA</p>
             <button
               onClick={() => {
                 setShowDesignSuggestions(true);
                 onClose();
               }}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/30"
+              className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all group"
             >
-              <Lightbulb size={18} />
-              Sugestões
+              <span className="text-white/80 group-hover:text-white transition-colors">Sugestões</span>
+              <span className="text-[#c9a962]">✨</span>
             </button>
+
             <button
               onClick={() => {
                 setShowAIGenerationModal(true);
                 onClose();
               }}
-              className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-gradient-to-r from-violet-600 to-purple-600 text-white"
+              className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all group"
             >
-              <Wand2 size={18} />
-              Gerar com IA
+              <span className="text-white/80 group-hover:text-white transition-colors">Gerar Projeto</span>
+              <span className="text-[#c9a962]">🎨</span>
+            </button>
+          </div>
+
+          {/* FERRAMENTAS */}
+          <div className="space-y-2">
+            <p className="text-xs uppercase tracking-wider text-white/40">
+              Ferramentas
+            </p>
+
+            <button
+              onClick={() => {
+                setPanel('properties', !panels.properties);
+                onClose();
+              }}
+              className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border transition-all group ${
+                panels.properties 
+                  ? 'bg-[#c9a962]/10 border-[#c9a962]/30' 
+                  : 'bg-white/5 border-white/10 hover:bg-white/10'
+              }`}
+            >
+              <span className={`transition-colors ${panels.properties ? 'text-[#c9a962]' : 'text-white/80 group-hover:text-white'}`}>
+                Propriedades
+              </span>
+              <span className={panels.properties ? 'text-[#c9a962]' : 'text-[#c9a962]'}>⚙️</span>
+            </button>
+          </div>
+
+          {/* AÇÕES */}
+          <div className="space-y-2">
+            <button
+              onClick={onClose}
+              className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all group"
+            >
+              <span className="text-white/80 group-hover:text-white transition-colors">Salvar</span>
+              <span className="text-[#c9a962]">💾</span>
+            </button>
+
+            <button
+              onClick={onClose}
+              className="w-full flex items-center justify-between px-4 py-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-all group"
+            >
+              <span className="text-white/80 group-hover:text-white transition-colors">Exportar</span>
+              <span className="text-[#c9a962]">📤</span>
+            </button>
+          </div>
+
+          {/* FECHAR PROJETO */}
+          <div className="mt-auto">
+            <button
+              onClick={() => {
+                onCloseProject();
+                onClose();
+              }}
+              className="w-full px-4 py-3 rounded-xl border border-white/10 hover:bg-white/5 transition-all text-white/60 hover:text-white flex items-center justify-center gap-2"
+            >
+              <span>🔁</span>
+              <span>Fechar Projeto</span>
             </button>
           </div>
         </motion.div>
@@ -559,14 +622,16 @@ const EditorInterface: React.FC<{ onBackToWelcome: () => void }> = ({ onBackToWe
         )}
       </AnimatePresence>
 
-      {/* Mobile Menu */}
+      {/* Mobile Menu - VERSÃO PREMIUM */}
       <MobileMenu
         isOpen={showMobileMenu}
         onClose={() => setShowMobileMenu(false)}
-        panels={panels}
+        currentProject={currentProject}
         setPanel={setPanel}
+        panels={panels}
         setShowAIGenerationModal={setShowAIGenerationModal}
         setShowDesignSuggestions={setShowDesignSuggestions}
+        onCloseProject={onBackToWelcome}
       />
 
       {/* Modals */}
