@@ -1,5 +1,5 @@
 // ============================================
-// ARQUIVO 5: src/types/index.ts
+// ARQUIVO 5: src/types/index.ts (CORRIGIDO)
 // ============================================
 
 // ============================================
@@ -41,18 +41,22 @@ export interface ProjectSettings {
   defaultWallHeight: number;
   defaultWallThickness: number;
   terrainSize: Vector2D;
+  defaultFloorMaterial?: string;
 }
 
 export interface Terrain {
   size: Vector2D;
   elevation: number[][];
   texture?: string;
+  width?: number;
+  depth?: number;
 }
 
 export interface Exterior {
   terrainSize: Vector2D;
   terrain?: Terrain;
   landscaping?: LandscapingElement[];
+  facadeMaterial?: string;
 }
 
 export interface LandscapingElement {
@@ -78,6 +82,17 @@ export interface Project {
   exterior: Exterior;
   tags: string[];
   thumbnail?: string;
+  version?: number;
+}
+
+// ============================================
+// TIPOS DE CONFIGURAÇÃO DE PROJETO
+// ============================================
+
+export interface ProjectConfig {
+  name: string;
+  description: string;
+  settings: Partial<ProjectSettings>;
 }
 
 // ============================================
@@ -118,7 +133,7 @@ export type RoomType =
 export interface Door {
   id: ID;
   wallId: ID;
-  position: number; // 0-1 posição ao longo da parede
+  position: number;
   width: number;
   height: number;
   type: DoorType;
@@ -131,7 +146,7 @@ export type DoorType = 'single' | 'double' | 'pocket' | 'sliding' | 'folding';
 export interface Window {
   id: ID;
   wallId: ID;
-  position: number; // 0-1 posição ao longo da parede
+  position: number;
   width: number;
   height: number;
   sillHeight: number;
@@ -148,7 +163,7 @@ export type WindowType = 'single' | 'double' | 'sliding' | 'casement' | 'fixed' 
 export interface Furniture {
   id: ID;
   name: string;
-  category: FurnitureCategory;
+  category: FurnitureCategoryType;
   position: Vector3D;
   rotation: number;
   scale: Vector3D;
@@ -158,7 +173,7 @@ export interface Furniture {
   dimensions: Dimensions;
 }
 
-export type FurnitureCategory =
+export type FurnitureCategoryType =
   | 'seating' | 'tables' | 'storage' | 'beds'
   | 'lighting' | 'appliances' | 'decor' | 'plants'
   | 'electronics' | 'kitchen' | 'bathroom';
@@ -166,7 +181,7 @@ export type FurnitureCategory =
 export interface FurnitureCatalogItem {
   id: ID;
   name: string;
-  category: FurnitureCategory;
+  category: FurnitureCategoryType;
   subcategory: string;
   style: string[];
   dimensions: Dimensions;
@@ -186,6 +201,22 @@ export interface FurnitureCategory {
 }
 
 // ============================================
+// TIPOS DE MATERIAL
+// ============================================
+
+export interface Material {
+  id: ID;
+  name: string;
+  type: 'floor' | 'wall' | 'ceiling' | 'furniture' | 'exterior';
+  thumbnailUrl: string;
+  textureUrl?: string;
+  color: string;
+  roughness?: number;
+  metallic?: number;
+  price?: number;
+}
+
+// ============================================
 // TIPOS DE TEMPLATES E ESTILOS
 // ============================================
 
@@ -202,6 +233,7 @@ export interface ProjectTemplate {
   category: 'residential' | 'commercial' | 'apartment' | 'industrial' | 'other';
   tags: string[];
   previewImage?: string;
+  difficulty?: 'easy' | 'medium' | 'hard';
 }
 
 export interface DesignStyle {
@@ -219,9 +251,19 @@ export interface DesignStyle {
 // TIPOS DE UI/UX
 // ============================================
 
-export type ToolMode = 'select' | 'wall' | 'room' | 'door' | 'window' | 'furniture' | 'measure';
+export type ToolMode = 'select' | 'wall' | 'room' | 'door' | 'window' | 'furniture' | 'measure' | 'eraser';
 
 export type ViewMode = '2d' | '3d';
+
+export type CameraMode3D = 'orbit' | 'fly' | 'walk';
+
+export interface LightingSettings {
+  ambientIntensity: number;
+  directionalIntensity: number;
+  shadows: boolean;
+  shadowQuality: 'low' | 'medium' | 'high';
+  timeOfDay: number;
+}
 
 export interface Canvas2DState {
   scale: number;
@@ -248,11 +290,34 @@ export interface PanelsState {
   materials: boolean;
 }
 
+export interface UIState {
+  toolMode: ToolMode;
+  viewMode: ViewMode;
+  panels: PanelsState;
+  activePanel: string | null;
+  sidebarOpen: boolean;
+  sidebarWidth: number;
+  tooltipsEnabled: boolean;
+  animationsEnabled: boolean;
+  reducedMotion: boolean;
+  cameraMode: CameraMode3D;
+  lighting: LightingSettings;
+}
+
 // ============================================
 // TIPOS DE USUÁRIO
 // ============================================
 
 export type UserPlan = 'free' | 'pro' | 'enterprise';
+export type Plan = UserPlan;
+
+export interface UserSettings {
+  theme: 'light' | 'dark' | 'system';
+  language: string;
+  notifications: boolean;
+  autoSave: boolean;
+  defaultView: ViewMode;
+}
 
 export interface User {
   id: ID;
@@ -264,6 +329,10 @@ export interface User {
   projectsCount: number;
   storageUsed: number;
   storageLimit: number;
+  maxProjects?: number;
+  lastLogin?: Date;
+  favorites?: string[];
+  settings?: UserSettings;
 }
 
 export interface SubscriptionPlan {
@@ -309,6 +378,50 @@ export interface DesignSuggestion {
   description: string;
   confidence: number;
   previewImage?: string;
+}
+
+export interface AIRecommendation {
+  id: ID;
+  type: 'furniture' | 'layout' | 'style' | 'color';
+  title: string;
+  description: string;
+  reason: string;
+  items?: FurnitureCatalogItem[];
+  confidence: number;
+}
+
+// ============================================
+// TIPOS DE ADMIN
+// ============================================
+
+export interface AdminStats {
+  totalUsers: number;
+  activeUsers: number;
+  totalProjects: number;
+  revenue: number;
+  growth: {
+    users: number;
+    projects: number;
+    revenue: number;
+  };
+}
+
+export interface AdminUser {
+  id: ID;
+  email: string;
+  name: string;
+  plan: UserPlan;
+  createdAt: Date;
+  lastLogin?: Date;
+  projectsCount: number;
+  status: 'active' | 'suspended' | 'pending';
+}
+
+export interface ContentManagement {
+  templates: ProjectTemplate[];
+  furniture: FurnitureCatalogItem[];
+  materials: Material[];
+  styles: DesignStyle[];
 }
 
 // ============================================
