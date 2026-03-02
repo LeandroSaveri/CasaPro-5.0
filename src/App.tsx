@@ -29,9 +29,9 @@ import {
   Loader2,
   Menu,
   X,
-  FileText,
+  FolderOpen,
   Settings,
-  FolderOpen
+  ChevronLeft
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import './App.css';
@@ -196,7 +196,7 @@ const EditorInterface: React.FC = () => {
   const [showExportModal, setShowExportModal] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
 
-  // NOVO: Estado para o menu lateral principal
+  // Estado para o menu lateral principal
   const [showMainMenu, setShowMainMenu] = useState(false);
 
   // Keyboard shortcut for admin panel (Ctrl+Shift+A)
@@ -229,9 +229,20 @@ const EditorInterface: React.FC = () => {
     }
   }, [selectedElement, setPanel]);
 
+  // Handler para fechar projeto e voltar ao welcome
+  const handleCloseProject = () => {
+    // Salvar antes de fechar se necessário
+    if (currentProject && isAuthenticated) {
+      syncProject(currentProject);
+    }
+    setShowMainMenu(false);
+    // Resetar projeto atual para voltar ao WelcomeScreen
+    useProjectStore.getState().setCurrentProject(null);
+  };
+
   return (
-    <div className="h-screen flex bg-[#0a0a0f] overflow-hidden">
-      {/* Toolbar - Sempre visível */}
+    <div className="h-screen w-screen flex bg-[#0a0a0f] overflow-hidden">
+      {/* Toolbar - Sempre visível (escondida em mobile) */}
       <AnimatePresence mode="wait">
         {sidebarOpen && (
           <motion.div
@@ -239,7 +250,7 @@ const EditorInterface: React.FC = () => {
             animate={{ width: 80, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="flex-shrink-0"
+            className="hidden sm:block flex-shrink-0"
           >
             <Toolbar />
           </motion.div>
@@ -248,12 +259,12 @@ const EditorInterface: React.FC = () => {
 
       {/* Área principal do canvas */}
       <div className="flex-1 relative">
-        {/* Header do projeto - LIMPO */}
-        <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-4 py-3 bg-[#0a0a0f]/90 backdrop-blur-xl border-b border-white/10">
-          <div className="flex items-center gap-4">
+        {/* Header responsivo */}
+        <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-3 sm:px-4 py-3 bg-[#0a0a0f]/90 backdrop-blur-xl border-b border-white/10">
+          <div className="flex items-center gap-2 sm:gap-4">
             <button
               onClick={toggleSidebar}
-              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+              className="hidden sm:block p-2 hover:bg-white/10 rounded-lg transition-colors"
               title="Toggle Sidebar"
             >
               <div className="w-5 h-5 flex flex-col justify-center gap-1">
@@ -262,9 +273,11 @@ const EditorInterface: React.FC = () => {
                 <div className="w-full h-0.5 bg-white/60" />
               </div>
             </button>
-            <div className="h-6 w-px bg-white/20" />
+            <div className="hidden sm:block h-6 w-px bg-white/20" />
             <div>
-              <div className="text-white font-semibold">{currentProject?.name}</div>
+              <div className="text-white font-semibold text-sm sm:text-base truncate max-w-[150px] sm:max-w-none">
+                {currentProject?.name}
+              </div>
               <div className="text-xs text-white/50">
                 {viewMode === '2d' ? 'Planta 2D' : 'Visualização 3D'} • 
                 {currentProject?.settings.unit === 'meters' ? ' Metros' : ' Pés'}
@@ -273,30 +286,6 @@ const EditorInterface: React.FC = () => {
           </div>
           
           <div className="flex items-center gap-2">
-            {/* View Mode Toggle */}
-            <div className="flex items-center bg-white/5 border border-white/10 rounded-lg p-1">
-              <button
-                onClick={() => setViewMode('2d')}
-                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                  viewMode === '2d'
-                    ? 'bg-[#c9a962] text-[#0a0a0f]'
-                    : 'text-white/60 hover:text-white'
-                }`}
-              >
-                2D
-              </button>
-              <button
-                onClick={() => setViewMode('3d')}
-                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                  viewMode === '3d'
-                    ? 'bg-[#c9a962] text-[#0a0a0f]'
-                    : 'text-white/60 hover:text-white'
-                }`}
-              >
-                3D
-              </button>
-            </div>
-
             {/* Botão Menu Principal */}
             <button
               onClick={() => setShowMainMenu(true)}
@@ -378,11 +367,11 @@ const EditorInterface: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Menu Lateral Principal (Drawer Premium) */}
+      {/* Menu Lateral Principal (Drawer Premium) - Responsivo */}
       <AnimatePresence>
         {showMainMenu && (
           <>
-            {/* Overlay escuro */}
+            {/* Overlay escuro - fecha ao clicar */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -392,16 +381,16 @@ const EditorInterface: React.FC = () => {
               onClick={() => setShowMainMenu(false)}
             />
             
-            {/* Drawer */}
+            {/* Drawer Responsivo */}
             <motion.div
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed right-0 top-0 h-full w-[380px] bg-[#0f1118] border-l border-white/10 shadow-2xl z-50 p-6 flex flex-col overflow-y-auto"
+              className="fixed right-0 top-0 h-full w-full sm:w-[380px] bg-[#0f1118] border-l border-white/10 shadow-2xl z-50 p-4 sm:p-6 flex flex-col overflow-y-auto"
             >
               {/* Topo */}
-              <div className="flex items-center justify-between mb-8">
+              <div className="flex items-center justify-between mb-6 sm:mb-8">
                 <h2 className="text-xl font-semibold text-white">Menu</h2>
                 <button
                   onClick={() => setShowMainMenu(false)}
@@ -411,55 +400,49 @@ const EditorInterface: React.FC = () => {
                 </button>
               </div>
 
-              {/* Card Projeto Atual */}
-              <div className="mb-6 p-4 rounded-xl bg-gradient-to-br from-[#c9a962]/10 to-[#c9a962]/5 border border-[#c9a962]/20">
-                <div className="flex items-center gap-2 mb-2">
+              {/* 1) Seção Projeto Atual */}
+              <div className="mb-6">
+                <div className="flex items-center gap-2 mb-3">
                   <FolderOpen size={18} className="text-[#c9a962]" />
                   <span className="text-sm font-medium text-[#c9a962]">Projeto Atual</span>
                 </div>
-                <p className="text-white font-semibold truncate mb-1">
-                  {currentProject?.name || 'Sem projeto'}
-                </p>
-                <p className="text-xs text-white/50">
-                  Unidade: {currentProject?.settings.unit === 'meters' ? 'Metros (m)' : 'Pés (ft)'}
-                </p>
+                <div className="p-4 rounded-xl bg-gradient-to-br from-[#c9a962]/10 to-[#c9a962]/5 border border-[#c9a962]/20">
+                  <p className="text-white font-semibold truncate mb-1">
+                    {currentProject?.name || 'Sem projeto'}
+                  </p>
+                  <p className="text-xs text-white/50">
+                    Unidade: {currentProject?.settings.unit === 'meters' ? 'Metros (m)' : 'Pés (ft)'}
+                  </p>
+                </div>
               </div>
 
-              {/* NOVA SEÇÃO: Painéis */}
+              {/* Divisor */}
+              <div className="h-px bg-white/10 mb-6" />
+
+              {/* 2) Seção Inteligência */}
               <div className="mb-6">
                 <h3 className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3">
-                  Painéis
+                  Inteligência
                 </h3>
                 <div className="space-y-2">
-                  {/* Botão Móveis */}
+                  {/* Sugestões */}
                   <button
                     onClick={() => {
-                      setPanel('furniture', !panels.furniture);
+                      setShowDesignSuggestions(true);
                       setShowMainMenu(false);
                     }}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left group ${
-                      panels.furniture 
-                        ? 'bg-[#c9a962]/20 border border-[#c9a962]/30' 
-                        : 'bg-white/5 hover:bg-white/10 border border-white/10'
-                    }`}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all text-left group"
                   >
-                    <div className={`p-2 rounded-lg transition-colors ${
-                      panels.furniture ? 'bg-[#c9a962]/20' : 'bg-white/5 group-hover:bg-white/10'
-                    }`}>
-                      <span className={panels.furniture ? 'text-[#c9a962]' : 'text-white/60'}>🛋️</span>
+                    <div className="p-2 rounded-lg bg-amber-500/10 group-hover:bg-amber-500/20 transition-colors">
+                      <Lightbulb size={18} className="text-amber-400" />
                     </div>
                     <div>
-                      <p className={`font-medium text-sm ${panels.furniture ? 'text-[#c9a962]' : 'text-white'}`}>
-                        Móveis
-                      </p>
-                      <p className="text-xs text-white/40">Catálogo de móveis</p>
+                      <p className="text-white font-medium text-sm">Sugestões</p>
+                      <p className="text-xs text-white/40">Ideias de design</p>
                     </div>
-                    {panels.furniture && (
-                      <div className="ml-auto w-2 h-2 rounded-full bg-[#c9a962]" />
-                    )}
                   </button>
 
-                  {/* Botão IA */}
+                  {/* Assistente IA */}
                   <button
                     onClick={() => {
                       setPanel('ai', !panels.ai);
@@ -476,69 +459,18 @@ const EditorInterface: React.FC = () => {
                     }`}>
                       <Sparkles size={18} className={panels.ai ? 'text-[#c9a962]' : 'text-white/60'} />
                     </div>
-                    <div>
+                    <div className="flex-1">
                       <p className={`font-medium text-sm ${panels.ai ? 'text-[#c9a962]' : 'text-white'}`}>
-                        IA
+                        Assistente IA
                       </p>
-                      <p className="text-xs text-white/40">Assistente inteligente</p>
+                      <p className="text-xs text-white/40">Chat inteligente</p>
                     </div>
                     {panels.ai && (
-                      <div className="ml-auto w-2 h-2 rounded-full bg-[#c9a962]" />
+                      <div className="w-2 h-2 rounded-full bg-[#c9a962]" />
                     )}
-                  </button>
-
-                  {/* Botão Propriedades */}
-                  <button
-                    onClick={() => {
-                      setPanel('properties', !panels.properties);
-                      setShowMainMenu(false);
-                    }}
-                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left group ${
-                      panels.properties 
-                        ? 'bg-[#c9a962]/20 border border-[#c9a962]/30' 
-                        : 'bg-white/5 hover:bg-white/10 border border-white/10'
-                    }`}
-                  >
-                    <div className={`p-2 rounded-lg transition-colors ${
-                      panels.properties ? 'bg-[#c9a962]/20' : 'bg-white/5 group-hover:bg-white/10'
-                    }`}>
-                      <span className={panels.properties ? 'text-[#c9a962]' : 'text-white/60'}>⚙️</span>
-                    </div>
-                    <div>
-                      <p className={`font-medium text-sm ${panels.properties ? 'text-[#c9a962]' : 'text-white'}`}>
-                        Propriedades
-                      </p>
-                      <p className="text-xs text-white/40">Configurações do elemento</p>
-                    </div>
-                    {panels.properties && (
-                      <div className="ml-auto w-2 h-2 rounded-full bg-[#c9a962]" />
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {/* Seção Inteligência */}
-              <div className="mb-6">
-                <h3 className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3">
-                  Inteligência
-                </h3>
-                <div className="space-y-2">
-                  <button
-                    onClick={() => {
-                      setShowDesignSuggestions(true);
-                      setShowMainMenu(false);
-                    }}
-                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all text-left group"
-                  >
-                    <div className="p-2 rounded-lg bg-amber-500/10 group-hover:bg-amber-500/20 transition-colors">
-                      <Lightbulb size={18} className="text-amber-400" />
-                    </div>
-                    <div>
-                      <p className="text-white font-medium text-sm">Sugestões</p>
-                      <p className="text-xs text-white/40">Ideias de design</p>
-                    </div>
                   </button>
                   
+                  {/* Gerar Projeto com IA */}
                   <button
                     onClick={() => {
                       setShowAIGenerationModal(true);
@@ -550,40 +482,54 @@ const EditorInterface: React.FC = () => {
                       <Wand2 size={18} className="text-violet-400" />
                     </div>
                     <div>
-                      <p className="text-white font-medium text-sm">Gerar Projeto</p>
-                      <p className="text-xs text-white/40">Com IA</p>
+                      <p className="text-white font-medium text-sm">Gerar Projeto com IA</p>
+                      <p className="text-xs text-white/40">Criar automaticamente</p>
                     </div>
                   </button>
                 </div>
               </div>
 
-              {/* Seção Ferramentas */}
+              {/* Divisor */}
+              <div className="h-px bg-white/10 mb-6" />
+
+              {/* 3) Seção Ferramentas */}
               <div className="mb-6">
                 <h3 className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3">
                   Ferramentas
                 </h3>
                 <button
                   onClick={() => {
-                    setPanel('properties', true);
+                    setPanel('properties', !panels.properties);
                     setShowMainMenu(false);
                   }}
-                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all text-left group"
+                  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left group ${
+                    panels.properties 
+                      ? 'bg-[#c9a962]/20 border border-[#c9a962]/30' 
+                      : 'bg-white/5 hover:bg-white/10 border border-white/10'
+                  }`}
                 >
-                  <div className="p-2 rounded-lg bg-blue-500/10 group-hover:bg-blue-500/20 transition-colors">
-                    <Settings size={18} className="text-blue-400" />
+                  <div className={`p-2 rounded-lg transition-colors ${
+                    panels.properties ? 'bg-[#c9a962]/20' : 'bg-white/5 group-hover:bg-white/10'
+                  }`}>
+                    <Settings size={18} className={panels.properties ? 'text-[#c9a962]' : 'text-white/60'} />
                   </div>
-                  <div>
-                    <p className="text-white font-medium text-sm">Propriedades</p>
-                    <p className="text-xs text-white/40">Configurações do projeto</p>
+                  <div className="flex-1">
+                    <p className={`font-medium text-sm ${panels.properties ? 'text-[#c9a962]' : 'text-white'}`}>
+                      Propriedades
+                    </p>
+                    <p className="text-xs text-white/40">Configurações do elemento</p>
                   </div>
+                  {panels.properties && (
+                    <div className="w-2 h-2 rounded-full bg-[#c9a962]" />
+                  )}
                 </button>
               </div>
 
-              {/* Seção Ações */}
-              <div className="mt-auto">
-                <h3 className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3">
-                  Ações
-                </h3>
+              {/* Divisor */}
+              <div className="h-px bg-white/10 mb-6" />
+
+              {/* 4) Seção Ações (sem título grande) */}
+              <div className="mb-6">
                 <div className="space-y-2">
                   <button
                     onClick={() => {
@@ -608,17 +554,21 @@ const EditorInterface: React.FC = () => {
                     <Download size={18} className="text-white/60" />
                     <span className="text-white font-medium text-sm">Exportar</span>
                   </button>
-                  
-                  <button
-                    onClick={() => {
-                      setShowMainMenu(false);
-                    }}
-                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-red-500/5 hover:bg-red-500/10 border border-red-500/20 transition-all text-left"
-                  >
-                    <FileText size={18} className="text-red-400" />
-                    <span className="text-red-400 font-medium text-sm">Fechar Projeto</span>
-                  </button>
                 </div>
+              </div>
+
+              {/* Divisor */}
+              <div className="h-px bg-white/10 mb-6" />
+
+              {/* 5) Botão Fechar Projeto (destacado) */}
+              <div className="mt-auto">
+                <button
+                  onClick={handleCloseProject}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 transition-all text-left"
+                >
+                  <ChevronLeft size={18} />
+                  <span className="font-medium text-sm">Fechar Projeto</span>
+                </button>
               </div>
             </motion.div>
           </>
@@ -662,7 +612,7 @@ const EditorInterface: React.FC = () => {
 function App() {
   const [showWelcome, setShowWelcome] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const { currentProject, createProject } = useProjectStore();
+  const { currentProject, createProject, setCurrentProject } = useProjectStore();
   const { loadTemplates, loadStyles } = useTemplateStore();
   const { loadPlans, initialize } = useUserStore();
 
