@@ -172,7 +172,9 @@ const UserMenu: React.FC<{
 };
 
 // Interface principal do editor
-const EditorInterface: React.FC = () => {
+const EditorInterface: React.FC<{
+  onCloseProject: () => void;
+}> = ({ onCloseProject }) => {
   const { 
     viewMode, 
     currentProject, 
@@ -228,15 +230,15 @@ const EditorInterface: React.FC = () => {
     }
   }, [selectedElement, setPanel]);
 
-  // Handler para fechar projeto e voltar ao welcome
+  // Handler para fechar projeto
   const handleCloseProject = () => {
     // Salvar antes de fechar se necessário
     if (currentProject && isAuthenticated) {
       syncProject(currentProject);
     }
     setShowMainMenu(false);
-    // Resetar projeto atual para voltar ao WelcomeScreen
-    useProjectStore.getState().setCurrentProject(null);
+    // Chamar callback do componente pai para navegação
+    onCloseProject();
   };
 
   return (
@@ -611,7 +613,7 @@ const EditorInterface: React.FC = () => {
 function App() {
   const [showWelcome, setShowWelcome] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const { currentProject, createProject, setCurrentProject } = useProjectStore();
+  const { currentProject, createProject } = useProjectStore();
   const { loadTemplates, loadStyles } = useTemplateStore();
   const { loadPlans, initialize } = useUserStore();
 
@@ -664,6 +666,11 @@ function App() {
     alert('Assinatura Pro - Em breve!');
   };
 
+  // Handler para voltar ao welcome (fechar projeto)
+  const handleCloseProject = () => {
+    setShowWelcome(true);
+  };
+
   if (showWelcome) {
     return (
       <>
@@ -682,7 +689,7 @@ function App() {
     );
   }
 
-  return <EditorInterface />;
+  return <EditorInterface onCloseProject={handleCloseProject} />;
 }
 
 export default App;
