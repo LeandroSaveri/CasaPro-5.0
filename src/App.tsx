@@ -26,7 +26,12 @@ import {
   Save,
   Cloud,
   CloudOff,
-  Loader2
+  Loader2,
+  Menu,
+  X,
+  FileText,
+  Settings,
+  FolderOpen
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import './App.css';
@@ -191,6 +196,9 @@ const EditorInterface: React.FC = () => {
   const [showExportModal, setShowExportModal] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
 
+  // NOVO: Estado para o menu lateral principal
+  const [showMainMenu, setShowMainMenu] = useState(false);
+
   // Keyboard shortcut for admin panel (Ctrl+Shift+A)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -288,6 +296,15 @@ const EditorInterface: React.FC = () => {
                 3D
               </button>
             </div>
+
+            {/* NOVO: Botão Menu Principal */}
+            <button
+              onClick={() => setShowMainMenu(true)}
+              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-all"
+            >
+              <Menu size={18} className="text-white/70" />
+              <span className="hidden sm:inline text-sm text-white/80">Menu</span>
+            </button>
 
             <div className="h-6 w-px bg-white/20 mx-1" />
 
@@ -416,6 +433,162 @@ const EditorInterface: React.FC = () => {
           >
             <PropertiesPanel />
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* NOVO: Menu Lateral Principal (Drawer Premium) */}
+      <AnimatePresence>
+        {showMainMenu && (
+          <>
+            {/* Overlay escuro */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40"
+              onClick={() => setShowMainMenu(false)}
+            />
+            
+            {/* Drawer */}
+            <motion.div
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed right-0 top-0 h-full w-[380px] bg-[#0f1118] border-l border-white/10 shadow-2xl z-50 p-6 flex flex-col overflow-y-auto"
+            >
+              {/* Topo */}
+              <div className="flex items-center justify-between mb-8">
+                <h2 className="text-xl font-semibold text-white">Menu</h2>
+                <button
+                  onClick={() => setShowMainMenu(false)}
+                  className="p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-all"
+                >
+                  <X size={20} className="text-white/70" />
+                </button>
+              </div>
+
+              {/* Card Projeto Atual */}
+              <div className="mb-6 p-4 rounded-xl bg-gradient-to-br from-[#c9a962]/10 to-[#c9a962]/5 border border-[#c9a962]/20">
+                <div className="flex items-center gap-2 mb-2">
+                  <FolderOpen size={18} className="text-[#c9a962]" />
+                  <span className="text-sm font-medium text-[#c9a962]">Projeto Atual</span>
+                </div>
+                <p className="text-white font-semibold truncate mb-1">
+                  {currentProject?.name || 'Sem projeto'}
+                </p>
+                <p className="text-xs text-white/50">
+                  Unidade: {currentProject?.settings.unit === 'meters' ? 'Metros (m)' : 'Pés (ft)'}
+                </p>
+              </div>
+
+              {/* Seção Inteligência */}
+              <div className="mb-6">
+                <h3 className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3">
+                  Inteligência
+                </h3>
+                <div className="space-y-2">
+                  <button
+                    onClick={() => {
+                      setShowDesignSuggestions(true);
+                      setShowMainMenu(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all text-left group"
+                  >
+                    <div className="p-2 rounded-lg bg-amber-500/10 group-hover:bg-amber-500/20 transition-colors">
+                      <Lightbulb size={18} className="text-amber-400" />
+                    </div>
+                    <div>
+                      <p className="text-white font-medium text-sm">Sugestões</p>
+                      <p className="text-xs text-white/40">Ideias de design</p>
+                    </div>
+                  </button>
+                  
+                  <button
+                    onClick={() => {
+                      setShowAIGenerationModal(true);
+                      setShowMainMenu(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all text-left group"
+                  >
+                    <div className="p-2 rounded-lg bg-violet-500/10 group-hover:bg-violet-500/20 transition-colors">
+                      <Wand2 size={18} className="text-violet-400" />
+                    </div>
+                    <div>
+                      <p className="text-white font-medium text-sm">Gerar Projeto</p>
+                      <p className="text-xs text-white/40">Com IA</p>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
+              {/* Seção Ferramentas */}
+              <div className="mb-6">
+                <h3 className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3">
+                  Ferramentas
+                </h3>
+                <button
+                  onClick={() => {
+                    setPanel('properties', true);
+                    setShowMainMenu(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all text-left group"
+                >
+                  <div className="p-2 rounded-lg bg-blue-500/10 group-hover:bg-blue-500/20 transition-colors">
+                    <Settings size={18} className="text-blue-400" />
+                  </div>
+                  <div>
+                    <p className="text-white font-medium text-sm">Propriedades</p>
+                    <p className="text-xs text-white/40">Configurações do projeto</p>
+                  </div>
+                </button>
+              </div>
+
+              {/* Seção Ações */}
+              <div className="mt-auto">
+                <h3 className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3">
+                  Ações
+                </h3>
+                <div className="space-y-2">
+                  <button
+                    onClick={() => {
+                      if (currentProject) {
+                        useProjectStore.getState().updateProject({ updatedAt: new Date() });
+                      }
+                      setShowMainMenu(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all text-left"
+                  >
+                    <Save size={18} className="text-white/60" />
+                    <span className="text-white font-medium text-sm">Salvar</span>
+                  </button>
+                  
+                  <button
+                    onClick={() => {
+                      setShowExportModal(true);
+                      setShowMainMenu(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 transition-all text-left"
+                  >
+                    <Download size={18} className="text-white/60" />
+                    <span className="text-white font-medium text-sm">Exportar</span>
+                  </button>
+                  
+                  <button
+                    onClick={() => {
+                      // TODO: Implementar fechamento de projeto
+                      setShowMainMenu(false);
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-red-500/5 hover:bg-red-500/10 border border-red-500/20 transition-all text-left"
+                  >
+                    <FileText size={18} className="text-red-400" />
+                    <span className="text-red-400 font-medium text-sm">Fechar Projeto</span>
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
 
