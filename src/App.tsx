@@ -11,13 +11,12 @@ import FurniturePanel from '@/components/ui/FurniturePanel';
 import AIAssistant from '@/components/ui/AIAssistant';
 import PropertiesPanel from '@/components/ui/PropertiesPanel';
 import WelcomeScreen from '@/components/welcome/WelcomeScreen';
-import CreateProjectModal from '@/components/modals/CreateProjectModal';
 import AIGenerationModal from '@/components/modals/AIGenerationModal';
 import DesignSuggestionsPanel from '@/components/panels/DesignSuggestionsPanel';
 import LoginModal from '@/components/modals/LoginModal';
 import ExportModal from '@/components/modals/ExportModal';
 import AdminPanel from '@/components/admin/AdminPanel';
-import CameraSettingsModal from '@/components/modals/CameraSettingsModal';
+// import CameraSettingsModal from '@/components/modals/CameraSettingsModal';
 import {
   Sparkles,
   Wand2,
@@ -740,10 +739,10 @@ const EditorInterface: React.FC<{ onBackToWelcome: () => void }> = ({ onBackToWe
         onClose={() => setShowAdminPanel(false)}
       />
 
-      <CameraSettingsModal
+      {/* <CameraSettingsModal
         isOpen={showCameraSettings}
         onClose={() => setShowCameraSettings(false)}
-      />
+      /> */}
     </div>
   );
 };
@@ -751,7 +750,6 @@ const EditorInterface: React.FC<{ onBackToWelcome: () => void }> = ({ onBackToWe
 // Componente principal
 function App() {
   const [showWelcome, setShowWelcome] = useState(true);
-  const [showCreateModal, setShowCreateModal] = useState(false);
   const { currentProject, createProject, clearCurrentProject } = useProjectStore();
   const { loadTemplates, loadStyles } = useTemplateStore();
   const { loadPlans, initialize } = useUserStore();
@@ -776,13 +774,12 @@ function App() {
     // Cria projeto com valores padrão
     createProject('Novo Projeto', 'Projeto residencial');
     // Não abre mais o modal de template, vai direto para o canvas
-    setShowCreateModal(false);
     setShowWelcome(false);
   };
 
   const handleOpenProjects = () => {
     // Pode implementar lista de projetos depois
-    setShowCreateModal(true);
+    // setShowCreateModal(true);
   };
 
   const handleExploreTemplates = () => {
