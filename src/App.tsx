@@ -79,9 +79,9 @@ const UserMenu: React.FC<{
         {isAuthenticated ? (
           <>
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#c9a962] to-[#a08040] flex items-center justify-center text-[#0a0a0f] font-bold text-sm">
-              {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+              {user?.name.charAt(0).toUpperCase()}
             </div>
-            <span className="text-sm text-white/80 hidden sm:inline">{user?.name?.split(' ')[0] || 'Usuário'}</span>
+            <span className="text-sm text-white/80 hidden sm:inline">{user.name.split(' ')[0]}</span>
             {isSyncing ? (
               <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
             ) : lastSync ? (
