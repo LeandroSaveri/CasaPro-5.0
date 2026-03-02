@@ -426,7 +426,6 @@ const EditorInterface: React.FC<{ onBackToWelcome: () => void }> = ({ onBackToWe
   const [showExportModal, setShowExportModal] = useState(false);
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
-  const [showCameraSettings, setShowCameraSettings] = useState(false);
 
   // Keyboard shortcut for admin panel (Ctrl+Shift+A)
   useEffect(() => {
@@ -493,7 +492,7 @@ const EditorInterface: React.FC<{ onBackToWelcome: () => void }> = ({ onBackToWe
             </button>
 
             <button
-              onClick={() => setShowCameraSettings(true)}
+              onClick={() => {}}
               className="p-2 rounded-xl bg-gradient-to-br from-[#c9a962]/20 to-[#c9a962]/5 border border-[#c9a962]/30 text-[#c9a962] hover:from-[#c9a962]/30 hover:to-[#c9a962]/10 hover:border-[#c9a962]/50 hover:shadow-lg hover:shadow-[#c9a962]/20 transition-all duration-300 backdrop-blur-sm"
               title="Configurações"
             >
