@@ -184,7 +184,6 @@ const EditorInterface: React.FC = () => {
     setPanel, 
     sidebarOpen, 
     toggleSidebar,
-    setViewMode,
   } = useUIStore();
 
   const { isAuthenticated, syncProject } = useUserStore();
