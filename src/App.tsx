@@ -248,7 +248,7 @@ const EditorInterface: React.FC = () => {
 
       {/* Área principal do canvas */}
       <div className="flex-1 relative">
-        {/* Header do projeto */}
+        {/* Header do projeto - LIMPO */}
         <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-4 py-3 bg-[#0a0a0f]/90 backdrop-blur-xl border-b border-white/10">
           <div className="flex items-center gap-4">
             <button
@@ -297,71 +297,13 @@ const EditorInterface: React.FC = () => {
               </button>
             </div>
 
-            {/* NOVO: Botão Menu Principal */}
+            {/* Botão Menu Principal */}
             <button
               onClick={() => setShowMainMenu(true)}
               className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-all"
             >
               <Menu size={18} className="text-white/70" />
               <span className="hidden sm:inline text-sm text-white/80">Menu</span>
-            </button>
-
-            <div className="h-6 w-px bg-white/20 mx-1" />
-
-            {/* Panel Toggles */}
-            <button
-              onClick={() => setPanel('furniture', !panels.furniture)}
-              className={`px-3 py-2 rounded-lg text-sm transition-all flex items-center gap-2 ${
-                panels.furniture 
-                  ? 'bg-[#c9a962]/20 text-[#c9a962] border border-[#c9a962]/30' 
-                  : 'bg-white/5 text-white/70 hover:bg-white/10 border border-transparent'
-              }`}
-            >
-              <span>🛋️</span>
-              <span className="hidden sm:inline">Móveis</span>
-            </button>
-            
-            <button
-              onClick={() => setPanel('ai', !panels.ai)}
-              className={`px-3 py-2 rounded-lg text-sm transition-all flex items-center gap-2 ${
-                panels.ai 
-                  ? 'bg-[#c9a962]/20 text-[#c9a962] border border-[#c9a962]/30' 
-                  : 'bg-white/5 text-white/70 hover:bg-white/10 border border-transparent'
-              }`}
-            >
-              <Sparkles size={16} />
-              <span className="hidden sm:inline">IA</span>
-            </button>
-            
-            <button
-              onClick={() => setPanel('properties', !panels.properties)}
-              className={`px-3 py-2 rounded-lg text-sm transition-all flex items-center gap-2 ${
-                panels.properties 
-                  ? 'bg-[#c9a962]/20 text-[#c9a962] border border-[#c9a962]/30' 
-                  : 'bg-white/5 text-white/70 hover:bg-white/10 border border-transparent'
-              }`}
-            >
-              <span>⚙️</span>
-              <span className="hidden sm:inline">Propriedades</span>
-            </button>
-
-            <div className="h-6 w-px bg-white/20 mx-1" />
-
-            {/* AI Buttons */}
-            <button
-              onClick={() => setShowDesignSuggestions(true)}
-              className="px-3 py-2 rounded-lg text-sm transition-all flex items-center gap-2 bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 border border-amber-500/30"
-            >
-              <Lightbulb size={16} />
-              <span className="hidden sm:inline">Sugestões</span>
-            </button>
-            
-            <button
-              onClick={() => setShowAIGenerationModal(true)}
-              className="px-3 py-2 rounded-lg text-sm transition-all flex items-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white hover:opacity-90"
-            >
-              <Wand2 size={16} />
-              <span className="hidden sm:inline">Gerar com IA</span>
             </button>
 
             <div className="h-6 w-px bg-white/20 mx-1" />
@@ -436,7 +378,7 @@ const EditorInterface: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* NOVO: Menu Lateral Principal (Drawer Premium) */}
+      {/* Menu Lateral Principal (Drawer Premium) */}
       <AnimatePresence>
         {showMainMenu && (
           <>
@@ -481,6 +423,98 @@ const EditorInterface: React.FC = () => {
                 <p className="text-xs text-white/50">
                   Unidade: {currentProject?.settings.unit === 'meters' ? 'Metros (m)' : 'Pés (ft)'}
                 </p>
+              </div>
+
+              {/* NOVA SEÇÃO: Painéis */}
+              <div className="mb-6">
+                <h3 className="text-xs font-semibold text-white/40 uppercase tracking-wider mb-3">
+                  Painéis
+                </h3>
+                <div className="space-y-2">
+                  {/* Botão Móveis */}
+                  <button
+                    onClick={() => {
+                      setPanel('furniture', !panels.furniture);
+                      setShowMainMenu(false);
+                    }}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left group ${
+                      panels.furniture 
+                        ? 'bg-[#c9a962]/20 border border-[#c9a962]/30' 
+                        : 'bg-white/5 hover:bg-white/10 border border-white/10'
+                    }`}
+                  >
+                    <div className={`p-2 rounded-lg transition-colors ${
+                      panels.furniture ? 'bg-[#c9a962]/20' : 'bg-white/5 group-hover:bg-white/10'
+                    }`}>
+                      <span className={panels.furniture ? 'text-[#c9a962]' : 'text-white/60'}>🛋️</span>
+                    </div>
+                    <div>
+                      <p className={`font-medium text-sm ${panels.furniture ? 'text-[#c9a962]' : 'text-white'}`}>
+                        Móveis
+                      </p>
+                      <p className="text-xs text-white/40">Catálogo de móveis</p>
+                    </div>
+                    {panels.furniture && (
+                      <div className="ml-auto w-2 h-2 rounded-full bg-[#c9a962]" />
+                    )}
+                  </button>
+
+                  {/* Botão IA */}
+                  <button
+                    onClick={() => {
+                      setPanel('ai', !panels.ai);
+                      setShowMainMenu(false);
+                    }}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left group ${
+                      panels.ai 
+                        ? 'bg-[#c9a962]/20 border border-[#c9a962]/30' 
+                        : 'bg-white/5 hover:bg-white/10 border border-white/10'
+                    }`}
+                  >
+                    <div className={`p-2 rounded-lg transition-colors ${
+                      panels.ai ? 'bg-[#c9a962]/20' : 'bg-white/5 group-hover:bg-white/10'
+                    }`}>
+                      <Sparkles size={18} className={panels.ai ? 'text-[#c9a962]' : 'text-white/60'} />
+                    </div>
+                    <div>
+                      <p className={`font-medium text-sm ${panels.ai ? 'text-[#c9a962]' : 'text-white'}`}>
+                        IA
+                      </p>
+                      <p className="text-xs text-white/40">Assistente inteligente</p>
+                    </div>
+                    {panels.ai && (
+                      <div className="ml-auto w-2 h-2 rounded-full bg-[#c9a962]" />
+                    )}
+                  </button>
+
+                  {/* Botão Propriedades */}
+                  <button
+                    onClick={() => {
+                      setPanel('properties', !panels.properties);
+                      setShowMainMenu(false);
+                    }}
+                    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-left group ${
+                      panels.properties 
+                        ? 'bg-[#c9a962]/20 border border-[#c9a962]/30' 
+                        : 'bg-white/5 hover:bg-white/10 border border-white/10'
+                    }`}
+                  >
+                    <div className={`p-2 rounded-lg transition-colors ${
+                      panels.properties ? 'bg-[#c9a962]/20' : 'bg-white/5 group-hover:bg-white/10'
+                    }`}>
+                      <span className={panels.properties ? 'text-[#c9a962]' : 'text-white/60'}>⚙️</span>
+                    </div>
+                    <div>
+                      <p className={`font-medium text-sm ${panels.properties ? 'text-[#c9a962]' : 'text-white'}`}>
+                        Propriedades
+                      </p>
+                      <p className="text-xs text-white/40">Configurações do elemento</p>
+                    </div>
+                    {panels.properties && (
+                      <div className="ml-auto w-2 h-2 rounded-full bg-[#c9a962]" />
+                    )}
+                  </button>
+                </div>
               </div>
 
               {/* Seção Inteligência */}
@@ -577,7 +611,6 @@ const EditorInterface: React.FC = () => {
                   
                   <button
                     onClick={() => {
-                      // TODO: Implementar fechamento de projeto
                       setShowMainMenu(false);
                     }}
                     className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-red-500/5 hover:bg-red-500/10 border border-red-500/20 transition-all text-left"
