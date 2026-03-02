@@ -31,7 +31,8 @@ import {
   X,
   FolderOpen,
   Settings,
-  ChevronLeft
+  ChevronLeft,
+  SlidersHorizontal
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import './App.css';
@@ -260,23 +261,44 @@ const EditorInterface: React.FC<{
 
       {/* Área principal do canvas */}
       <div className="flex-1 relative">
-        {/* Header responsivo */}
-        <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-3 sm:px-4 py-3 bg-[#0a0a0f]/90 backdrop-blur-xl border-b border-white/10">
-          <div className="flex items-center gap-2 sm:gap-4">
-            <button
-              onClick={toggleSidebar}
-              className="hidden sm:block p-2 hover:bg-white/10 rounded-lg transition-colors"
-              title="Toggle Sidebar"
-            >
-              <div className="w-5 h-5 flex flex-col justify-center gap-1">
-                <div className="w-full h-0.5 bg-white/60" />
-                <div className="w-3/4 h-0.5 bg-white/60" />
-                <div className="w-full h-0.5 bg-white/60" />
-              </div>
-            </button>
-            <div className="hidden sm:block h-6 w-px bg-white/20" />
-            <div>
-              <div className="text-white font-semibold text-sm sm:text-base truncate max-w-[150px] sm:max-w-none">
+        {/* Header com layout premium */}
+        <div className="relative h-16 px-4 bg-[#0a0a0f]/90 backdrop-blur-xl border-b border-white/10">
+          <div className="flex items-center justify-between h-full">
+            {/* Esquerda */}
+            <div className="flex items-center gap-3">
+              <button
+                onClick={toggleSidebar}
+                className="hidden sm:block p-2 hover:bg-white/10 rounded-lg transition-colors"
+                title="Toggle Sidebar"
+              >
+                <div className="w-5 h-5 flex flex-col justify-center gap-1">
+                  <div className="w-full h-0.5 bg-white/60" />
+                  <div className="w-3/4 h-0.5 bg-white/60" />
+                  <div className="w-full h-0.5 bg-white/60" />
+                </div>
+              </button>
+
+              <button
+                onClick={() => setPanel('properties', !panels.properties)}
+                className={`
+                  h-10 w-10
+                  flex items-center justify-center
+                  rounded-xl
+                  bg-white/5
+                  hover:bg-white/10
+                  border border-white/10
+                  transition-all
+                  ${panels.properties ? 'text-[#c9a962]' : 'text-white/60'}
+                `}
+                title="Propriedades"
+              >
+                <SlidersHorizontal size={18} />
+              </button>
+            </div>
+
+            {/* Centro - Absolutamente Centralizado */}
+            <div className="absolute left-1/2 -translate-x-1/2 text-center pointer-events-none">
+              <div className="text-white font-semibold text-sm sm:text-base">
                 {currentProject?.name}
               </div>
               <div className="text-xs text-white/50">
@@ -284,27 +306,28 @@ const EditorInterface: React.FC<{
                 {currentProject?.settings.unit === 'meters' ? ' Metros' : ' Pés'}
               </div>
             </div>
-          </div>
-          
-          <div className="flex items-center gap-2">
-            {/* Botão Menu Principal */}
-            <button
-              onClick={() => setShowMainMenu(true)}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-all"
-            >
-              <Menu size={18} className="text-white/70" />
-              <span className="hidden sm:inline text-sm text-white/80">Menu</span>
-            </button>
 
-            <div className="h-6 w-px bg-white/20 mx-1" />
+            {/* Direita */}
+            <div className="flex items-center gap-2">
+              {/* Botão Menu Principal */}
+              <button
+                onClick={() => setShowMainMenu(true)}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-all"
+              >
+                <Menu size={18} className="text-white/70" />
+                <span className="hidden sm:inline text-sm text-white/80">Menu</span>
+              </button>
 
-            {/* User Menu */}
-            <UserMenu
-              isOpen={true}
-              onClose={() => {}}
-              onLogin={() => setShowLoginModal(true)}
-              onExport={() => setShowExportModal(true)}
-            />
+              <div className="h-6 w-px bg-white/20 mx-1" />
+
+              {/* User Menu */}
+              <UserMenu
+                isOpen={true}
+                onClose={() => {}}
+                onLogin={() => setShowLoginModal(true)}
+                onExport={() => setShowExportModal(true)}
+              />
+            </div>
           </div>
         </div>
 
