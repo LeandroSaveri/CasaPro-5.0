@@ -477,7 +477,7 @@ const EditorInterface: React.FC<{ onBackToWelcome: () => void }> = ({ onBackToWe
       {/* Área principal do canvas */}
       <div className="flex-1 relative flex flex-col min-w-0 min-h-0">
         {/* Header do projeto - Responsivo */}
-        <div className="flex-shrink-0 h-14 md:h-16 flex items-center justify-between px-2 md:px-4 bg-[#0a0a0f]/90 backdrop-blur-xl border-b border-white/10 z-30">
+        <div className="relative flex-shrink-0 h-14 md:h-16 flex items-center justify-between px-2 md:px-4 bg-[#0a0a0f]/90 backdrop-blur-xl border-b border-white/10 z-30">
           {/* Lado esquerdo: Menu + Configurações */}
           <div className="flex items-center gap-1 md:gap-3 flex-shrink-0">
             <button
