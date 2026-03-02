@@ -260,9 +260,10 @@ const EditorInterface: React.FC<{
 
       {/* Área principal do canvas */}
       <div className="flex-1 relative">
-        {/* Header responsivo */}
-        <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-3 sm:px-4 py-3 bg-[#0a0a0f]/90 backdrop-blur-xl border-b border-white/10">
-          <div className="flex items-center gap-2 sm:gap-4">
+        {/* Header com centralização perfeita */}
+        <div className="relative flex items-center justify-between h-16 px-3 sm:px-4 bg-[#0a0a0f]/90 backdrop-blur-xl border-b border-white/10">
+          {/* Lado Esquerdo */}
+          <div className="flex items-center gap-3">
             <button
               onClick={toggleSidebar}
               className="hidden sm:block p-2 hover:bg-white/10 rounded-lg transition-colors"
@@ -274,19 +275,34 @@ const EditorInterface: React.FC<{
                 <div className="w-full h-0.5 bg-white/60" />
               </div>
             </button>
-            <div className="hidden sm:block h-6 w-px bg-white/20" />
-            <div>
-              <div className="text-white font-semibold text-sm sm:text-base truncate max-w-[150px] sm:max-w-none">
-                {currentProject?.name}
-              </div>
-              <div className="text-xs text-white/50">
-                {viewMode === '2d' ? 'Planta 2D' : 'Visualização 3D'} • 
-                {currentProject?.settings.unit === 'meters' ? ' Metros' : ' Pés'}
-              </div>
+          </div>
+
+          {/* Centro - Absolutamente Centralizado */}
+          <div className="absolute left-1/2 -translate-x-1/2 text-center">
+            <div className="text-white font-semibold text-sm sm:text-base truncate max-w-[200px] sm:max-w-[300px]">
+              {currentProject?.name}
+            </div>
+            <div className="text-xs text-white/50">
+              {viewMode === '2d' ? 'Planta 2D' : 'Visualização 3D'} • 
+              {currentProject?.settings.unit === 'meters' ? ' Metros' : ' Pés'}
             </div>
           </div>
-          
+
+          {/* Lado Direito */}
           <div className="flex items-center gap-2">
+            {/* Botão Propriedades (ícone apenas) */}
+            <button
+              onClick={() => setPanel('properties', !panels.properties)}
+              className={`p-2 rounded-lg transition-all ${
+                panels.properties 
+                  ? 'bg-[#c9a962]/20 text-[#c9a962] border border-[#c9a962]/30' 
+                  : 'bg-white/5 hover:bg-white/10 border border-white/10 text-white/60'
+              }`}
+              title="Propriedades"
+            >
+              <Settings size={18} />
+            </button>
+
             {/* Botão Menu Principal */}
             <button
               onClick={() => setShowMainMenu(true)}
