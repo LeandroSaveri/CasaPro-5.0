@@ -20,13 +20,9 @@ import {
   Share2,
   Settings,
   Layers,
-  Palette,
   Wand2
 } from 'lucide-react';
 
-// ============================================
-// COMPONENTE: ToolButton Premium
-// ============================================
 interface ToolButtonProps {
   icon: React.ReactNode;
   label: string;
@@ -66,7 +62,6 @@ const ToolButton: React.FC<ToolButtonProps> = ({
     </div>
     <span className="text-[11px] mt-1.5 font-medium">{label}</span>
     
-    {/* Tooltip com atalho */}
     {shortcut && (
       <span className="absolute -top-1 -right-1 w-5 h-5 bg-white/10 rounded text-[9px] flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
         {shortcut}
@@ -75,9 +70,6 @@ const ToolButton: React.FC<ToolButtonProps> = ({
   </motion.button>
 );
 
-// ============================================
-// COMPONENTE: SectionHeader
-// ============================================
 const SectionHeader: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <div className="flex items-center gap-2 px-1 mb-3">
     <div className="h-px flex-1 bg-gradient-to-r from-white/20 to-transparent" />
@@ -88,9 +80,6 @@ const SectionHeader: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   </div>
 );
 
-// ============================================
-// COMPONENTE PRINCIPAL: Toolbar
-// ============================================
 const Toolbar: React.FC = () => {
   const { 
     toolMode, 
@@ -121,7 +110,6 @@ const Toolbar: React.FC = () => {
 
   return (
     <div className="h-full flex flex-col bg-[#0a0a0f] p-3 gap-4 overflow-y-auto">
-      {/* Logo Premium */}
       <div className="flex items-center justify-center py-4 border-b border-white/10">
         <div className="flex items-center gap-2">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#c9a962] to-[#b8984f] flex items-center justify-center shadow-lg shadow-[#c9a962]/20">
@@ -134,7 +122,6 @@ const Toolbar: React.FC = () => {
         </div>
       </div>
 
-      {/* Modo de Visualização - APENAS AQUI (removido do Header) */}
       <div>
         <SectionHeader>Visualização</SectionHeader>
         <div className="grid grid-cols-2 gap-2 p-1 bg-white/5 rounded-xl border border-white/10">
@@ -169,7 +156,6 @@ const Toolbar: React.FC = () => {
         </div>
       </div>
 
-      {/* Ferramentas */}
       <div className="flex-1">
         <SectionHeader>Ferramentas</SectionHeader>
         <div className="grid grid-cols-2 gap-2">
@@ -186,7 +172,6 @@ const Toolbar: React.FC = () => {
         </div>
       </div>
 
-      {/* Undo/Redo */}
       <div>
         <SectionHeader>Histórico</SectionHeader>
         <div className="grid grid-cols-2 gap-2">
@@ -201,7 +186,6 @@ const Toolbar: React.FC = () => {
                 : 'bg-white/5 text-white/20 cursor-not-allowed'
               }
             `}
-            title="Desfazer (Ctrl+Z)"
           >
             <Undo2 size={18} strokeWidth={1.5} />
             <span className="text-xs">Desfazer</span>
@@ -217,7 +201,6 @@ const Toolbar: React.FC = () => {
                 : 'bg-white/5 text-white/20 cursor-not-allowed'
               }
             `}
-            title="Refazer (Ctrl+Y)"
           >
             <Redo2 size={18} strokeWidth={1.5} />
             <span className="text-xs">Refazer</span>
@@ -225,7 +208,6 @@ const Toolbar: React.FC = () => {
         </div>
       </div>
 
-      {/* Ações Rápidas */}
       <div className="border-t border-white/10 pt-4">
         <SectionHeader>Ações</SectionHeader>
         <div className="flex flex-col gap-2">
