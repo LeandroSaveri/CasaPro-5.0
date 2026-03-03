@@ -168,6 +168,8 @@ const UserMenu: React.FC<{
 
 // Interface principal do editor
 const EditorInterface: React.FC = () => {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [activePanel, setActivePanel] = useState<string | null>(null);
   const { 
     viewMode, 
     currentProject, 
@@ -350,12 +352,9 @@ const EditorInterface: React.FC = () => {
             <div className="h-6 w-px bg-white/20 mx-1" />
 
             {/* User Menu */}
-            <UserMenu
-              isOpen={true}
-              onClose={() => {}}
-              onLogin={() => setShowLoginModal(true)}
-              onExport={() => setShowExportModal(true)}
-            />
+            <button onClick={() => setIsMenuOpen(true)}>
+              Menu
+            </button>
           </div>
         </div>
 
@@ -448,6 +447,101 @@ const EditorInterface: React.FC = () => {
         isOpen={showAdminPanel}
         onClose={() => setShowAdminPanel(false)}
       />
+
+      {isMenuOpen && (
+        <SideMenu
+          onClose={() => setIsMenuOpen(false)}
+          setActivePanel={setActivePanel}
+        />
+      )}
+    </div>
+  );
+};
+
+// SideMenu Component
+const SideMenu: React.FC<{
+  onClose: () => void;
+  setActivePanel: (panel: string) => void;
+}> = ({ onClose, setActivePanel }) => {
+  const [openAI, setOpenAI] = useState(false);
+  const { currentProject } = useProjectStore();
+
+  return (
+    <div className="fixed inset-0 z-50 flex">
+      <div className="w-80 bg-[#1a1a24] border-r border-white/10 h-full overflow-y-auto">
+        <div className="p-4">
+          <button onClick={onClose} className="mb-4 text-white/60 hover:text-white">
+            ✕ Fechar
+          </button>
+
+          {/* Projeto Atual */}
+          <div className="mb-6">
+            <h3 className="text-xs uppercase tracking-wider text-white/50 mb-2">Projeto Atual</h3>
+            <div className="bg-white/5 rounded-lg p-3">
+              <div className="text-white font-medium">{currentProject?.name}</div>
+              <div className="text-xs text-white/50">
+                {currentProject?.settings.unit === 'meters' ? 'Metros' : 'Pés'}
+              </div>
+            </div>
+          </div>
+
+          {/* Inteligência AI */}
+          <div className="mb-6">
+            <div 
+              onClick={() => setOpenAI(!openAI)}
+              className="flex items-center justify-between p-3 bg-white/5 rounded-lg cursor-pointer hover:bg-white/10 transition-colors"
+            >
+              <span className="text-white font-medium">🤖 Inteligência AI</span>
+              <span className="text-white/50">{openAI ? '▼' : '▶'}</span>
+            </div>
+
+            {openAI && (
+              <div className="mt-2 space-y-1">
+                <button
+                  onClick={() => {
+                    setActivePanel('suggestions');
+                    onClose();
+                  }}
+                  className="w-full text-left p-3 text-white/80 hover:bg-white/5 rounded-lg transition-colors flex items-center gap-2"
+                >
+                  💡 Sugestões
+                </button>
+
+                <button
+                  onClick={() => {
+                    setActivePanel('ai');
+                    onClose();
+                  }}
+                  className="w-full text-left p-3 text-white/80 hover:bg-white/5 rounded-lg transition-colors flex items-center gap-2"
+                >
+                  ✨ IA
+                </button>
+
+                <button
+                  onClick={() => {
+                    setActivePanel('ai-advanced');
+                    onClose();
+                  }}
+                  className="w-full text-left p-3 text-white/80 hover:bg-white/5 rounded-lg transition-colors flex items-center gap-2"
+                >
+                  🤖 Inteligência Artificial
+                </button>
+
+                <button
+                  onClick={() => {
+                    setActivePanel('generate');
+                    onClose();
+                  }}
+                  className="w-full text-left p-3 text-white/80 hover:bg-white/5 rounded-lg transition-colors flex items-center gap-2"
+                >
+                  🎨 Gerar com IA
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+      <div className="flex-1 bg-black/50" onClick={onClose} />
     </div>
   );
 };
