@@ -31,13 +31,18 @@ import {
   Home,
   Menu,
   X,
-  Compass
+  Compass,
+  LayoutGrid,
+  Box as BoxIcon,
+  SlidersHorizontal,
+  Maximize2,
+  PanelLeft
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import './App.css';
 
 // ============================================
-// EDITOR INTERFACE - Interface principal do editor
+// EDITOR INTERFACE - Interface Premium
 // ============================================
 const EditorInterface: React.FC<{
   onBackToWelcome: () => void;
@@ -83,8 +88,7 @@ const EditorInterface: React.FC<{
     if (currentProject && isAuthenticated) {
       const timeout = setTimeout(() => {
         syncProject(currentProject);
-      }, 30000); // Auto-save after 30 seconds
-
+      }, 30000);
       return () => clearTimeout(timeout);
     }
   }, [currentProject, isAuthenticated, syncProject]);
@@ -98,154 +102,178 @@ const EditorInterface: React.FC<{
 
   return (
     <div className="w-full h-screen flex bg-[#0a0a0f] overflow-hidden">
-      {/* ============================================
-          TOOLBAR - Barra lateral de ferramentas
-          ============================================ */}
+      {/* SIDEBAR - Desktop */}
       <AnimatePresence mode="wait">
         {sidebarOpen && (
           <motion.div
             initial={{ width: 0, opacity: 0 }}
             animate={{ width: 80, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
-            transition={{ duration: 0.2 }}
-            className="flex-shrink-0 hidden md:block"
+            transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+            className="flex-shrink-0 hidden md:block z-20"
           >
             <Toolbar />
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* ============================================
-          ÁREA PRINCIPAL DO CANVAS
-          ============================================ */}
-      <div className="flex-1 relative flex flex-col">
-        {/* ============================================
-            HEADER PREMIUM - Barra superior elegante
-            ============================================ */}
-        <div className="flex-shrink-0 z-10 flex items-center justify-between px-3 sm:px-6 py-2 sm:py-4 bg-gradient-to-r from-[#0a0a0f] via-[#12121a] to-[#0a0a0f] backdrop-blur-xl border-b border-white/10 shadow-lg">
-          {/* Lado esquerdo - Informações do projeto */}
-          <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
-            {/* Toggle Sidebar - Desktop */}
-            <button
-              onClick={toggleSidebar}
-              className="hidden md:flex p-2.5 hover:bg-white/10 rounded-xl transition-all duration-200 border border-transparent hover:border-white/20"
-              title="Toggle Sidebar"
-            >
-              <div className="w-5 h-5 flex flex-col justify-center gap-1.5">
-                <div className="w-full h-0.5 bg-gradient-to-r from-[#c9a962] to-[#a08040]" />
-                <div className="w-2/3 h-0.5 bg-gradient-to-r from-[#c9a962] to-[#a08040]" />
-                <div className="w-full h-0.5 bg-gradient-to-r from-[#c9a962] to-[#a08040]" />
-              </div>
-            </button>
-            
-            <div className="hidden sm:block h-8 w-px bg-gradient-to-b from-transparent via-white/20 to-transparent" />
-            
-            {/* Info do projeto */}
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-[#c9a962] animate-pulse" />
-                <span className="text-white font-semibold text-sm sm:text-lg tracking-wide truncate">
-                  {currentProject?.name || 'Novo Projeto'}
-                </span>
-              </div>
-              <div className="text-xs text-white/40 hidden sm:block mt-0.5">
-                {viewMode === '2d' ? 'Planta Baixa 2D' : 'Visualização 3D'} • 
-                {currentProject?.settings?.unit === 'meters' ? ' Sistema Métrico' : ' Imperial'}
-              </div>
-            </div>
-          </div>
+      {/* ÁREA PRINCIPAL */}
+      <div className="flex-1 relative flex flex-col min-w-0">
+        
+        {/* HEADER PREMIUM - Multi-nível */}
+        <header className="flex-shrink-0 z-50 bg-gradient-to-r from-[#0a0a0f] via-[#12121a] to-[#0a0a0f] border-b border-white/10 shadow-2xl shadow-black/50">
           
-          {/* ============================================
-              LADO DIREITO - CONTROLES PREMIUM
-              ============================================ */}
-          <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-            {/* View Mode Toggle - Estilo Segmentado Premium */}
-            <div className="flex items-center bg-[#1a1a24] border border-white/10 rounded-xl p-1 shadow-inner">
-              <button
-                onClick={() => setViewMode('2d')}
-                className={`relative px-4 sm:px-5 py-2 rounded-lg text-sm font-semibold transition-all duration-300 ${
-                  viewMode === '2d'
-                    ? 'bg-gradient-to-br from-[#c9a962] to-[#a08040] text-[#0a0a0f] shadow-lg'
-                    : 'text-white/50 hover:text-white hover:bg-white/5'
-                }`}
+          {/* NÍVEL 1: Barra Principal */}
+          <div className="flex items-center justify-between px-3 sm:px-4 lg:px-6 py-3">
+            
+            {/* ESQUERDA: Controle + Projeto */}
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
+              {/* Toggle Sidebar */}
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={toggleSidebar}
+                className="hidden md:flex p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#c9a962]/30 transition-all duration-300 group"
               >
-                <span className="relative z-10">2D</span>
-                {viewMode === '2d' && (
-                  <motion.div
-                    layoutId="viewModeIndicator"
-                    className="absolute inset-0 bg-gradient-to-br from-[#c9a962] to-[#a08040] rounded-lg"
-                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                <PanelLeft size={20} className="text-white/60 group-hover:text-[#c9a962] transition-colors" />
+              </motion.button>
+              
+              <div className="hidden md:block h-8 w-px bg-gradient-to-b from-transparent via-white/20 to-transparent" />
+              
+              {/* Info do Projeto */}
+              <div className="min-w-0">
+                <motion.div 
+                  className="flex items-center gap-2"
+                  initial={false}
+                  animate={{ opacity: 1 }}
+                >
+                  <motion.div 
+                    animate={{ 
+                      boxShadow: ['0 0 0px #c9a962', '0 0 10px #c9a962', '0 0 0px #c9a962']
+                    }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                    className="w-2 h-2 rounded-full bg-[#c9a962]"
                   />
-                )}
-              </button>
-              <button
-                onClick={() => setViewMode('3d')}
-                className={`relative px-4 sm:px-5 py-2 rounded-lg text-sm font-semibold transition-all duration-300 ${
-                  viewMode === '3d'
-                    ? 'bg-gradient-to-br from-[#c9a962] to-[#a08040] text-[#0a0a0f] shadow-lg'
-                    : 'text-white/50 hover:text-white hover:bg-white/5'
-                }`}
-              >
-                <span className="relative z-10">3D</span>
-                {viewMode === '3d' && (
-                  <motion.div
-                    layoutId="viewModeIndicator"
-                    className="absolute inset-0 bg-gradient-to-br from-[#c9a962] to-[#a08040] rounded-lg"
-                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                  />
-                )}
-              </button>
+                  <h1 className="text-white font-bold text-sm sm:text-base lg:text-lg tracking-wide truncate">
+                    {currentProject?.name || 'Novo Projeto'}
+                  </h1>
+                </motion.div>
+                <p className="text-[10px] sm:text-xs text-white/40 hidden sm:block font-medium">
+                  {viewMode === '2d' ? 'Planta Baixa 2D' : 'Visualização 3D'} • 
+                  {currentProject?.settings?.unit === 'meters' ? ' Métrico' : ' Imperial'}
+                </p>
+              </div>
             </div>
 
-            <div className="hidden lg:block h-8 w-px bg-gradient-to-b from-transparent via-white/20 to-transparent mx-1" />
+            {/* CENTRO: View Mode - Desktop */}
+            <div className="hidden lg:flex items-center justify-center flex-1">
+              <div className="flex items-center bg-[#1a1a24] border border-white/10 rounded-2xl p-1 shadow-inner shadow-black/50">
+                <ViewModeButton 
+                  active={viewMode === '2d'} 
+                  onClick={() => setViewMode('2d')}
+                  label="2D"
+                />
+                <ViewModeButton 
+                  active={viewMode === '3d'} 
+                  onClick={() => setViewMode('3d')}
+                  label="3D"
+                />
+              </div>
+            </div>
 
-            {/* Panel Toggles - Desktop Premium */}
-            <button
-              onClick={() => setPanel('furniture', !panels.furniture)}
-              className={`hidden lg:flex px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 items-center gap-2.5 border ${
-                panels.furniture 
-                  ? 'bg-[#c9a962]/15 text-[#c9a962] border-[#c9a962]/40 shadow-[0_0_20px_rgba(201,169,98,0.15)]' 
-                  : 'bg-white/[0.03] text-white/60 hover:bg-white/[0.08] hover:text-white border-white/10 hover:border-white/20'
-              }`}
-            >
-              <span className="text-lg">🛋️</span>
-              <span>Móveis</span>
-            </button>
-            
-            <button
-              onClick={() => setPanel('properties', !panels.properties)}
-              className={`hidden lg:flex px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 items-center gap-2.5 border ${
-                panels.properties 
-                  ? 'bg-[#c9a962]/15 text-[#c9a962] border-[#c9a962]/40 shadow-[0_0_20px_rgba(201,169,98,0.15)]' 
-                  : 'bg-white/[0.03] text-white/60 hover:bg-white/[0.08] hover:text-white border-white/10 hover:border-white/20'
-              }`}
-            >
-              <Settings size={16} className={panels.properties ? 'text-[#c9a962]' : ''} />
-              <span>Propriedades</span>
-            </button>
+            {/* DIREITA: Ações */}
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+              
+              {/* View Mode Compacto - Mobile/Tablet */}
+              <div className="flex lg:hidden items-center bg-[#1a1a24] border border-white/10 rounded-xl p-0.5 shadow-inner">
+                <CompactViewButton 
+                  active={viewMode === '2d'} 
+                  onClick={() => setViewMode('2d')}
+                  label="2D"
+                />
+                <CompactViewButton 
+                  active={viewMode === '3d'} 
+                  onClick={() => setViewMode('3d')}
+                  label="3D"
+                />
+              </div>
 
-            {/* Menu Button - Premium Gold */}
-            <button 
-              onClick={() => setIsMenuOpen(true)}
-              className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl bg-gradient-to-r from-[#c9a962] to-[#a08040] hover:from-[#d4b76a] hover:to-[#b08d4a] transition-all duration-300 text-[#0a0a0f] font-semibold shadow-lg shadow-[#c9a962]/25 hover:shadow-[#c9a962]/40 border border-[#c9a962]/50"
-            >
-              <Menu size={18} />
-              <span className="hidden sm:inline">Menu</span>
-            </button>
+              {/* Painéis - Desktop */}
+              <PanelToggleButton
+                icon={<BoxIcon size={18} />}
+                label="Móveis"
+                active={panels.furniture}
+                onClick={() => setPanel('furniture', !panels.furniture)}
+                className="hidden xl:flex"
+              />
+              
+              <PanelToggleButton
+                icon={<SlidersHorizontal size={18} />}
+                label="Propriedades"
+                active={panels.properties}
+                onClick={() => setPanel('properties', !panels.properties)}
+                className="hidden xl:flex"
+              />
+
+              {/* Menu Principal - Premium */}
+              <motion.button 
+                whileHover={{ scale: 1.05, boxShadow: '0 0 30px rgba(201,169,98,0.4)' }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => setIsMenuOpen(true)}
+                className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl bg-gradient-to-r from-[#c9a962] via-[#b8944f] to-[#a08040] hover:from-[#d4b76a] hover:via-[#c9a962] hover:to-[#b08d4a] transition-all duration-300 text-[#0a0a0f] font-bold shadow-lg shadow-[#c9a962]/30 border border-[#c9a962]/50"
+              >
+                <Menu size={18} />
+                <span className="hidden sm:inline text-sm">Menu</span>
+              </motion.button>
+            </div>
           </div>
-        </div>
 
-        {/* ============================================
-            CANVAS AREA
-            ============================================ */}
-        <div className="relative flex-1 overflow-hidden">
+          {/* NÍVEL 2: Barra de Ferramentas Mobile - SEMPRE VISÍVEL */}
+          <div className="xl:hidden border-t border-white/5 bg-[#0d0d12]/95 backdrop-blur-xl">
+            <div className="flex items-center gap-1 px-3 py-2 overflow-x-auto scrollbar-hide">
+              <MobileToolPill
+                icon={<BoxIcon size={16} />}
+                label="Móveis"
+                active={panels.furniture}
+                onClick={() => setPanel('furniture', !panels.furniture)}
+              />
+              <MobileToolPill
+                icon={<SlidersHorizontal size={16} />}
+                label="Propriedades"
+                active={panels.properties}
+                onClick={() => setPanel('properties', !panels.properties)}
+              />
+              <MobileToolPill
+                icon={<LayoutGrid size={16} />}
+                label="Camadas"
+                active={panels.ai}
+                onClick={() => setPanel('ai', !panels.ai)}
+              />
+              <MobileToolPill
+                icon={<Maximize2 size={16} />}
+                label="Tela Cheia"
+                active={false}
+                onClick={() => {
+                  if (!document.fullscreenElement) {
+                    document.documentElement.requestFullscreen();
+                  } else {
+                    document.exitFullscreen();
+                  }
+                }}
+              />
+            </div>
+          </div>
+        </header>
+
+        {/* CANVAS AREA */}
+        <div className="relative flex-1 overflow-hidden bg-[#0a0a0f]">
           <AnimatePresence mode="wait">
             <motion.div
               key={viewMode}
-              initial={{ opacity: 0, scale: 0.98 }}
+              initial={{ opacity: 0, scale: 0.97 }}
               animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.98 }}
-              transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+              exit={{ opacity: 0, scale: 0.97 }}
+              transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
               className="w-full h-full"
             >
               {viewMode === '2d' ? <Canvas2D /> : <Canvas3D />}
@@ -254,54 +282,32 @@ const EditorInterface: React.FC<{
         </div>
       </div>
 
-      {/* ============================================
-          PAINÉIS LATERAIS - Desktop
-          ============================================ */}
+      {/* PAINÉIS LATERAIS - Desktop */}
       <AnimatePresence>
         {panels.furniture && (
-          <motion.div
-            initial={{ width: 0, opacity: 0, x: 20 }}
-            animate={{ width: 320, opacity: 1, x: 0 }}
-            exit={{ width: 0, opacity: 0, x: 20 }}
-            transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-            className="hidden xl:flex flex-shrink-0 overflow-hidden"
-          >
+          <PanelWrapper width={320}>
             <FurniturePanel />
-          </motion.div>
+          </PanelWrapper>
         )}
       </AnimatePresence>
       
       <AnimatePresence>
         {panels.ai && (
-          <motion.div
-            initial={{ width: 0, opacity: 0, x: 20 }}
-            animate={{ width: 320, opacity: 1, x: 0 }}
-            exit={{ width: 0, opacity: 0, x: 20 }}
-            transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-            className="hidden xl:flex flex-shrink-0 overflow-hidden"
-          >
+          <PanelWrapper width={320}>
             <AIAssistant />
-          </motion.div>
+          </PanelWrapper>
         )}
       </AnimatePresence>
       
       <AnimatePresence>
         {panels.properties && (
-          <motion.div
-            initial={{ width: 0, opacity: 0, x: 20 }}
-            animate={{ width: 288, opacity: 1, x: 0 }}
-            exit={{ width: 0, opacity: 0, x: 20 }}
-            transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-            className="hidden xl:flex flex-shrink-0 overflow-hidden"
-          >
+          <PanelWrapper width={288}>
             <PropertiesPanel />
-          </motion.div>
+          </PanelWrapper>
         )}
       </AnimatePresence>
 
-      {/* ============================================
-          MODAIS
-          ============================================ */}
+      {/* MODAIS */}
       <AIGenerationModal
         isOpen={showAIGenerationModal}
         onClose={() => setShowAIGenerationModal(false)}
@@ -330,9 +336,7 @@ const EditorInterface: React.FC<{
         onClose={() => setShowAdminPanel(false)}
       />
 
-      {/* ============================================
-          SIDEMENU - Menu Lateral Responsivo
-          ============================================ */}
+      {/* SIDEMENU PREMIUM */}
       <AnimatePresence>
         {isMenuOpen && (
           <SideMenu
@@ -350,7 +354,105 @@ const EditorInterface: React.FC<{
 };
 
 // ============================================
-// SIDEMENU COMPONENT - Menu lateral premium
+// COMPONENTES AUXILIARES PREMIUM
+// ============================================
+
+const ViewModeButton: React.FC<{
+  active: boolean;
+  onClick: () => void;
+  label: string;
+}> = ({ active, onClick, label }) => (
+  <motion.button
+    whileHover={{ scale: 1.03 }}
+    whileTap={{ scale: 0.97 }}
+    onClick={onClick}
+    className={`relative px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${
+      active
+        ? 'bg-gradient-to-br from-[#c9a962] to-[#a08040] text-[#0a0a0f] shadow-lg shadow-[#c9a962]/30'
+        : 'text-white/50 hover:text-white hover:bg-white/5'
+    }`}
+  >
+    {label}
+  </motion.button>
+);
+
+const CompactViewButton: React.FC<{
+  active: boolean;
+  onClick: () => void;
+  label: string;
+}> = ({ active, onClick, label }) => (
+  <motion.button
+    whileTap={{ scale: 0.95 }}
+    onClick={onClick}
+    className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+      active
+        ? 'bg-gradient-to-br from-[#c9a962] to-[#a08040] text-[#0a0a0f]'
+        : 'text-white/50 hover:text-white'
+    }`}
+  >
+    {label}
+  </motion.button>
+);
+
+const PanelToggleButton: React.FC<{
+  icon: React.ReactNode;
+  label: string;
+  active: boolean;
+  onClick: () => void;
+  className?: string;
+}> = ({ icon, label, active, onClick, className = '' }) => (
+  <motion.button
+    whileHover={{ scale: 1.05 }}
+    whileTap={{ scale: 0.95 }}
+    onClick={onClick}
+    className={`items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 border ${
+      active 
+        ? 'bg-[#c9a962]/15 text-[#c9a962] border-[#c9a962]/40 shadow-[0_0_20px_rgba(201,169,98,0.15)]' 
+        : 'bg-white/[0.03] text-white/60 border-white/10 hover:bg-white/[0.08] hover:text-white hover:border-white/20'
+    } ${className}`}
+  >
+    {icon}
+    <span>{label}</span>
+  </motion.button>
+);
+
+const MobileToolPill: React.FC<{
+  icon: React.ReactNode;
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}> = ({ icon, label, active, onClick }) => (
+  <motion.button
+    whileTap={{ scale: 0.95 }}
+    onClick={onClick}
+    className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all duration-300 ${
+      active
+        ? 'bg-gradient-to-r from-[#c9a962]/20 to-[#a08040]/10 text-[#c9a962] border border-[#c9a962]/40 shadow-[0_0_15px_rgba(201,169,98,0.15)]'
+        : 'bg-white/5 text-white/60 border border-white/10 hover:bg-white/10 hover:text-white hover:border-white/20'
+    }`}
+  >
+    {icon}
+    <span>{label}</span>
+  </motion.button>
+);
+
+const PanelWrapper: React.FC<{
+  width: number;
+  children: React.ReactNode;
+}> = ({ width, children }) => (
+  <motion.div
+    initial={{ width: 0, opacity: 0, x: 20 }}
+    animate={{ width, opacity: 1, x: 0 }}
+    exit={{ width: 0, opacity: 0, x: 20 }}
+    transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
+    className="hidden xl:flex flex-shrink-0 overflow-hidden"
+  >
+    {children}
+  </motion.div>
+);
+
+// ============================================
+// SIDEMENU PREMIUM
 // ============================================
 const SideMenu: React.FC<{
   onClose: () => void;
@@ -371,7 +473,6 @@ const SideMenu: React.FC<{
 
   return (
     <div className="fixed inset-0 z-50 flex">
-      {/* Overlay com blur */}
       <motion.div 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -381,7 +482,6 @@ const SideMenu: React.FC<{
         onClick={onClose}
       />
       
-      {/* Painel do Menu */}
       <motion.div 
         initial={{ x: '100%', opacity: 0.8 }}
         animate={{ x: 0, opacity: 1 }}
@@ -389,7 +489,7 @@ const SideMenu: React.FC<{
         transition={{ type: 'spring', damping: 30, stiffness: 300 }}
         className="absolute right-0 top-0 bottom-0 w-full max-w-md bg-gradient-to-b from-[#0f0f16] to-[#0a0a0f] border-l border-white/10 overflow-y-auto shadow-2xl"
       >
-        {/* Header do Menu */}
+        {/* Header */}
         <div className="sticky top-0 z-10 flex items-center justify-between p-5 bg-[#0f0f16]/95 backdrop-blur-xl border-b border-white/10">
           <div className="flex items-center gap-4">
             <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#c9a962] to-[#a08040] flex items-center justify-center shadow-lg shadow-[#c9a962]/30">
@@ -400,45 +500,42 @@ const SideMenu: React.FC<{
               <p className="text-xs text-[#c9a962] font-medium tracking-wider uppercase">Menu Principal</p>
             </div>
           </div>
-          <button 
+          <motion.button 
+            whileTap={{ scale: 0.9 }}
             onClick={onClose} 
-            className="p-3 hover:bg-white/10 rounded-xl transition-all duration-200 text-white/60 hover:text-white border border-transparent hover:border-white/20"
+            className="p-3 hover:bg-white/10 rounded-xl transition-all text-white/60 hover:text-white border border-transparent hover:border-white/20"
           >
             <X size={24} />
-          </button>
+          </motion.button>
         </div>
 
         <div className="p-5 space-y-5">
-          {/* Projeto Atual - Card Premium */}
+          {/* Projeto Atual */}
           <div className="bg-gradient-to-br from-[#c9a962]/20 via-[#c9a962]/8 to-transparent border border-[#c9a962]/40 rounded-2xl p-5 shadow-[0_0_30px_rgba(201,169,98,0.1)]">
             <div className="flex items-center gap-4 mb-4">
               <div className="w-12 h-12 rounded-xl bg-[#c9a962]/20 flex items-center justify-center border border-[#c9a962]/30">
                 <FolderOpen size={24} className="text-[#c9a962]" />
               </div>
               <div>
-                <p className="text-xs uppercase tracking-widest text-[#c9a962] font-semibold">
-                  Projeto Atual
-                </p>
+                <p className="text-xs uppercase tracking-widest text-[#c9a962] font-semibold">Projeto Atual</p>
                 <div className="w-8 h-0.5 bg-gradient-to-r from-[#c9a962] to-transparent mt-1" />
               </div>
             </div>
-            <p className="text-white font-bold text-xl truncate">
-              {currentProject?.name || 'Novo Projeto'}
-            </p>
+            <p className="text-white font-bold text-xl truncate">{currentProject?.name || 'Novo Projeto'}</p>
             <p className="text-sm text-white/50 mt-2 flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-[#c9a962]" />
-              Unidade: {currentProject?.settings?.unit === 'meters' ? 'Sistema Métrico' : 'Imperial'}
+              {currentProject?.settings?.unit === 'meters' ? 'Sistema Métrico' : 'Imperial'}
             </p>
           </div>
 
-          {/* Inteligência AI - Seção Expansível */}
+          {/* Inteligência AI */}
           <div className="bg-white/[0.02] rounded-2xl border border-white/10 overflow-hidden">
             <button
               onClick={() => setOpenAI(!openAI)}
-              className="w-full flex items-center justify-between p-4 hover:bg-white/[0.04] transition-all duration-300 group"
+              className="w-full flex items-center justify-between p-4 hover:bg-white/[0.04] transition-all group"
             >
               <div className="flex items-center gap-4">
-                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-violet-500/20 to-purple-600/10 flex items-center justify-center border border-violet-500/30 group-hover:border-violet-500/50 transition-colors shadow-lg shadow-violet-500/10">
+                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-violet-500/20 to-purple-600/10 flex items-center justify-center border border-violet-500/30">
                   <Sparkles size={20} className="text-violet-400" />
                 </div>
                 <div className="text-left">
@@ -446,7 +543,7 @@ const SideMenu: React.FC<{
                   <span className="text-xs text-white/40">Assistente inteligente</span>
                 </div>
               </div>
-              <div className={`p-2 rounded-lg bg-white/5 transition-transform duration-300 ${openAI ? 'rotate-180' : ''}`}>
+              <div className={`p-2 rounded-lg bg-white/5 transition-transform ${openAI ? 'rotate-180' : ''}`}>
                 <ChevronDown size={20} className="text-white/50" />
               </div>
             </button>
@@ -461,53 +558,24 @@ const SideMenu: React.FC<{
                   className="overflow-hidden"
                 >
                   <div className="p-3 pt-0 space-y-2">
-                    <button
-                      onClick={() => {
-                        setShowDesignSuggestions(true);
-                        onClose();
-                      }}
-                      className="w-full flex items-center gap-4 px-4 py-3.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/5 hover:border-amber-500/30 transition-all duration-300 group"
-                    >
-                      <div className="w-10 h-10 rounded-lg bg-amber-500/15 flex items-center justify-center group-hover:bg-amber-500/25 transition-colors">
-                        <Lightbulb size={18} className="text-amber-400" />
-                      </div>
-                      <div className="text-left">
-                        <span className="text-white/90 font-medium block group-hover:text-white transition-colors">Sugestões</span>
-                        <span className="text-xs text-white/40">Ideias de design</span>
-                      </div>
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        setPanel('ai', true);
-                        onClose();
-                      }}
-                      className="w-full flex items-center gap-4 px-4 py-3.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/5 hover:border-[#c9a962]/30 transition-all duration-300 group"
-                    >
-                      <div className="w-10 h-10 rounded-lg bg-[#c9a962]/15 flex items-center justify-center group-hover:bg-[#c9a962]/25 transition-colors">
-                        <Sparkles size={18} className="text-[#c9a962]" />
-                      </div>
-                      <div className="text-left">
-                        <span className="text-white/90 font-medium block group-hover:text-white transition-colors">Assistente IA</span>
-                        <span className="text-xs text-white/40">Chat inteligente</span>
-                      </div>
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        setShowAIGenerationModal(true);
-                        onClose();
-                      }}
-                      className="w-full flex items-center gap-4 px-4 py-3.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/5 hover:border-violet-500/30 transition-all duration-300 group"
-                    >
-                      <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-violet-500/20 to-purple-600/15 flex items-center justify-center group-hover:from-violet-500/30 group-hover:to-purple-600/25 transition-all">
-                        <Wand2 size={18} className="text-violet-400" />
-                      </div>
-                      <div className="text-left">
-                        <span className="text-white/90 font-medium block group-hover:text-white transition-colors">Gerar com IA</span>
-                        <span className="text-xs text-white/40">Criação automática</span>
-                      </div>
-                    </button>
+                    <MenuItem
+                      icon={<Lightbulb size={18} className="text-amber-400" />}
+                      label="Sugestões"
+                      description="Ideias de design"
+                      onClick={() => { setShowDesignSuggestions(true); onClose(); }}
+                    />
+                    <MenuItem
+                      icon={<Sparkles size={18} className="text-[#c9a962]" />}
+                      label="Assistente IA"
+                      description="Chat inteligente"
+                      onClick={() => { setPanel('ai', true); onClose(); }}
+                    />
+                    <MenuItem
+                      icon={<Wand2 size={18} className="text-violet-400" />}
+                      label="Gerar com IA"
+                      description="Criação automática"
+                      onClick={() => { setShowAIGenerationModal(true); onClose(); }}
+                    />
                   </div>
                 </motion.div>
               )}
@@ -521,61 +589,21 @@ const SideMenu: React.FC<{
               Ferramentas
               <div className="flex-1 h-px bg-white/10" />
             </p>
-            
             <div className="space-y-2">
-              <button
-                onClick={() => {
-                  setPanel('furniture', !panels.furniture);
-                  onClose();
-                }}
-                className={`w-full flex items-center gap-4 px-4 py-4 rounded-xl border transition-all duration-300 ${
-                  panels.furniture 
-                    ? 'bg-[#c9a962]/10 border-[#c9a962]/40 shadow-[0_0_20px_rgba(201,169,98,0.1)]' 
-                    : 'bg-white/[0.03] border-white/10 hover:bg-white/[0.06] hover:border-white/20'
-                }`}
-              >
-                <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-xl transition-all ${
-                  panels.furniture 
-                    ? 'bg-[#c9a962]/20' 
-                    : 'bg-white/5'
-                }`}>
-                  🛋️
-                </div>
-                <div className="text-left">
-                  <span className={`font-semibold block ${panels.furniture ? 'text-[#c9a962]' : 'text-white/90'}`}>
-                    Móveis
-                  </span>
-                  <span className="text-xs text-white/40">Biblioteca de móveis</span>
-                </div>
-                {panels.furniture && <div className="ml-auto w-2 h-2 rounded-full bg-[#c9a962]" />}
-              </button>
-
-              <button
-                onClick={() => {
-                  setPanel('properties', !panels.properties);
-                  onClose();
-                }}
-                className={`w-full flex items-center gap-4 px-4 py-4 rounded-xl border transition-all duration-300 ${
-                  panels.properties 
-                    ? 'bg-[#c9a962]/10 border-[#c9a962]/40 shadow-[0_0_20px_rgba(201,169,98,0.1)]' 
-                    : 'bg-white/[0.03] border-white/10 hover:bg-white/[0.06] hover:border-white/20'
-                }`}
-              >
-                <div className={`w-11 h-11 rounded-xl flex items-center justify-center border transition-all ${
-                  panels.properties 
-                    ? 'bg-[#c9a962]/20 border-[#c9a962]/40' 
-                    : 'bg-white/5 border-white/10'
-                }`}>
-                  <Settings size={20} className={panels.properties ? 'text-[#c9a962]' : 'text-white/50'} />
-                </div>
-                <div className="text-left">
-                  <span className={`font-semibold block ${panels.properties ? 'text-[#c9a962]' : 'text-white/90'}`}>
-                    Propriedades
-                  </span>
-                  <span className="text-xs text-white/40">Configurações do projeto</span>
-                </div>
-                {panels.properties && <div className="ml-auto w-2 h-2 rounded-full bg-[#c9a962]" />}
-              </button>
+              <ToolButton
+                icon="🛋️"
+                label="Móveis"
+                description="Biblioteca de móveis"
+                active={panels.furniture}
+                onClick={() => { setPanel('furniture', !panels.furniture); onClose(); }}
+              />
+              <ToolButton
+                icon={<Settings size={20} />}
+                label="Propriedades"
+                description="Configurações do projeto"
+                active={panels.properties}
+                onClick={() => { setPanel('properties', !panels.properties); onClose(); }}
+              />
             </div>
           </div>
 
@@ -586,59 +614,41 @@ const SideMenu: React.FC<{
               Ações
               <div className="flex-1 h-px bg-white/10" />
             </p>
-            
             <div className="space-y-2">
-              <button
-                onClick={() => {
-                  handleSave();
-                  onClose();
-                }}
-                className="w-full flex items-center gap-4 px-4 py-4 rounded-xl bg-white/[0.03] border border-white/10 hover:bg-white/[0.06] hover:border-[#c9a962]/30 transition-all duration-300 group"
-              >
-                <div className="w-11 h-11 rounded-xl bg-white/5 flex items-center justify-center border border-white/10 group-hover:border-[#c9a962]/30 group-hover:bg-[#c9a962]/10 transition-all">
-                  <svg className="w-5 h-5 text-white/50 group-hover:text-[#c9a962] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <ActionButton
+                icon={
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
                   </svg>
-                </div>
-                <div className="text-left">
-                  <span className="text-white/90 font-semibold block group-hover:text-white transition-colors">Salvar Projeto</span>
-                  <span className="text-xs text-white/40">Salvar alterações</span>
-                </div>
-              </button>
-
-              <button
-                onClick={() => {
-                  onClose();
-                }}
-                className="w-full flex items-center gap-4 px-4 py-4 rounded-xl bg-white/[0.03] border border-white/10 hover:bg-white/[0.06] hover:border-[#c9a962]/30 transition-all duration-300 group"
-              >
-                <div className="w-11 h-11 rounded-xl bg-white/5 flex items-center justify-center border border-white/10 group-hover:border-[#c9a962]/30 group-hover:bg-[#c9a962]/10 transition-all">
-                  <svg className="w-5 h-5 text-white/50 group-hover:text-[#c9a962] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                }
+                label="Salvar Projeto"
+                onClick={() => { handleSave(); onClose(); }}
+              />
+              <ActionButton
+                icon={
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
                   </svg>
-                </div>
-                <div className="text-left">
-                  <span className="text-white/90 font-semibold block group-hover:text-white transition-colors">Exportar</span>
-                  <span className="text-xs text-white/40">Exportar projeto</span>
-                </div>
-              </button>
+                }
+                label="Exportar"
+                onClick={onClose}
+              />
             </div>
           </div>
 
-          {/* Voltar para Home - Botão Premium Destaque */}
+          {/* Voltar para Home */}
           <div className="pt-4 border-t border-white/10">
-            <button
-              onClick={() => {
-                onBackToWelcome();
-                onClose();
-              }}
-              className="w-full flex items-center justify-center gap-3 px-6 py-4 rounded-xl bg-gradient-to-r from-[#c9a962] via-[#b8944f] to-[#a08040] hover:from-[#d4b76a] hover:via-[#c9a962] hover:to-[#b08d4a] transition-all duration-300 text-[#0a0a0f] font-bold shadow-xl shadow-[#c9a962]/30 hover:shadow-[#c9a962]/50 border border-[#c9a962]/60 hover:border-[#c9a962] group"
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => { onBackToWelcome(); onClose(); }}
+              className="w-full flex items-center justify-center gap-3 px-6 py-4 rounded-xl bg-gradient-to-r from-[#c9a962] via-[#b8944f] to-[#a08040] hover:from-[#d4b76a] hover:via-[#c9a962] hover:to-[#b08d4a] transition-all text-[#0a0a0f] font-bold shadow-xl shadow-[#c9a962]/30 border border-[#c9a962]/60"
             >
-              <div className="w-10 h-10 rounded-xl bg-[#0a0a0f]/20 flex items-center justify-center group-hover:bg-[#0a0a0f]/30 transition-colors">
+              <div className="w-10 h-10 rounded-xl bg-[#0a0a0f]/20 flex items-center justify-center">
                 <Home size={20} className="text-[#0a0a0f]" />
               </div>
               <span className="text-lg">Voltar para Home</span>
-            </button>
+            </motion.button>
           </div>
         </div>
       </motion.div>
@@ -646,8 +656,75 @@ const SideMenu: React.FC<{
   );
 };
 
+const MenuItem: React.FC<{
+  icon: React.ReactNode;
+  label: string;
+  description: string;
+  onClick: () => void;
+}> = ({ icon, label, description, onClick }) => (
+  <motion.button
+    whileTap={{ scale: 0.98 }}
+    onClick={onClick}
+    className="w-full flex items-center gap-4 px-4 py-3.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/5 hover:border-[#c9a962]/30 transition-all group"
+  >
+    <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center group-hover:bg-[#c9a962]/10 transition-colors">
+      {icon}
+    </div>
+    <div className="text-left">
+      <span className="text-white/90 font-medium block group-hover:text-white">{label}</span>
+      <span className="text-xs text-white/40">{description}</span>
+    </div>
+  </motion.button>
+);
+
+const ToolButton: React.FC<{
+  icon: React.ReactNode | string;
+  label: string;
+  description: string;
+  active: boolean;
+  onClick: () => void;
+}> = ({ icon, label, description, active, onClick }) => (
+  <motion.button
+    whileTap={{ scale: 0.98 }}
+    onClick={onClick}
+    className={`w-full flex items-center gap-4 px-4 py-4 rounded-xl border transition-all ${
+      active 
+        ? 'bg-[#c9a962]/10 border-[#c9a962]/40 shadow-[0_0_20px_rgba(201,169,98,0.1)]' 
+        : 'bg-white/[0.03] border-white/10 hover:bg-white/[0.06] hover:border-white/20'
+    }`}
+  >
+    <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-xl ${active ? 'bg-[#c9a962]/20' : 'bg-white/5'}`}>
+      {typeof icon === 'string' ? icon : icon}
+    </div>
+    <div className="text-left">
+      <span className={`font-semibold block ${active ? 'text-[#c9a962]' : 'text-white/90'}`}>{label}</span>
+      <span className="text-xs text-white/40">{description}</span>
+    </div>
+    {active && <div className="ml-auto w-2 h-2 rounded-full bg-[#c9a962]" />}
+  </motion.button>
+);
+
+const ActionButton: React.FC<{
+  icon: React.ReactNode;
+  label: string;
+  onClick: () => void;
+}> = ({ icon, label, onClick }) => (
+  <motion.button
+    whileTap={{ scale: 0.98 }}
+    onClick={onClick}
+    className="w-full flex items-center gap-4 px-4 py-4 rounded-xl bg-white/[0.03] border border-white/10 hover:bg-white/[0.06] hover:border-[#c9a962]/30 transition-all group"
+  >
+    <div className="w-11 h-11 rounded-xl bg-white/5 flex items-center justify-center border border-white/10 group-hover:border-[#c9a962]/30 group-hover:bg-[#c9a962]/10 transition-all text-white/50 group-hover:text-[#c9a962]">
+      {icon}
+    </div>
+    <div className="text-left">
+      <span className="text-white/90 font-semibold block group-hover:text-white">{label}</span>
+    </div>
+  </motion.button>
+);
+
 // ============================================
-// APP COMPONENT - Componente principal
+// APP COMPONENT
 // ============================================
 function App() {
   const [showWelcome, setShowWelcome] = useState(true);
@@ -656,9 +733,6 @@ function App() {
   const { loadTemplates, loadStyles } = useTemplateStore();
   const { loadPlans, initialize } = useUserStore();
 
-  // ============================================
-  // EFEITOS INICIAIS
-  // ============================================
   useEffect(() => {
     loadTemplates();
     loadStyles();
@@ -666,34 +740,10 @@ function App() {
     initialize();
   }, [loadTemplates, loadStyles, loadPlans, initialize]);
 
-  // ============================================
-  // HANDLERS
-  // ============================================
   const handleCreateProject = (config: ProjectConfig) => {
     createProject(config.name, config.description);
-    
-    if (config.template) {
-      // TODO: Apply template rooms and settings
-    }
-    
-    if (config.style) {
-      // TODO: Apply style colors and materials
-    }
-    
     setShowCreateModal(false);
     setShowWelcome(false);
-  };
-
-  const handleOpenProjects = () => {
-    setShowCreateModal(true);
-  };
-
-  const handleExploreTemplates = () => {
-    setShowCreateModal(true);
-  };
-
-  const handleSubscribePro = () => {
-    alert('Assinatura Pro - Em breve!');
   };
 
   const handleBackToWelcome = () => {
@@ -701,42 +751,31 @@ function App() {
     setShowWelcome(true);
   };
 
-  // ============================================
-  // RENDER - TELA INICIAL OU EDITOR
-  // ============================================
   if (showWelcome) {
     return (
       <>
-        <div className="bg-[#0a0a0f]">
+        <div className="bg-[#0a0a0f] min-h-screen overflow-y-auto touch-pan-y">
           <WelcomeScreen 
             onCreateProject={() => setShowCreateModal(true)}
-            onOpenProjects={handleOpenProjects}
-            onExploreTemplates={handleExploreTemplates}
-            onSubscribePro={handleSubscribePro}
+            onOpenProjects={() => setShowCreateModal(true)}
+            onExploreTemplates={() => setShowCreateModal(true)}
+            onSubscribePro={() => alert('Assinatura Pro - Em breve!')}
           />
         </div>
         
-        {/* Botão Premium "Ir para Canvas" - Posicionado elegantemente */}
         <motion.button
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5, duration: 0.6 }}
           onClick={() => {
-            if (!currentProject) {
-              createProject('Projeto Teste', 'Projeto temporário');
-            }
+            if (!currentProject) createProject('Projeto Teste', 'Projeto temporário');
             setShowWelcome(false);
           }}
-          className="fixed bottom-8 right-8 z-50 flex items-center gap-3 px-6 py-4 bg-gradient-to-r from-[#c9a962] via-[#b8944f] to-[#a08040] hover:from-[#d4b76a] hover:via-[#c9a962] hover:to-[#b08d4a] transition-all duration-300 text-[#0a0a0f] font-bold rounded-2xl shadow-2xl shadow-[#c9a962]/40 hover:shadow-[#c9a962]/60 border border-[#c9a962]/70 hover:border-[#c9a962] group"
+          className="fixed bottom-8 right-8 z-50 flex items-center gap-3 px-6 py-4 bg-gradient-to-r from-[#c9a962] via-[#b8944f] to-[#a08040] hover:from-[#d4b76a] hover:via-[#c9a962] hover:to-[#b08d4a] transition-all text-[#0a0a0f] font-bold rounded-2xl shadow-2xl shadow-[#c9a962]/40 border border-[#c9a962]/70"
         >
-          <div className="w-10 h-10 rounded-xl bg-[#0a0a0f]/20 flex items-center justify-center group-hover:bg-[#0a0a0f]/30 transition-colors">
-            <Compass size={22} className="text-[#0a0a0f]" />
-          </div>
-          <div className="text-left">
-            <span className="block text-sm font-bold">Ir para Canvas</span>
-            <span className="block text-xs text-[#0a0a0f]/70">Continuar editando</span>
-          </div>
-          <ChevronRight size={20} className="text-[#0a0a0f]/60 group-hover:translate-x-1 transition-transform" />
+          <Compass size={22} />
+          <span>Ir para Canvas</span>
+          <ChevronRight size={20} />
         </motion.button>
 
         <CreateProjectModal
