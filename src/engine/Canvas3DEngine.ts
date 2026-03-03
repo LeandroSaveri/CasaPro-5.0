@@ -3,8 +3,8 @@
 // ============================================
 
 import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-import type { Point, Point3D, Wall, Room, Door, Window, Furniture, LightingSettings } from '@/types';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import type { Point3D, Wall, Room, Door, Window, Furniture, LightingSettings } from '@/types';
 
 // EventEmitter simples integrado
 type EventCallback = (...args: any[]) => void;
@@ -75,7 +75,6 @@ export class Canvas3DEngine extends EventEmitter {
   // Iluminação
   private ambientLight: THREE.AmbientLight | null = null;
   private sunLight: THREE.DirectionalLight | null = null;
-  private pointLights: THREE.PointLight[] = [];
   
   // Estado
   private isInitialized: boolean = false;
@@ -140,7 +139,7 @@ export class Canvas3DEngine extends EventEmitter {
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
     this.controls.dampingFactor = 0.05;
-    this.controls.maxPolarAngle = Math.PI / 2 - 0.1; // Não permitir ir abaixo do chão
+    this.controls.maxPolarAngle = Math.PI / 2 - 0.1;
     
     // Configurar iluminação
     this.setupLighting();
@@ -262,15 +261,15 @@ export class Canvas3DEngine extends EventEmitter {
     this.removeWall(wall.id);
     
     // Criar geometria da parede
-    const height = wall.height || 280; // cm padrão
+    const height = wall.height || 280;
     const thickness = wall.thickness || 10;
     
     const dx = wall.end.x - wall.start.x;
     const dy = wall.end.y - wall.start.y;
-    const length = Math.sqrt(dx * dx + dy * dy);
+    const wallLength = Math.sqrt(dx * dx + dy * dy);
     const angle = Math.atan2(dy, dx);
     
-    const geometry = new THREE.BoxGeometry(length, height, thickness);
+    const geometry = new THREE.BoxGeometry(wallLength, height, thickness);
     const material = new THREE.MeshStandardMaterial({
       color: wall.color || 0xffffff,
       roughness: 0.8,
@@ -282,7 +281,7 @@ export class Canvas3DEngine extends EventEmitter {
     // Posicionar
     mesh.position.x = (wall.start.x + wall.end.x) / 2;
     mesh.position.y = height / 2;
-    mesh.position.z = (wall.start.y + wall.end.y) / 2; // Y do 2D vira Z no 3D
+    mesh.position.z = (wall.start.y + wall.end.y) / 2;
     
     mesh.rotation.y = -angle;
     
@@ -340,7 +339,7 @@ export class Canvas3DEngine extends EventEmitter {
     
     const mesh = new THREE.Mesh(geometry, material);
     mesh.rotation.x = -Math.PI / 2;
-    mesh.position.y = 0.1; // Ligeiramente acima do grid
+    mesh.position.y = 0.1;
     mesh.receiveShadow = true;
     mesh.userData = { type: 'room', id: room.id, data: room };
     
@@ -407,7 +406,6 @@ export class Canvas3DEngine extends EventEmitter {
     if (wall) {
       const dx = wall.end.x - wall.start.x;
       const dy = wall.end.y - wall.start.y;
-      const length = Math.sqrt(dx * dx + dy * dy);
       
       const posX = wall.start.x + (dx * door.position);
       const posZ = wall.start.y + (dy * door.position);
@@ -514,7 +512,7 @@ export class Canvas3DEngine extends EventEmitter {
     
     const group = new THREE.Group();
     
-    // Criar geometria básica baseada no tipo
+    // Criar geometria básica
     const geometry = new THREE.BoxGeometry(furniture.width, furniture.height, furniture.depth);
     const material = new THREE.MeshStandardMaterial({
       color: furniture.color || 0x888888,
@@ -557,6 +555,15 @@ export class Canvas3DEngine extends EventEmitter {
   }
 
   // ============================================
+  // MÉTODO CLEAR
+  // ============================================
+
+  clear(): void {
+    this.clearAllMeshes();
+    this.emit('cleared');
+  }
+
+  // ============================================
   // UTILITÁRIOS
   // ============================================
 
@@ -575,27 +582,27 @@ export class Canvas3DEngine extends EventEmitter {
 
   private clearAllMeshes(): void {
     // Limpar todas as paredes
-    for (const id of this.wallMeshes.keys()) {
+    for (const id of Array.from(this.wallMeshes.keys())) {
       this.removeWall(id);
     }
     
     // Limpar todos os cômodos
-    for (const id of this.roomMeshes.keys()) {
+    for (const id of Array.from(this.roomMeshes.keys())) {
       this.removeRoom(id);
     }
     
     // Limpar todas as portas
-    for (const id of this.doorMeshes.keys()) {
+    for (const id of Array.from(this.doorMeshes.keys())) {
       this.removeDoor(id);
     }
     
     // Limpar todas as janelas
-    for (const id of this.windowMeshes.keys()) {
+    for (const id of Array.from(this.windowMeshes.keys())) {
       this.removeWindow(id);
     }
     
     // Limpar todos os móveis
-    for (const id of this.furnitureMeshes.keys()) {
+    for (const id of Array.from(this.furnitureMeshes.keys())) {
       this.removeFurniture(id);
     }
   }
@@ -711,8 +718,6 @@ export class Canvas3DEngine extends EventEmitter {
         return;
       }
       
-      // Implementação básica - em produção usar GLTFExporter
-      // Por enquanto retorna uma Promise resolvida
       resolve(new ArrayBuffer(0));
     });
   }
