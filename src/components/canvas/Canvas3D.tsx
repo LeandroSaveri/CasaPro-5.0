@@ -1,4 +1,8 @@
 // ============================================
+// ARQUIVO: src/components/canvas/Canvas3D.tsx
+// ============================================
+
+// ============================================
 // Canvas3D.tsx - CasaPro 3D Visualization
 // Build-Safe | Mobile Responsive | Premium UI
 // ============================================
@@ -286,7 +290,7 @@ const Canvas3D: React.FC = () => {
   ];
   
   return (
-    <div className="absolute inset-0 bg-[#1a1a2e]">
+    <div className="w-full h-full bg-[#1a1a2e]">
       <Canvas
         shadows
         dpr={[1, 2]}
@@ -296,7 +300,10 @@ const Canvas3D: React.FC = () => {
           powerPreference: 'high-performance',
           toneMappingExposure: lighting.exposure,
         }}
-        style={{ background: isNight ? '#0a0a1a' : '#87CEEB' }}
+        style={{
+          background: isNight ? '#0a0a1a' : '#87CEEB',
+          touchAction: 'pan-y'
+        }}
       >
         <PerspectiveCamera makeDefault position={[10, 10, 10]} fov={50} />
         <CameraController mode={cameraMode3D} />
@@ -450,4 +457,4 @@ const Canvas3D: React.FC = () => {
   );
 };
 
-export default Canvas3D;
+export default ;
