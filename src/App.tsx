@@ -23,9 +23,6 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
-// ============================================
-// COMPONENTE: EditorHeader
-// ============================================
 interface EditorHeaderProps {
   projectName: string;
   viewMode: '2d' | '3d';
@@ -66,7 +63,6 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
           whileTap={{ scale: 0.95 }}
           onClick={onBack}
           className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/80 hover:bg-white/10 hover:text-white transition-all hidden sm:flex"
-          title="Voltar ao início"
         >
           <ChevronLeft size={20} />
         </motion.button>
@@ -203,9 +199,6 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
   );
 };
 
-// ============================================
-// COMPONENTE: MainLayout
-// ============================================
 interface MainLayoutProps {
   children: React.ReactNode;
   sidebar: React.ReactNode;
@@ -260,9 +253,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({
   );
 };
 
-// ============================================
-// COMPONENTE PRINCIPAL: App
-// ============================================
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<'welcome' | 'editor'>('welcome');
   const [showProjectModal, setShowProjectModal] = useState(false);
@@ -307,12 +297,10 @@ const App: React.FC = () => {
   };
 
   const handleLoadProject = (projectId: string) => {
-    const project = loadProject(projectId);
-    if (project) {
-      setCurrentView('editor');
-      setShowProjectModal(false);
-      setIsSidebarOpen(false);
-    }
+    loadProject(projectId);
+    setCurrentView('editor');
+    setShowProjectModal(false);
+    setIsSidebarOpen(false);
   };
 
   const handleBackToWelcome = () => {
