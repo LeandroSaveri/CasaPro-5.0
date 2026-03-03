@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useUserStore } from '@/store/userStore';
-import { X, Crown, Check, Zap, Shield, Users } from 'lucide-react';
+import { X, Crown, Check } from 'lucide-react';
 
 interface SubscriptionModalProps {
   isOpen: boolean;
@@ -66,8 +66,7 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
           onClick={(e) => e.stopPropagation()}
           className="w-full max-w-4xl max-h-[90vh] bg-[#1a1a1f] border border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col"
         >
-          {/* Header */}
-          <div className="p-6 border-b border-white/10 text-center">
+          <div className="p-6 border-b border-white/10 text-center relative">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#c9a962]/10 border border-[#c9a962]/30 rounded-full mb-4">
               <Crown size={16} className="text-[#c9a962]" />
               <span className="text-[#c9a962] text-sm font-semibold">Escolha seu plano</span>
@@ -83,7 +82,6 @@ const SubscriptionModal: React.FC<SubscriptionModalProps> = ({
             </button>
           </div>
 
-          {/* Plans */}
           <div className="flex-1 overflow-y-auto p-6">
             <div className="grid md:grid-cols-3 gap-6">
               {plans.map((plan, index) => {
