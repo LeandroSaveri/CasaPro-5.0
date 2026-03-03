@@ -234,7 +234,10 @@ const EditorInterface: React.FC<{
         {/* ============================================
             CANVAS AREA
             ============================================ */}
-        <div className="flex-1 relative overflow-hidden">
+        <div
+          className="relative overflow-hidden"
+          style={{ height: "calc(100dvh - 72px)" }}
+        >
           <AnimatePresence mode="wait">
             <motion.div
               key={viewMode}
