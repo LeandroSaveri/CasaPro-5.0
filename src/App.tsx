@@ -1,3 +1,7 @@
+// ============================================
+// ARQUIVO: src/App.tsx
+// ============================================
+
 import React, { useState, useEffect } from 'react';
 import { useProjectStore } from '@/store/projectStore';
 import { useUIStore } from '@/store/uiStore';
@@ -93,7 +97,7 @@ const EditorInterface: React.FC<{
   }, [selectedElement, setPanel]);
 
   return (
-    <div className="min-h-[100dvh] w-full flex bg-[#0a0a0f]">
+    <div className="w-full h-screen flex bg-[#0a0a0f] overflow-hidden">
       {/* ============================================
           TOOLBAR - Barra lateral de ferramentas
           ============================================ */}
@@ -234,10 +238,7 @@ const EditorInterface: React.FC<{
         {/* ============================================
             CANVAS AREA
             ============================================ */}
-        <div
-          className="relative overflow-hidden"
-          style={{ height: "calc(100dvh - 72px)" }}
-        >
+        <div className="relative flex-1 overflow-hidden">
           <AnimatePresence mode="wait">
             <motion.div
               key={viewMode}
@@ -245,7 +246,7 @@ const EditorInterface: React.FC<{
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.98 }}
               transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
-              className="absolute inset-0"
+              className="w-full h-full"
             >
               {viewMode === '2d' ? <Canvas2D /> : <Canvas3D />}
             </motion.div>
