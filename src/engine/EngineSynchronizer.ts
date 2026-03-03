@@ -1,201 +1,368 @@
 // ============================================
-// EngineSynchronizer.ts - Sincronização 2D↔3D
-// Bidirecional, em tempo real
+// ENGINE SYNCHRONIZER - CasaPro AI Premium
 // ============================================
 
-import type { Canvas2DEngine } from './Canvas2DEngine';
-import type { Canvas3DEngine } from './Canvas3DEngine';
-import type { Point2D } from '@/types/architectural';
-import { EventEmitter } from '@/utils/EventEmitter';
+import { Canvas2DEngine } from './Canvas2DEngine';
+import { Canvas3DEngine } from './Canvas3DEngine';
+import type { Point, Wall, Room, Door, Window, Furniture } from '@/types';
 
-export interface SyncState {
-  is2DActive: boolean;
-  is3DActive: boolean;
-  lastSyncTime: number;
-  syncEnabled: boolean;
+// EventEmitter simples integrado
+type EventCallback = (...args: any[]) => void;
+
+class EventEmitter {
+  private events: Map<string, EventCallback[]> = new Map();
+
+  on(event: string, callback: EventCallback): void {
+    if (!this.events.has(event)) {
+      this.events.set(event, []);
+    }
+    this.events.get(event)!.push(callback);
+  }
+
+  off(event: string, callback: EventCallback): void {
+    const callbacks = this.events.get(event);
+    if (callbacks) {
+      const index = callbacks.indexOf(callback);
+      if (index > -1) {
+        callbacks.splice(index, 1);
+      }
+    }
+  }
+
+  emit(event: string, ...args: any[]): void {
+    const callbacks = this.events.get(event);
+    if (callbacks) {
+      callbacks.forEach(callback => callback(...args));
+    }
+  }
 }
 
-export class EngineSynchronizer extends EventEmitter {
-  private engine2D: Canvas2DEngine | null = null;
-  private engine3D: Canvas3DEngine | null = null;
-  private state: SyncState;
-  private syncInterval: number | null = null;
-  private readonly SYNC_INTERVAL_MS = 100; // 10fps para sincronização
+// ============================================
+// TIPOS DO SYNCHRONIZER
+// ============================================
 
-  constructor() {
+export interface SyncOptions {
+  syncWalls: boolean;
+  syncRooms: boolean;
+  syncDoors: boolean;
+  syncWindows: boolean;
+  syncFurniture: boolean;
+  autoSync: boolean;
+  debounceMs: number;
+}
+
+export interface SyncState {
+  isSyncing: boolean;
+  lastSyncTime: number;
+  pendingChanges: boolean;
+  syncDirection: '2d-to-3d' | '3d-to-2d' | 'bidirectional';
+}
+
+// ============================================
+// ENGINE SYNCHRONIZER
+// ============================================
+
+export class EngineSynchronizer extends EventEmitter {
+  private engine2D: Canvas2DEngine;
+  private engine3D: Canvas3DEngine;
+  
+  private options: SyncOptions = {
+    syncWalls: true,
+    syncRooms: true,
+    syncDoors: true,
+    syncWindows: true,
+    syncFurniture: true,
+    autoSync: true,
+    debounceMs: 100
+  };
+
+  private state: SyncState = {
+    isSyncing: false,
+    lastSyncTime: 0,
+    pendingChanges: false,
+    syncDirection: '2d-to-3d'
+  };
+
+  private debounceTimer: ReturnType<typeof setTimeout> | null = null;
+  private isActive: boolean = false;
+
+  constructor(engine2D: Canvas2DEngine, engine3D: Canvas3DEngine) {
     super();
-    this.state = {
-      is2DActive: false,
-      is3DActive: false,
-      lastSyncTime: 0,
-      syncEnabled: true
-    };
+    this.engine2D = engine2D;
+    this.engine3D = engine3D;
   }
 
   // ============================================
-  // REGISTRO DE ENGINES
+  // CONTROLE DE SINCRONIZAÇÃO
   // ============================================
 
-  register2DEngine(engine: Canvas2DEngine): void {
-    this.engine2D = engine;
-    this.state.is2DActive = true;
+  start(): void {
+    if (this.isActive) return;
     
-    // Escuta mudanças no 2D
-    engine.on('wallFinished', () => this.sync2DTo3D());
-    engine.on('wallUpdated', () => this.sync2DTo3D());
-    engine.on('nodeUpdated', () => this.sync2DTo3D());
-    engine.on('stateChanged', () => this.sync2DTo3D());
-    
-    this.emit('engine2DRegistered');
+    this.isActive = true;
+    this.setupEventListeners();
+    this.emit('started');
     
     // Sincronização inicial
     this.sync2DTo3D();
   }
 
-  register3DEngine(engine: Canvas3DEngine): void {
-    this.engine3D = engine;
-    this.state.is3DActive = true;
+  stop(): void {
+    if (!this.isActive) return;
     
-    // Escuta mudanças no 3D (para futura sincronização reversa)
-    engine.on('wallBuilt', () => this.emit('3DModified'));
+    this.isActive = false;
+    this.removeEventListeners();
     
-    this.emit('engine3DRegistered');
-  }
-
-  unregister2DEngine(): void {
-    if (this.engine2D) {
-      this.engine2D.off('wallFinished');
-      this.engine2D.off('wallUpdated');
-      this.engine2D.off('nodeUpdated');
-      this.engine2D.off('stateChanged');
+    if (this.debounceTimer) {
+      clearTimeout(this.debounceTimer);
+      this.debounceTimer = null;
     }
-    this.engine2D = null;
-    this.state.is2DActive = false;
-    this.emit('engine2DUnregistered');
+    
+    this.emit('stopped');
   }
 
-  unregister3DEngine(): void {
-    this.engine3D = null;
-    this.state.is3DActive = false;
-    this.emit('engine3DUnregistered');
+  private setupEventListeners(): void {
+    // Ouvir eventos do engine 2D
+    this.engine2D.on('wallAdded', this.handle2DWallAdded);
+    this.engine2D.on('wallUpdated', this.handle2DWallUpdated);
+    this.engine2D.on('wallRemoved', this.handle2DWallRemoved);
+    this.engine2D.on('roomAdded', this.handle2DRoomAdded);
+    this.engine2D.on('roomUpdated', this.handle2DRoomUpdated);
+    this.engine2D.on('roomRemoved', this.handle2DRoomRemoved);
+    this.engine2D.on('doorAdded', this.handle2DDoorAdded);
+    this.engine2D.on('windowAdded', this.handle2DWindowAdded);
+    this.engine2D.on('furnitureAdded', this.handle2DFurnitureAdded);
+    this.engine2D.on('furnitureUpdated', this.handle2DFurnitureUpdated);
+    this.engine2D.on('furnitureRemoved', this.handle2DFurnitureRemoved);
+  }
+
+  private removeEventListeners(): void {
+    this.engine2D.off('wallAdded', this.handle2DWallAdded);
+    this.engine2D.off('wallUpdated', this.handle2DWallUpdated);
+    this.engine2D.off('wallRemoved', this.handle2DWallRemoved);
+    this.engine2D.off('roomAdded', this.handle2DRoomAdded);
+    this.engine2D.off('roomUpdated', this.handle2DRoomUpdated);
+    this.engine2D.off('roomRemoved', this.handle2DRoomRemoved);
+    this.engine2D.off('doorAdded', this.handle2DDoorAdded);
+    this.engine2D.off('windowAdded', this.handle2DWindowAdded);
+    this.engine2D.off('furnitureAdded', this.handle2DFurnitureAdded);
+    this.engine2D.off('furnitureUpdated', this.handle2DFurnitureUpdated);
+    this.engine2D.off('furnitureRemoved', this.handle2DFurnitureRemoved);
   }
 
   // ============================================
-  // SINCRONIZAÇÃO PRINCIPAL
+  // HANDLERS 2D -> 3D
   // ============================================
 
-  enableSync(): void {
-    this.state.syncEnabled = true;
-    this.startAutoSync();
-    this.emit('syncEnabled');
-  }
+  private handle2DWallAdded = (data: { wall: Wall }): void => {
+    if (!this.options.syncWalls) return;
+    this.debounceSync(() => {
+      this.engine3D.addWall(data.wall);
+    });
+  };
 
-  disableSync(): void {
-    this.state.syncEnabled = false;
-    this.stopAutoSync();
-    this.emit('syncDisabled');
-  }
+  private handle2DWallUpdated = (data: { wall: Wall }): void => {
+    if (!this.options.syncWalls) return;
+    this.debounceSync(() => {
+      this.engine3D.updateWall(data.wall);
+    });
+  };
 
-  private startAutoSync(): void {
-    if (this.syncInterval) return;
-    
-    this.syncInterval = window.setInterval(() => {
-      if (this.state.syncEnabled) {
-        this.sync2DTo3D();
-      }
-    }, this.SYNC_INTERVAL_MS);
-  }
+  private handle2DWallRemoved = (data: { wall: Wall }): void => {
+    if (!this.options.syncWalls) return;
+    this.debounceSync(() => {
+      this.engine3D.removeWall(data.wall.id);
+    });
+  };
 
-  private stopAutoSync(): void {
-    if (this.syncInterval) {
-      clearInterval(this.syncInterval);
-      this.syncInterval = null;
-    }
-  }
+  private handle2DRoomAdded = (data: { room: Room }): void => {
+    if (!this.options.syncRooms) return;
+    this.debounceSync(() => {
+      this.engine3D.addRoom(data.room);
+    });
+  };
 
-  /**
-   * Sincroniza do 2D para o 3D
-   * Esta é a direção principal de sincronização
-   */
-  sync2DTo3D(): void {
-    if (!this.engine2D || !this.engine3D) {
-      console.warn('Cannot sync: engines not registered');
+  private handle2DRoomUpdated = (data: { room: Room }): void => {
+    if (!this.options.syncRooms) return;
+    this.debounceSync(() => {
+      this.engine3D.updateRoom(data.room);
+    });
+  };
+
+  private handle2DRoomRemoved = (data: { room: Room }): void => {
+    if (!this.options.syncRooms) return;
+    this.debounceSync(() => {
+      this.engine3D.removeRoom(data.room.id);
+    });
+  };
+
+  private handle2DDoorAdded = (data: { door: Door }): void => {
+    if (!this.options.syncDoors) return;
+    this.debounceSync(() => {
+      const wall = this.engine2D.getWalls().find(w => w.id === data.door.wallId);
+      this.engine3D.addDoor(data.door, wall);
+    });
+  };
+
+  private handle2DWindowAdded = (data: { window: Window }): void => {
+    if (!this.options.syncWindows) return;
+    this.debounceSync(() => {
+      const wall = this.engine2D.getWalls().find(w => w.id === data.window.wallId);
+      this.engine3D.addWindow(data.window, wall);
+    });
+  };
+
+  private handle2DFurnitureAdded = (data: { furniture: Furniture }): void => {
+    if (!this.options.syncFurniture) return;
+    this.debounceSync(() => {
+      this.engine3D.addFurniture(data.furniture);
+    });
+  };
+
+  private handle2DFurnitureUpdated = (data: { furniture: Furniture }): void => {
+    if (!this.options.syncFurniture) return;
+    this.debounceSync(() => {
+      this.engine3D.updateFurniture(data.furniture);
+    });
+  };
+
+  private handle2DFurnitureRemoved = (data: { furniture: Furniture }): void => {
+    if (!this.options.syncFurniture) return;
+    this.debounceSync(() => {
+      this.engine3D.removeFurniture(data.furniture.id);
+    });
+  };
+
+  // ============================================
+  // SINCRONIZAÇÃO
+  // ============================================
+
+  private debounceSync(syncFn: () => void): void {
+    if (!this.options.autoSync) {
+      this.state.pendingChanges = true;
       return;
     }
 
-    const startTime = performance.now();
-    
-    // Obtém dados do 2D
-    const walls = this.engine2D.getWallsFor3D();
-    const rooms = this.engine2D.getRoomsFor3D();
-    
-    // Envia para o 3D
-    this.engine3D.syncFrom2D(walls, rooms);
-    
-    this.state.lastSyncTime = performance.now() - startTime;
-    this.emit('syncCompleted', {
-      direction: '2D→3D',
-      wallCount: walls.length,
-      roomCount: rooms.length,
-      duration: this.state.lastSyncTime
-    });
+    if (this.debounceTimer) {
+      clearTimeout(this.debounceTimer);
+    }
+
+    this.debounceTimer = setTimeout(() => {
+      this.performSync(syncFn);
+    }, this.options.debounceMs);
   }
 
-  /**
-   * Força sincronização completa
-   * Útil após carregar um projeto
-   */
-  forceFullSync(): void {
-    this.sync2DTo3D();
+  private performSync(syncFn: () => void): void {
+    if (this.state.isSyncing) return;
     
-    // Ajusta câmera 3D para mostrar tudo
-    if (this.engine3D) {
-      this.engine3D.fitCameraToScene();
+    this.state.isSyncing = true;
+    this.emit('syncStarted');
+    
+    try {
+      syncFn();
+      this.state.lastSyncTime = Date.now();
+      this.state.pendingChanges = false;
+      this.emit('syncCompleted');
+    } catch (error) {
+      this.emit('syncError', { error });
+    } finally {
+      this.state.isSyncing = false;
     }
   }
 
-  // ============================================
-  // UTILITÁRIOS DE CONVERSÃO
-  // ============================================
-
-  /**
-   * Converte coordenadas 2D para 3D
-   */
-  static point2DTo3D(point: Point2D): { x: number; y: number; z: number } {
-    return {
-      x: point.x,
-      y: 0, // Altura do chão
-      z: point.y // Y do 2D vira Z no 3D
-    };
+  sync2DTo3D(): void {
+    if (this.state.isSyncing) return;
+    
+    this.state.syncDirection = '2d-to-3d';
+    this.state.isSyncing = true;
+    this.emit('syncStarted', { direction: '2d-to-3d' });
+    
+    try {
+      // Limpar 3D
+      this.engine3D.clear?.();
+      
+      // Sincronizar paredes
+      if (this.options.syncWalls) {
+        const walls = this.engine2D.getWalls();
+        walls.forEach(wall => this.engine3D.addWall(wall));
+      }
+      
+      // Sincronizar cômodos
+      if (this.options.syncRooms) {
+        const rooms = this.engine2D.getRooms();
+        rooms.forEach(room => this.engine3D.addRoom(room));
+      }
+      
+      // Sincronizar portas
+      if (this.options.syncDoors) {
+        const doors = this.engine2D.getDoors();
+        const walls = this.engine2D.getWalls();
+        doors.forEach(door => {
+          const wall = walls.find(w => w.id === door.wallId);
+          this.engine3D.addDoor(door, wall);
+        });
+      }
+      
+      // Sincronizar janelas
+      if (this.options.syncWindows) {
+        const windows = this.engine2D.getWindows();
+        const walls = this.engine2D.getWalls();
+        windows.forEach(window => {
+          const wall = walls.find(w => w.id === window.wallId);
+          this.engine3D.addWindow(window, wall);
+        });
+      }
+      
+      // Sincronizar móveis
+      if (this.options.syncFurniture) {
+        const furniture = this.engine2D.getFurniture();
+        furniture.forEach(item => this.engine3D.addFurniture(item));
+      }
+      
+      this.state.lastSyncTime = Date.now();
+      this.state.pendingChanges = false;
+      this.emit('syncCompleted', { direction: '2d-to-3d' });
+    } catch (error) {
+      this.emit('syncError', { error, direction: '2d-to-3d' });
+    } finally {
+      this.state.isSyncing = false;
+    }
   }
 
-  /**
-   * Converte coordenadas 3D para 2D
-   */
-  static point3DTo2D(point: { x: number; y: number; z: number }): Point2D {
-    return {
-      x: point.x,
-      y: point.z // Z do 3D vira Y no 2D
-    };
+  forceSync(): void {
+    this.sync2DTo3D();
   }
 
   // ============================================
-  // GETTERS
+  // CONFIGURAÇÕES
   // ============================================
+
+  setOptions(options: Partial<SyncOptions>): void {
+    this.options = { ...this.options, ...options };
+    this.emit('optionsChanged', { options: this.options });
+  }
+
+  getOptions(): SyncOptions {
+    return { ...this.options };
+  }
 
   getState(): SyncState {
     return { ...this.state };
   }
 
-  isReady(): boolean {
-    return this.state.is2DActive && this.state.is3DActive;
+  isRunning(): boolean {
+    return this.isActive;
   }
 
-  get2DEngine(): Canvas2DEngine | null {
+  // ============================================
+  // GETTERS DOS ENGINES
+  // ============================================
+
+  getEngine2D(): Canvas2DEngine {
     return this.engine2D;
   }
 
-  get3DEngine(): Canvas3DEngine | null {
+  getEngine3D(): Canvas3DEngine {
     return this.engine3D;
   }
 }
