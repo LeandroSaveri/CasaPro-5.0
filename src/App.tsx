@@ -93,7 +93,7 @@ const EditorInterface: React.FC<{
   }, [selectedElement, setPanel]);
 
   return (
-    <div className="min-h-screen flex bg-[#0a0a0f]">
+    <div className="min-h-[100dvh] w-full flex bg-[#0a0a0f] overflow-hidden">
       {/* ============================================
           TOOLBAR - Barra lateral de ferramentas
           ============================================ */}
