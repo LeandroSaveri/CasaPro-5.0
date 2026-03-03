@@ -662,13 +662,6 @@ function App() {
     initialize();
   }, [loadTemplates, loadStyles, loadPlans, initialize]);
 
-  // Se já tem projeto, mostrar editor
-  useEffect(() => {
-    if (currentProject) {
-      setShowWelcome(false);
-    }
-  }, [currentProject]);
-
   // ============================================
   // HANDLERS
   // ============================================
