@@ -235,7 +235,7 @@ const SideMenu: React.FC<SideMenuProps> = ({
         animate={{ x: 0 }}
         exit={{ x: '100%' }}
         transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-        className="absolute right-0 top-0 bottom-0 w-full max-w-md bg-[#0d0d14] border-l border-white/10 shadow-2xl"
+        className="absolute right-0 top-0 bottom-0 w-full max-w-md bg-[#0d0d14] border-l border-white/10 shadow-2xl overflow-hidden"
       >
         {/* Header fixo */}
         <div className="sticky top-0 z-10 flex items-center justify-between p-5 bg-[#0d0d14] border-b border-white/10">
@@ -275,7 +275,7 @@ const SideMenu: React.FC<SideMenuProps> = ({
             </p>
           </div>
 
-          {/* Toggle 2D/3D */}
+          {/* Toggle 2D/3D - ÚNICO LUGAR COM O TOGGLE */}
           <div className="bg-white/[0.03] rounded-2xl border border-white/10 overflow-hidden">
             <div className="p-4 border-b border-white/10">
               <div className="flex items-center gap-3">
@@ -561,7 +561,7 @@ const EditorInterface: React.FC<EditorInterfaceProps> = ({ onBackToWelcome }) =>
 
       {/* Área principal do canvas */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Header Premium */}
+        {/* Header Premium - SEM TOGGLE 2D/3D (só no menu) */}
         <div className="flex-shrink-0 z-20 flex items-center justify-between px-4 py-3 bg-[#0a0a0f]/95 backdrop-blur-xl border-b border-white/10">
           {/* Lado esquerdo */}
           <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -592,7 +592,7 @@ const EditorInterface: React.FC<EditorInterfaceProps> = ({ onBackToWelcome }) =>
             </div>
           </div>
           
-          {/* Lado direito */}
+          {/* Lado direito - SEM TOGGLE 2D/3D */}
           <div className="flex items-center gap-2 flex-shrink-0">
             {/* Panel Toggles - Desktop only */}
             <button
