@@ -286,7 +286,7 @@ const Canvas3D: React.FC = () => {
   ];
   
   return (
-    <div className="w-full h-full relative bg-[#1a1a2e]">
+    <div className="absolute inset-0 bg-[#1a1a2e]">
       <Canvas
         shadows
         dpr={[1, 2]}
@@ -317,10 +317,10 @@ const Canvas3D: React.FC = () => {
       <button
         data-camera-toggle
         onClick={toggleControls}
-        className={`absolute top-4 right-4 z-20 flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${
-          showControls 
-            ? 'bg-[#c9a962] text-[#0a0a0f]' 
-            : 'bg-[#1a1a1f]/90 backdrop-blur-xl border border-white/10 text-white/70 hover:text-white hover:bg-[#2a2a2f]'
+        className={`absolute top-4 right-4 z-30 flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all duration-300 shadow-xl backdrop-blur-xl border ${
+          showControls
+            ? 'bg-gradient-to-r from-[#c9a962] to-[#a08040] text-[#0a0a0f] border-[#c9a962]/60 shadow-[#c9a962]/40'
+            : 'bg-[#1a1a24]/90 text-white/80 border-white/10 hover:border-[#c9a962]/40 hover:shadow-[#c9a962]/20'
         }`}
         title={showControls ? 'Ocultar Configurações' : 'Mostrar Configurações'}
       >
@@ -422,7 +422,7 @@ const Canvas3D: React.FC = () => {
       <div className="absolute bottom-4 right-4">
         <button
           onClick={() => alert('Renderização em alta qualidade - Em breve!')}
-          className="flex items-center justify-center gap-2 px-4 py-3 bg-[#c9a962] text-[#0a0a0f] rounded-xl font-semibold hover:bg-[#d4b76d] transition-all shadow-lg"
+          className="flex items-center justify-center gap-2 px-6 py-3.5 bg-gradient-to-r from-[#c9a962] via-[#b8944f] to-[#a08040] text-[#0a0a0f] rounded-2xl font-bold tracking-wide hover:scale-[1.03] transition-all duration-300 shadow-2xl shadow-[#c9a962]/40 border border-[#c9a962]/70"
         >
           <Video size={18} />
           Renderizar
