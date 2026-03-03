@@ -141,6 +141,21 @@ const Scene: React.FC = () => {
   
   const isNight = lighting.timeOfDay < 6 || lighting.timeOfDay > 18;
   
+  const getShadowMapSize = () => {
+    switch (lighting.shadowQuality) {
+      case 'ultra':
+        return { width: 4096, height: 4096 };
+      case 'high':
+        return { width: 2048, height: 2048 };
+      case 'medium':
+        return { width: 1024, height: 1024 };
+      default:
+        return { width: 512, height: 512 };
+    }
+  };
+  
+  const shadowMapSize = getShadowMapSize();
+  
   return (
     <>
       <SoftShadows size={lighting.shadowQuality === 'ultra' ? 50 : 25} />
@@ -167,11 +182,8 @@ const Scene: React.FC = () => {
         intensity={isNight ? 0.4 : lighting.sunIntensity}
         color={isNight ? '#8888ff' : lighting.sunColor}
         castShadow={lighting.shadowsEnabled}
-        shadow-mapSize={
-          lighting.shadowQuality === 'ultra' ? [4096, 4096] :
-          lighting.shadowQuality === 'high' ? [2048, 2048] :
-          lighting.shadowQuality === 'medium' ? [1024, 1024] : [512, 512]
-        }
+        shadow-mapSize-width={shadowMapSize.width}
+        shadow-mapSize-height={shadowMapSize.height}
       />
       
       {/* Ground Grid */}
@@ -298,7 +310,6 @@ const Canvas3D: React.FC = () => {
           antialias: true, 
           alpha: false,
           powerPreference: 'high-performance',
-          toneMappingExposure: lighting.exposure,
         }}
         style={{
           background: isNight ? '#0a0a1a' : '#87CEEB',
