@@ -4,7 +4,7 @@
 
 import { Canvas2DEngine } from './Canvas2DEngine';
 import { Canvas3DEngine } from './Canvas3DEngine';
-import type { Point, Wall, Room, Door, Window, Furniture } from '@/types';
+import type { Wall, Room, Door, Window, Furniture } from '@/types';
 
 // EventEmitter simples integrado
 type EventCallback = (...args: any[]) => void;
@@ -279,7 +279,7 @@ export class EngineSynchronizer extends EventEmitter {
     
     try {
       // Limpar 3D
-      this.engine3D.clear?.();
+      this.engine3D.clear();
       
       // Sincronizar paredes
       if (this.options.syncWalls) {
