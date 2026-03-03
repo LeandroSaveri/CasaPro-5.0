@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useUserStore } from '@/store/userStore';
-import { X, Plus, Search, Folder, Clock, Star } from 'lucide-react';
+import { X, Plus, Search, Folder, Clock } from 'lucide-react';
 
 interface ProjectModalProps {
   isOpen: boolean;
