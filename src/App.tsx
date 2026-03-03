@@ -26,7 +26,11 @@ import {
   Save,
   Cloud,
   CloudOff,
-  Loader2
+  Loader2,
+  Settings,
+  FolderOpen,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import './App.css';
@@ -169,7 +173,6 @@ const UserMenu: React.FC<{
 // Interface principal do editor
 const EditorInterface: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [activePanel, setActivePanel] = useState<string | null>(null);
   const { 
     viewMode, 
     currentProject, 
@@ -307,18 +310,6 @@ const EditorInterface: React.FC = () => {
             </button>
             
             <button
-              onClick={() => setPanel('ai', !panels.ai)}
-              className={`px-3 py-2 rounded-lg text-sm transition-all flex items-center gap-2 ${
-                panels.ai 
-                  ? 'bg-[#c9a962]/20 text-[#c9a962] border border-[#c9a962]/30' 
-                  : 'bg-white/5 text-white/70 hover:bg-white/10 border border-transparent'
-              }`}
-            >
-              <Sparkles size={16} />
-              <span className="hidden sm:inline">IA</span>
-            </button>
-            
-            <button
               onClick={() => setPanel('properties', !panels.properties)}
               className={`px-3 py-2 rounded-lg text-sm transition-all flex items-center gap-2 ${
                 panels.properties 
@@ -326,27 +317,8 @@ const EditorInterface: React.FC = () => {
                   : 'bg-white/5 text-white/70 hover:bg-white/10 border border-transparent'
               }`}
             >
-              <span>⚙️</span>
+              <Settings size={16} />
               <span className="hidden sm:inline">Propriedades</span>
-            </button>
-
-            <div className="h-6 w-px bg-white/20 mx-1" />
-
-            {/* AI Buttons */}
-            <button
-              onClick={() => setShowDesignSuggestions(true)}
-              className="px-3 py-2 rounded-lg text-sm transition-all flex items-center gap-2 bg-amber-500/20 text-amber-400 hover:bg-amber-500/30 border border-amber-500/30"
-            >
-              <Lightbulb size={16} />
-              <span className="hidden sm:inline">Sugestões</span>
-            </button>
-            
-            <button
-              onClick={() => setShowAIGenerationModal(true)}
-              className="px-3 py-2 rounded-lg text-sm transition-all flex items-center gap-2 bg-gradient-to-r from-violet-600 to-purple-600 text-white hover:opacity-90"
-            >
-              <Wand2 size={16} />
-              <span className="hidden sm:inline">Gerar com IA</span>
             </button>
 
             <div className="h-6 w-px bg-white/20 mx-1" />
@@ -451,7 +423,10 @@ const EditorInterface: React.FC = () => {
       {isMenuOpen && (
         <SideMenu
           onClose={() => setIsMenuOpen(false)}
-          setActivePanel={setActivePanel}
+          setShowDesignSuggestions={setShowDesignSuggestions}
+          setShowAIGenerationModal={setShowAIGenerationModal}
+          setPanel={setPanel}
+          panels={panels}
         />
       )}
     </div>
@@ -461,86 +436,222 @@ const EditorInterface: React.FC = () => {
 // SideMenu Component
 const SideMenu: React.FC<{
   onClose: () => void;
-  setActivePanel: (panel: string) => void;
-}> = ({ onClose, setActivePanel }) => {
+  setShowDesignSuggestions: (value: boolean) => void;
+  setShowAIGenerationModal: (value: boolean) => void;
+  setPanel: (key: string, value: boolean) => void;
+  panels: any;
+}> = ({ onClose, setShowDesignSuggestions, setShowAIGenerationModal, setPanel, panels }) => {
   const [openAI, setOpenAI] = useState(false);
-  const { currentProject } = useProjectStore();
+  const { currentProject, clearCurrentProject } = useProjectStore();
+  const { updateProject } = useProjectStore();
+
+  const handleSave = () => {
+    if (currentProject) {
+      updateProject({ updatedAt: new Date() });
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex">
-      <div className="w-80 bg-[#1a1a24] border-r border-white/10 h-full overflow-y-auto">
+      <motion.div 
+        initial={{ x: '-100%' }}
+        animate={{ x: 0 }}
+        exit={{ x: '-100%' }}
+        transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+        className="w-80 bg-[#0f0f16] border-r border-white/10 h-full overflow-y-auto"
+      >
         <div className="p-4">
-          <button onClick={onClose} className="mb-4 text-white/60 hover:text-white">
-            ✕ Fechar
-          </button>
-
-          {/* Projeto Atual */}
-          <div className="mb-6">
-            <h3 className="text-xs uppercase tracking-wider text-white/50 mb-2">Projeto Atual</h3>
-            <div className="bg-white/5 rounded-lg p-3">
-              <div className="text-white font-medium">{currentProject?.name}</div>
-              <div className="text-xs text-white/50">
-                {currentProject?.settings.unit === 'meters' ? 'Metros' : 'Pés'}
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#c9a962] to-[#a08040] flex items-center justify-center shadow-lg shadow-[#c9a962]/20">
+                <span className="text-[#0a0a0f] font-bold text-lg">C</span>
+              </div>
+              <div>
+                <p className="text-white font-semibold">CasaPro</p>
+                <p className="text-xs text-[#c9a962]">Menu</p>
               </div>
             </div>
+            <button 
+              onClick={onClose} 
+              className="p-2 hover:bg-white/10 rounded-lg transition-colors text-white/60 hover:text-white"
+            >
+              <span className="text-xl">✕</span>
+            </button>
+          </div>
+
+          {/* Projeto Atual */}
+          <div className="mb-6 bg-gradient-to-br from-[#c9a962]/20 via-[#c9a962]/5 to-transparent border border-[#c9a962]/40 rounded-2xl p-5 shadow-lg shadow-[#c9a962]/5">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-xl bg-[#c9a962]/20 flex items-center justify-center">
+                <FolderOpen size={20} className="text-[#c9a962]" />
+              </div>
+              <p className="text-xs uppercase tracking-wider text-[#c9a962] font-medium">
+                Projeto Atual
+              </p>
+            </div>
+            <p className="text-white font-semibold text-lg truncate">
+              {currentProject?.name || 'Novo Projeto'}
+            </p>
+            <p className="text-sm text-white/40 mt-1">
+              Unidade: {currentProject?.settings?.unit === 'meters' ? 'Metros' : 'Pés'}
+            </p>
           </div>
 
           {/* Inteligência AI */}
           <div className="mb-6">
-            <div 
+            <button
               onClick={() => setOpenAI(!openAI)}
-              className="flex items-center justify-between p-3 bg-white/5 rounded-lg cursor-pointer hover:bg-white/10 transition-colors"
+              className="w-full flex items-center justify-between p-4 rounded-xl bg-white/[0.03] border border-white/10 hover:bg-white/[0.06] hover:border-[#c9a962]/30 transition-all group"
             >
-              <span className="text-white font-medium">🤖 Inteligência AI</span>
-              <span className="text-white/50">{openAI ? '▼' : '▶'}</span>
-            </div>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-violet-500/20 to-purple-600/10 flex items-center justify-center border border-violet-500/20 group-hover:border-violet-500/40 transition-colors">
+                  <Sparkles size={18} className="text-violet-400" />
+                </div>
+                <span className="text-white/90 font-medium group-hover:text-white transition-colors">Inteligência AI</span>
+              </div>
+              {openAI ? (
+                <ChevronDown size={20} className="text-white/50" />
+              ) : (
+                <ChevronRight size={20} className="text-white/50" />
+              )}
+            </button>
 
             {openAI && (
-              <div className="mt-2 space-y-1">
+              <div className="mt-2 space-y-1 pl-4">
                 <button
                   onClick={() => {
-                    setActivePanel('suggestions');
+                    setShowDesignSuggestions(true);
                     onClose();
                   }}
-                  className="w-full text-left p-3 text-white/80 hover:bg-white/5 rounded-lg transition-colors flex items-center gap-2"
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] hover:border-[#c9a962]/20 transition-all text-white/80 hover:text-white"
                 >
-                  💡 Sugestões
+                  <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center">
+                    <Lightbulb size={16} className="text-amber-400" />
+                  </div>
+                  <span>Sugestões</span>
                 </button>
 
                 <button
                   onClick={() => {
-                    setActivePanel('ai');
+                    setPanel('ai', true);
                     onClose();
                   }}
-                  className="w-full text-left p-3 text-white/80 hover:bg-white/5 rounded-lg transition-colors flex items-center gap-2"
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] hover:border-[#c9a962]/20 transition-all text-white/80 hover:text-white"
                 >
-                  ✨ IA
+                  <div className="w-8 h-8 rounded-lg bg-[#c9a962]/10 flex items-center justify-center">
+                    <Sparkles size={16} className="text-[#c9a962]" />
+                  </div>
+                  <span>IA</span>
                 </button>
 
                 <button
                   onClick={() => {
-                    setActivePanel('ai-advanced');
+                    setPanel('ai', true);
                     onClose();
                   }}
-                  className="w-full text-left p-3 text-white/80 hover:bg-white/5 rounded-lg transition-colors flex items-center gap-2"
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] hover:border-[#c9a962]/20 transition-all text-white/80 hover:text-white"
                 >
-                  🤖 Inteligência Artificial
+                  <div className="w-8 h-8 rounded-lg bg-violet-500/10 flex items-center justify-center">
+                    <Wand2 size={16} className="text-violet-400" />
+                  </div>
+                  <span>Inteligência Artificial</span>
                 </button>
 
                 <button
                   onClick={() => {
-                    setActivePanel('generate');
+                    setShowAIGenerationModal(true);
                     onClose();
                   }}
-                  className="w-full text-left p-3 text-white/80 hover:bg-white/5 rounded-lg transition-colors flex items-center gap-2"
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] hover:border-[#c9a962]/20 transition-all text-white/80 hover:text-white"
                 >
-                  🎨 Gerar com IA
+                  <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-violet-500/20 to-purple-600/10 flex items-center justify-center">
+                    <Wand2 size={16} className="text-violet-400" />
+                  </div>
+                  <span>Gerar com IA</span>
                 </button>
               </div>
             )}
           </div>
+
+          {/* Ferramentas */}
+          <div className="mb-6">
+            <p className="text-xs uppercase tracking-wider text-white/30 font-medium mb-3 ml-1">
+              Ferramentas
+            </p>
+            <button
+              onClick={() => {
+                setPanel('properties', !panels.properties);
+                onClose();
+              }}
+              className={`w-full flex items-center gap-3 px-4 py-4 rounded-xl border transition-all ${
+                panels.properties 
+                  ? 'bg-[#c9a962]/10 border-[#c9a962]/40' 
+                  : 'bg-white/[0.03] border-white/10 hover:bg-white/[0.06] hover:border-[#c9a962]/30'
+              }`}
+            >
+              <div className={`w-10 h-10 rounded-lg flex items-center justify-center border transition-colors ${
+                panels.properties 
+                  ? 'bg-[#c9a962]/20 border-[#c9a962]/40' 
+                  : 'bg-white/5 border-white/10'
+              }`}>
+                <Settings size={18} className={panels.properties ? 'text-[#c9a962]' : 'text-white/60'} />
+              </div>
+              <span className={`font-medium ${panels.properties ? 'text-[#c9a962]' : 'text-white/90'}`}>
+                Propriedades
+              </span>
+            </button>
+          </div>
+
+          {/* Ações */}
+          <div className="mb-6">
+            <p className="text-xs uppercase tracking-wider text-white/30 font-medium mb-3 ml-1">
+              Ações
+            </p>
+            <div className="space-y-2">
+              <button
+                onClick={() => {
+                  handleSave();
+                  onClose();
+                }}
+                className="w-full flex items-center gap-3 px-4 py-4 rounded-xl bg-white/[0.03] border border-white/10 hover:bg-white/[0.06] hover:border-[#c9a962]/30 transition-all group"
+              >
+                <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center border border-white/10 group-hover:border-[#c9a962]/30 transition-colors">
+                  <Save size={18} className="text-white/60 group-hover:text-[#c9a962] transition-colors" />
+                </div>
+                <span className="text-white/90 font-medium group-hover:text-white transition-colors">Salvar</span>
+              </button>
+
+              <button
+                onClick={() => {
+                  onClose();
+                }}
+                className="w-full flex items-center gap-3 px-4 py-4 rounded-xl bg-white/[0.03] border border-white/10 hover:bg-white/[0.06] hover:border-[#c9a962]/30 transition-all group"
+              >
+                <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center border border-white/10 group-hover:border-[#c9a962]/30 transition-colors">
+                  <Download size={18} className="text-white/60 group-hover:text-[#c9a962] transition-colors" />
+                </div>
+                <span className="text-white/90 font-medium group-hover:text-white transition-colors">Exportar</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Fechar Projeto */}
+          <div className="pt-4 border-t border-white/10">
+            <button
+              onClick={() => {
+                clearCurrentProject();
+                onClose();
+              }}
+              className="w-full flex items-center justify-center gap-3 px-5 py-4 rounded-xl border border-white/10 hover:bg-white/[0.03] hover:border-white/20 transition-all text-white/50 hover:text-white/80"
+            >
+              <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center">
+                <FolderOpen size={16} className="text-white/40" />
+              </div>
+              <span className="font-medium">Fechar Projeto</span>
+            </button>
+          </div>
         </div>
-      </div>
+      </motion.div>
       <div className="flex-1 bg-black/50" onClick={onClose} />
     </div>
   );
