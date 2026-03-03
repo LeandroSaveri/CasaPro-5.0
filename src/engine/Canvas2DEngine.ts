@@ -584,7 +584,6 @@ export class Canvas2DEngine extends EventEmitter {
       // Calcular posição
       const dx = wall.end.x - wall.start.x;
       const dy = wall.end.y - wall.start.y;
-      const length = Math.sqrt(dx * dx + dy * dy);
       
       const posX = wall.start.x + (dx * door.position);
       const posY = wall.start.y + (dy * door.position);
