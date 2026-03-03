@@ -20,16 +20,161 @@ import {
   Sparkles, 
   Wand2, 
   Lightbulb, 
+  User, 
+  LogOut, 
+  Download,
+  Save,
+  Cloud,
+  CloudOff,
+  Loader2,
   Settings,
   FolderOpen,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  Home
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import './App.css';
 
+// User Menu Component
+const UserMenu: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  onLogin: () => void;
+  onExport: () => void;
+}> = ({ isOpen, onLogin, onExport }) => {
+  const { isAuthenticated, user, logout, isSyncing, lastSync, syncAll } = useUserStore();
+  const { currentProject, updateProject } = useProjectStore();
+  const [showMenu, setShowMenu] = useState(false);
+
+  const handleLogout = async () => {
+    await logout();
+    setShowMenu(false);
+  };
+
+  const handleSave = async () => {
+    if (currentProject) {
+      updateProject({ updatedAt: new Date() });
+    }
+    setShowMenu(false);
+  };
+
+  const handleSync = async () => {
+    await syncAll();
+    setShowMenu(false);
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => isAuthenticated ? setShowMenu(!showMenu) : onLogin()}
+        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-all"
+      >
+        {isAuthenticated && user ? (
+          <>
+            <img 
+              src={user.avatar} 
+              alt={user.name} 
+              className="w-6 h-6 rounded-full"
+            />
+            <span className="text-sm text-white/80 hidden sm:inline">{user.name.split(' ')[0]}</span>
+            {isSyncing ? (
+              <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
+            ) : lastSync ? (
+              <Cloud className="w-4 h-4 text-green-400" />
+            ) : (
+              <CloudOff className="w-4 h-4 text-amber-400" />
+            )}
+          </>
+        ) : (
+          <>
+            <User className="w-5 h-5 text-white/60" />
+            <span className="text-sm text-white/80">Entrar</span>
+          </>
+        )}
+      </button>
+
+      {/* Dropdown Menu */}
+      <AnimatePresence>
+        {showMenu && isAuthenticated && (
+          <motion.div
+            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            className="absolute right-0 top-full mt-2 w-56 bg-[#1a1a24] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50"
+          >
+            {/* User Info */}
+            <div className="p-4 border-b border-white/10">
+              <p className="text-white font-medium truncate">{user?.name}</p>
+              <p className="text-xs text-white/50 truncate">{user?.email}</p>
+              <span className="inline-block mt-2 px-2 py-0.5 bg-gradient-to-r from-amber-500/20 to-amber-600/20 text-amber-400 text-xs rounded-full border border-amber-500/30">
+                {user?.plan === 'free' ? 'Gratuito' : user?.plan === 'pro' ? 'Pro' : 'Empresarial'}
+              </span>
+            </div>
+
+            {/* Menu Items */}
+            <div className="p-2">
+              <button
+                onClick={handleSave}
+                className="w-full flex items-center gap-3 px-3 py-2 text-sm text-white/80 hover:bg-white/5 rounded-lg transition-colors"
+              >
+                <Save className="w-4 h-4" />
+                Salvar projeto
+              </button>
+              
+              <button
+                onClick={onExport}
+                className="w-full flex items-center gap-3 px-3 py-2 text-sm text-white/80 hover:bg-white/5 rounded-lg transition-colors"
+              >
+                <Download className="w-4 h-4" />
+                Exportar
+              </button>
+              
+              <button
+                onClick={handleSync}
+                disabled={isSyncing}
+                className="w-full flex items-center gap-3 px-3 py-2 text-sm text-white/80 hover:bg-white/5 rounded-lg transition-colors disabled:opacity-50"
+              >
+                {isSyncing ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Cloud className="w-4 h-4" />
+                )}
+                Sincronizar
+              </button>
+            </div>
+
+            {/* Logout */}
+            <div className="p-2 border-t border-white/10">
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center gap-3 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+              >
+                <LogOut className="w-4 h-4" />
+                Sair
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Click outside to close */}
+      {showMenu && (
+        <div 
+          className="fixed inset-0 z-40" 
+          onClick={() => setShowMenu(false)}
+        />
+      )}
+    </div>
+  );
+};
+
 // Interface principal do editor
-const EditorInterface: React.FC = () => {
+const EditorInterface: React.FC<{
+  onBackToWelcome: () => void;
+}> = ({ onBackToWelcome }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { 
     viewMode, 
@@ -181,10 +326,13 @@ const EditorInterface: React.FC = () => {
 
             <div className="h-6 w-px bg-white/20 mx-1" />
 
-            {/* Menu Button */}
-            <button onClick={() => setIsMenuOpen(true)}>
-              Menu
-            </button>
+            {/* User Menu */}
+            <UserMenu 
+              isOpen={true} 
+              onClose={() => {}} 
+              onLogin={() => setShowLoginModal(true)}
+              onExport={() => setShowExportModal(true)}
+            />
           </div>
         </div>
 
@@ -282,6 +430,7 @@ const EditorInterface: React.FC = () => {
         {isMenuOpen && (
           <SideMenu
             onClose={() => setIsMenuOpen(false)}
+            onBackToWelcome={onBackToWelcome}
             setShowDesignSuggestions={setShowDesignSuggestions}
             setShowAIGenerationModal={setShowAIGenerationModal}
             setPanel={setPanel}
@@ -296,11 +445,12 @@ const EditorInterface: React.FC = () => {
 // SideMenu Component
 const SideMenu: React.FC<{
   onClose: () => void;
+  onBackToWelcome: () => void;
   setShowDesignSuggestions: (value: boolean) => void;
   setShowAIGenerationModal: (value: boolean) => void;
   setPanel: (key: string, value: boolean) => void;
   panels: any;
-}> = ({ onClose, setShowDesignSuggestions, setShowAIGenerationModal, setPanel, panels }) => {
+}> = ({ onClose, onBackToWelcome, setShowDesignSuggestions, setShowAIGenerationModal, setPanel, panels }) => {
   const [openAI, setOpenAI] = useState(false);
   const { currentProject, updateProject } = useProjectStore();
 
@@ -475,9 +625,7 @@ const SideMenu: React.FC<{
                 className="w-full flex items-center gap-3 px-4 py-4 rounded-xl bg-white/[0.03] border border-white/10 hover:bg-white/[0.06] hover:border-[#c9a962]/30 transition-all group"
               >
                 <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center border border-white/10 group-hover:border-[#c9a962]/30 transition-colors">
-                  <svg className="w-5 h-5 text-white/60 group-hover:text-[#c9a962] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-                  </svg>
+                  <Save size={18} className="text-white/60 group-hover:text-[#c9a962] transition-colors" />
                 </div>
                 <span className="text-white/90 font-medium group-hover:text-white transition-colors">Salvar</span>
               </button>
@@ -489,27 +637,26 @@ const SideMenu: React.FC<{
                 className="w-full flex items-center gap-3 px-4 py-4 rounded-xl bg-white/[0.03] border border-white/10 hover:bg-white/[0.06] hover:border-[#c9a962]/30 transition-all group"
               >
                 <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center border border-white/10 group-hover:border-[#c9a962]/30 transition-colors">
-                  <svg className="w-5 h-5 text-white/60 group-hover:text-[#c9a962] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                  </svg>
+                  <Download size={18} className="text-white/60 group-hover:text-[#c9a962] transition-colors" />
                 </div>
                 <span className="text-white/90 font-medium group-hover:text-white transition-colors">Exportar</span>
               </button>
             </div>
           </div>
 
-          {/* Fechar Projeto */}
+          {/* Voltar para Home - Substituindo Fechar Projeto */}
           <div className="pt-4 border-t border-white/10">
             <button
               onClick={() => {
+                onBackToWelcome();
                 onClose();
               }}
-              className="w-full flex items-center justify-center gap-3 px-5 py-4 rounded-xl border border-white/10 hover:bg-white/[0.03] hover:border-white/20 transition-all text-white/50 hover:text-white/80"
+              className="w-full flex items-center justify-center gap-3 px-5 py-4 rounded-xl bg-gradient-to-r from-[#c9a962]/20 to-[#c9a962]/10 border border-[#c9a962]/40 hover:bg-[#c9a962]/30 hover:border-[#c9a962]/60 transition-all text-[#c9a962] hover:text-white"
             >
-              <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center">
-                <FolderOpen size={16} className="text-white/40" />
+              <div className="w-8 h-8 rounded-lg bg-[#c9a962]/20 flex items-center justify-center">
+                <Home size={18} className="text-[#c9a962]" />
               </div>
-              <span className="font-medium">Fechar Projeto</span>
+              <span className="font-medium">Voltar para Home</span>
             </button>
           </div>
         </div>
@@ -523,7 +670,7 @@ const SideMenu: React.FC<{
 function App() {
   const [showWelcome, setShowWelcome] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const { currentProject, createProject } = useProjectStore();
+  const { currentProject, createProject, clearCurrentProject } = useProjectStore();
   const { loadTemplates, loadStyles } = useTemplateStore();
   const { loadPlans, initialize } = useUserStore();
 
@@ -576,6 +723,11 @@ function App() {
     alert('Assinatura Pro - Em breve!');
   };
 
+  const handleBackToWelcome = () => {
+    clearCurrentProject();
+    setShowWelcome(true);
+  };
+
   if (showWelcome) {
     return (
       <>
@@ -594,7 +746,7 @@ function App() {
     );
   }
 
-  return <EditorInterface />;
+  return <EditorInterface onBackToWelcome={handleBackToWelcome} />;
 }
 
 export default App;
