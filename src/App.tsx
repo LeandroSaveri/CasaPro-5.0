@@ -1,8 +1,3 @@
-// ============================================
-// App.tsx - CasaPro Premium Editor
-// Visual SaaS Profissional | Build-Safe
-// ============================================
-
 import React, { useState, useEffect } from 'react';
 import { useProjectStore } from '@/store/projectStore';
 import { useUIStore } from '@/store/uiStore';
@@ -32,8 +27,7 @@ import {
   Home,
   Menu,
   X,
-  Compass,
-  Layers,
+  Compass
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import './App.css';
@@ -161,7 +155,45 @@ const EditorInterface: React.FC<{
               LADO DIREITO - CONTROLES PREMIUM
               ============================================ */}
           <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-            {/* MELHORIA: Toggle 2D/3D REMOVIDO do header - agora só no menu */}
+            {/* View Mode Toggle - Estilo Segmentado Premium */}
+            <div className="flex items-center bg-[#1a1a24] border border-white/10 rounded-xl p-1 shadow-inner">
+              <button
+                onClick={() => setViewMode('2d')}
+                className={`relative px-4 sm:px-5 py-2 rounded-lg text-sm font-semibold transition-all duration-300 ${
+                  viewMode === '2d'
+                    ? 'bg-gradient-to-br from-[#c9a962] to-[#a08040] text-[#0a0a0f] shadow-lg'
+                    : 'text-white/50 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <span className="relative z-10">2D</span>
+                {viewMode === '2d' && (
+                  <motion.div
+                    layoutId="viewModeIndicator"
+                    className="absolute inset-0 bg-gradient-to-br from-[#c9a962] to-[#a08040] rounded-lg"
+                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                  />
+                )}
+              </button>
+              <button
+                onClick={() => setViewMode('3d')}
+                className={`relative px-4 sm:px-5 py-2 rounded-lg text-sm font-semibold transition-all duration-300 ${
+                  viewMode === '3d'
+                    ? 'bg-gradient-to-br from-[#c9a962] to-[#a08040] text-[#0a0a0f] shadow-lg'
+                    : 'text-white/50 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <span className="relative z-10">3D</span>
+                {viewMode === '3d' && (
+                  <motion.div
+                    layoutId="viewModeIndicator"
+                    className="absolute inset-0 bg-gradient-to-br from-[#c9a962] to-[#a08040] rounded-lg"
+                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                  />
+                )}
+              </button>
+            </div>
+
+            <div className="hidden lg:block h-8 w-px bg-gradient-to-b from-transparent via-white/20 to-transparent mx-1" />
 
             {/* Panel Toggles - Desktop Premium */}
             <button
@@ -306,8 +338,6 @@ const EditorInterface: React.FC<{
             setShowAIGenerationModal={setShowAIGenerationModal}
             setPanel={setPanel}
             panels={panels}
-            viewMode={viewMode}
-            setViewMode={setViewMode}
           />
         )}
       </AnimatePresence>
@@ -325,9 +355,7 @@ const SideMenu: React.FC<{
   setShowAIGenerationModal: (value: boolean) => void;
   setPanel: (key: string, value: boolean) => void;
   panels: any;
-  viewMode: '2d' | '3d';
-  setViewMode: (mode: '2d' | '3d') => void;
-}> = ({ onClose, onBackToWelcome, setShowDesignSuggestions, setShowAIGenerationModal, setPanel, panels, viewMode, setViewMode }) => {
+}> = ({ onClose, onBackToWelcome, setShowDesignSuggestions, setShowAIGenerationModal, setPanel, panels }) => {
   const [openAI, setOpenAI] = useState(false);
   const { currentProject, updateProject } = useProjectStore();
 
@@ -397,59 +425,6 @@ const SideMenu: React.FC<{
               <span className="w-1.5 h-1.5 rounded-full bg-[#c9a962]" />
               Unidade: {currentProject?.settings?.unit === 'meters' ? 'Sistema Métrico' : 'Imperial'}
             </p>
-          </div>
-
-          {/* MELHORIA: Toggle 2D/3D adicionado no menu */}
-          <div className="bg-white/[0.02] rounded-2xl border border-white/10 overflow-hidden">
-            <div className="p-4 border-b border-white/10">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500/20 to-purple-600/20 flex items-center justify-center">
-                  <Layers size={18} className="text-blue-400" />
-                </div>
-                <div>
-                  <span className="text-white font-semibold block">Visualização</span>
-                  <span className="text-xs text-white/40">Alternar entre modos</span>
-                </div>
-              </div>
-            </div>
-            <div className="p-4">
-              <div className="flex items-center bg-[#1a1a24] border border-white/10 rounded-xl p-1 shadow-inner">
-                <button
-                  onClick={() => setViewMode('2d')}
-                  className={`relative flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all duration-300 ${
-                    viewMode === '2d'
-                      ? 'bg-gradient-to-br from-[#c9a962] to-[#a08040] text-[#0a0a0f] shadow-lg'
-                      : 'text-white/50 hover:text-white hover:bg-white/5'
-                  }`}
-                >
-                  <span className="relative z-10">2D Planta</span>
-                  {viewMode === '2d' && (
-                    <motion.div
-                      layoutId="menuViewModeIndicator"
-                      className="absolute inset-0 bg-gradient-to-br from-[#c9a962] to-[#a08040] rounded-lg"
-                      transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                    />
-                  )}
-                </button>
-                <button
-                  onClick={() => setViewMode('3d')}
-                  className={`relative flex-1 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all duration-300 ${
-                    viewMode === '3d'
-                      ? 'bg-gradient-to-br from-[#c9a962] to-[#a08040] text-[#0a0a0f] shadow-lg'
-                      : 'text-white/50 hover:text-white hover:bg-white/5'
-                  }`}
-                >
-                  <span className="relative z-10">3D Visual</span>
-                  {viewMode === '3d' && (
-                    <motion.div
-                      layoutId="menuViewModeIndicator"
-                      className="absolute inset-0 bg-gradient-to-br from-[#c9a962] to-[#a08040] rounded-lg"
-                      transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                    />
-                  )}
-                </button>
-              </div>
-            </div>
           </div>
 
           {/* Inteligência AI - Seção Expansível */}
