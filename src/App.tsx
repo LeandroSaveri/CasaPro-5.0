@@ -7,7 +7,6 @@ import Toolbar from '@/components/ui/Toolbar';
 import Canvas2D from '@/components/canvas/Canvas2D';
 import Canvas3D from '@/components/canvas/Canvas3D';
 import FurniturePanel from '@/components/ui/FurniturePanel';
-import AIAssistant from '@/components/ui/AIAssistant';
 import PropertiesPanel from '@/components/ui/PropertiesPanel';
 import WelcomeScreen from '@/components/welcome/WelcomeScreen';
 import CreateProjectModal, { type ProjectConfig } from '@/components/modals/CreateProjectModal';
@@ -23,23 +22,17 @@ import {
   Settings,
   FolderOpen,
   ChevronDown,
-  ChevronRight,
   Home,
   Menu,
   X,
   Compass,
   Save,
   Download,
-  Box,
-  Palette,
-  Layers
+  Box
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import './App.css';
 
-// ============================================
-// EDITOR INTERFACE
-// ============================================
 const EditorInterface: React.FC<{
   onBackToWelcome: () => void;
 }> = ({ onBackToWelcome }) => {
@@ -82,7 +75,6 @@ const EditorInterface: React.FC<{
 
   return (
     <div className="h-screen w-screen flex bg-[#0a0a0f] overflow-hidden">
-      {/* Toolbar */}
       <AnimatePresence mode="wait">
         {sidebarOpen && (
           <motion.div
@@ -97,9 +89,7 @@ const EditorInterface: React.FC<{
         )}
       </AnimatePresence>
 
-      {/* Main Area */}
       <div className="flex-1 flex flex-col h-full min-w-0">
-        {/* Header */}
         <div className="flex-shrink-0 z-10 flex items-center justify-between px-3 sm:px-6 py-3 bg-[#0a0a0f]/95 backdrop-blur-xl border-b border-white/10">
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <button
@@ -125,7 +115,6 @@ const EditorInterface: React.FC<{
           </div>
           
           <div className="flex items-center gap-2 flex-shrink-0">
-            {/* 2D/3D Toggle */}
             <div className="flex items-center bg-[#1a1a24] border border-white/10 rounded-lg p-1">
               <button
                 onClick={() => setViewMode('2d')}
@@ -185,7 +174,6 @@ const EditorInterface: React.FC<{
           </div>
         </div>
 
-        {/* Canvas */}
         <div className="flex-1 relative min-h-0">
           <AnimatePresence mode="wait">
             <motion.div
@@ -202,7 +190,6 @@ const EditorInterface: React.FC<{
         </div>
       </div>
 
-      {/* Panels */}
       <AnimatePresence>
         {panels.furniture && (
           <motion.div
@@ -231,14 +218,12 @@ const EditorInterface: React.FC<{
         )}
       </AnimatePresence>
 
-      {/* Modals */}
       <AIGenerationModal isOpen={showAIGenerationModal} onClose={() => setShowAIGenerationModal(false)} />
       <DesignSuggestionsPanel isOpen={showDesignSuggestions} onClose={() => setShowDesignSuggestions(false)} />
       <LoginModal isOpen={showLoginModal} onClose={() => setShowLoginModal(false)} />
       {currentProject && <ExportModal isOpen={showExportModal} onClose={() => setShowExportModal(false)} project={currentProject} />}
       <AdminPanel isOpen={showAdminPanel} onClose={() => setShowAdminPanel(false)} />
 
-      {/* SideMenu */}
       <AnimatePresence>
         {isMenuOpen && (
           <SideMenu
@@ -255,9 +240,6 @@ const EditorInterface: React.FC<{
   );
 };
 
-// ============================================
-// SIDEMENU
-// ============================================
 const SideMenu: React.FC<{
   onClose: () => void;
   onBackToWelcome: () => void;
@@ -292,7 +274,6 @@ const SideMenu: React.FC<{
         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
         className="absolute right-0 top-0 bottom-0 w-full max-w-sm bg-[#0f0f16] border-l border-white/10 overflow-y-auto"
       >
-        {/* Header */}
         <div className="sticky top-0 z-10 flex items-center justify-between p-4 bg-[#0f0f16] border-b border-white/10">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-[#c9a962] flex items-center justify-center">
@@ -309,7 +290,6 @@ const SideMenu: React.FC<{
         </div>
 
         <div className="p-4 space-y-4">
-          {/* Projeto Atual */}
           <div className="bg-[#c9a962]/10 border border-[#c9a962]/30 rounded-xl p-4">
             <div className="flex items-center gap-3 mb-2">
               <FolderOpen size={20} className="text-[#c9a962]" />
@@ -318,7 +298,6 @@ const SideMenu: React.FC<{
             <p className="text-white font-semibold truncate">{currentProject?.name || 'Novo Projeto'}</p>
           </div>
 
-          {/* Inteligência AI */}
           <div className="bg-white/[0.03] rounded-xl border border-white/10 overflow-hidden">
             <button
               onClick={() => setOpenAI(!openAI)}
@@ -353,7 +332,6 @@ const SideMenu: React.FC<{
             )}
           </div>
 
-          {/* Ferramentas */}
           <div>
             <p className="text-xs uppercase text-white/40 font-medium mb-2 ml-1">Ferramentas</p>
             <button
@@ -381,7 +359,6 @@ const SideMenu: React.FC<{
             </button>
           </div>
 
-          {/* Ações */}
           <div>
             <p className="text-xs uppercase text-white/40 font-medium mb-2 ml-1">Ações</p>
             <button
@@ -401,7 +378,6 @@ const SideMenu: React.FC<{
             </button>
           </div>
 
-          {/* Voltar para Home */}
           <div className="pt-4 border-t border-white/10">
             <button
               onClick={() => { onBackToWelcome(); onClose(); }}
@@ -417,9 +393,6 @@ const SideMenu: React.FC<{
   );
 };
 
-// ============================================
-// APP
-// ============================================
 function App() {
   const [showWelcome, setShowWelcome] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -440,8 +413,6 @@ function App() {
 
   const handleCreateProject = (config: ProjectConfig) => {
     createProject(config.name, config.description);
-    if (config.template) {/* TODO */}
-    if (config.style) {/* TODO */}
     setShowCreateModal(false);
     setShowWelcome(false);
   };
