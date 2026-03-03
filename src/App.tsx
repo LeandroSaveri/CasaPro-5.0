@@ -444,7 +444,7 @@ const SideMenu: React.FC<{
   panels: any;
 }> = ({ onClose, setShowDesignSuggestions, setShowAIGenerationModal, setPanel, panels }) => {
   const [openAI, setOpenAI] = useState(false);
-  const { currentProject, clearCurrentProject, updateProject } = useProjectStore();
+  const { currentProject, updateProject } = useProjectStore();
 
   const handleSave = () => {
     if (currentProject) {
@@ -640,7 +640,6 @@ const SideMenu: React.FC<{
           <div className="pt-4 border-t border-white/10">
             <button
               onClick={() => {
-                clearCurrentProject();
                 onClose();
               }}
               className="w-full flex items-center justify-center gap-3 px-5 py-4 rounded-xl border border-white/10 hover:bg-white/[0.03] hover:border-white/20 transition-all text-white/50 hover:text-white/80"
