@@ -11,14 +11,9 @@ import {
   Armchair, 
   Ruler, 
   Eraser,
-  Plus,
   X
 } from 'lucide-react';
 
-// ============================================
-// COMPONENTE: MobileToolbar
-// Barra de ferramentas flutuante para mobile
-// ============================================
 const MobileToolbar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { toolMode, setToolMode } = useProjectStore();
@@ -38,7 +33,6 @@ const MobileToolbar: React.FC = () => {
 
   return (
     <>
-      {/* Botão Principal Flutuante */}
       <motion.button
         initial={{ scale: 0 }}
         animate={{ scale: 1 }}
@@ -66,11 +60,9 @@ const MobileToolbar: React.FC = () => {
         )}
       </motion.button>
 
-      {/* Menu de Ferramentas */}
       <AnimatePresence>
         {isOpen && (
           <>
-            {/* Overlay */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -79,7 +71,6 @@ const MobileToolbar: React.FC = () => {
               className="fixed inset-0 bg-black/40 backdrop-blur-sm z-30"
             />
 
-            {/* Grid de Ferramentas */}
             <motion.div
               initial={{ opacity: 0, scale: 0.8, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -126,7 +117,6 @@ const MobileToolbar: React.FC = () => {
         )}
       </AnimatePresence>
 
-      {/* Indicador da Ferramenta Ativa (quando menu fechado) */}
       {!isOpen && (
         <motion.div
           initial={{ opacity: 0, x: 20 }}
