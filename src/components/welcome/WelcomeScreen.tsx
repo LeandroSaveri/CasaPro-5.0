@@ -12,7 +12,6 @@ import {
   Star, 
   Users,
   Zap,
-  Shield,
   Globe
 } from 'lucide-react';
 
@@ -97,7 +96,6 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
 
   return (
     <div className="w-full min-h-screen flex flex-col bg-[#050508] text-white overflow-x-hidden">
-      {/* Background Effects Premium */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-[#c9a962]/5 rounded-full blur-[150px]" />
         <div className="absolute bottom-0 right-1/4 w-[600px] h-[600px] bg-purple-500/5 rounded-full blur-[150px]" />
@@ -108,7 +106,6 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
         }} />
       </div>
 
-      {/* Header Premium */}
       <header className="relative z-10 border-b border-white/5 backdrop-blur-2xl bg-[#050508]/80 sticky top-0">
         <div className="max-w-7xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
@@ -164,7 +161,6 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
         </div>
       </header>
 
-      {/* Main Content */}
       <AnimatePresence mode="wait">
         {activeTab === 'home' && (
           <motion.main
@@ -174,7 +170,6 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
             exit={{ opacity: 0 }}
             className="relative z-10"
           >
-            {/* Hero Section */}
             <section className="pt-20 pb-32 px-6">
               <div className="max-w-6xl mx-auto text-center">
                 <motion.div
@@ -235,6 +230,18 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
                       Meus Projetos
                     </span>
                   </motion.button>
+
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={onExploreTemplates}
+                    className="px-10 py-5 bg-white/5 border border-white/10 text-white rounded-2xl font-semibold text-lg hover:bg-white/10"
+                  >
+                    <span className="flex items-center justify-center gap-3">
+                      <Layout size={24} />
+                      Templates
+                    </span>
+                  </motion.button>
                 </motion.div>
 
                 <div className="flex flex-wrap justify-center gap-12">
@@ -251,7 +258,6 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
               </div>
             </section>
 
-            {/* Features */}
             <section className="py-32 px-6 border-t border-white/5">
               <div className="max-w-6xl mx-auto">
                 <div className="text-center mb-20">
@@ -287,7 +293,6 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
               </div>
             </section>
 
-            {/* Pro CTA */}
             <section className="py-32 px-6 border-t border-white/5">
               <div className="max-w-5xl mx-auto">
                 <div className="p-10 md:p-16 rounded-[2.5rem] bg-gradient-to-br from-[#c9a962]/10 to-transparent border border-[#c9a962]/20">
@@ -328,7 +333,6 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
               </div>
             </section>
 
-            {/* Testimonials */}
             <section className="py-32 px-6 border-t border-white/5">
               <div className="max-w-6xl mx-auto">
                 <h2 className="text-4xl font-bold text-center mb-16">O que nossos usuários dizem</h2>
@@ -362,7 +366,6 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
               </div>
             </section>
 
-            {/* Footer */}
             <footer className="py-16 px-6 border-t border-white/5">
               <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-8">
                 <div className="flex items-center gap-3">
