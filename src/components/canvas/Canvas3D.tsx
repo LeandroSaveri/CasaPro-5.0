@@ -1,3 +1,8 @@
+// ============================================
+// Canvas3D.tsx - CasaPro 3D Visualization
+// Build-Safe | Mobile Responsive | Premium UI
+// ============================================
+
 import React, { Suspense, useMemo, useState, useEffect } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import { 
@@ -136,29 +141,27 @@ const Scene: React.FC = () => {
     <>
       <SoftShadows size={lighting.shadowQuality === 'ultra' ? 50 : 25} />
       
-      {/* Sky */}
-      {!isNight && (
-        <Sky 
-          sunPosition={[lighting.sunPosition.x, lighting.sunPosition.y, lighting.sunPosition.z]}
-          turbidity={8}
-          rayleigh={6}
-        />
-      )}
+      {/* Sky - SEMPRE visível, não só de dia */}
+      <Sky 
+        sunPosition={isNight ? [0, -10, 0] : [lighting.sunPosition.x, lighting.sunPosition.y, lighting.sunPosition.z]}
+        turbidity={isNight ? 2 : 8}
+        rayleigh={isNight ? 0.5 : 6}
+      />
       
       {/* Stars at night */}
       {isNight && <Stars radius={100} depth={50} count={5000} factor={4} />}
       
-      {/* Ambient Light */}
+      {/* Ambient Light - sempre tem luz ambiente */}
       <ambientLight 
-        intensity={isNight ? 0.1 : lighting.ambientIntensity} 
-        color={lighting.ambientColor}
+        intensity={isNight ? 0.3 : lighting.ambientIntensity} 
+        color={isNight ? '#4444aa' : lighting.ambientColor}
       />
       
       {/* Sun/Moon Light */}
       <directionalLight
-        position={[lighting.sunPosition.x, lighting.sunPosition.y, lighting.sunPosition.z]}
-        intensity={isNight ? 0.2 : lighting.sunIntensity}
-        color={isNight ? '#8888ff' : lighting.sunColor}
+        position={[lighting.sunPosition.x, isNight ? 50 : lighting.sunPosition.y, lighting.sunPosition.z]}
+        intensity={isNight ? 0.3 : lighting.sunIntensity}
+        color={isNight ? '#6666ff' : lighting.sunColor}
         castShadow={lighting.shadowsEnabled}
         shadow-mapSize={
           lighting.shadowQuality === 'ultra' ? [4096, 4096] :
@@ -184,7 +187,7 @@ const Scene: React.FC = () => {
       
       {/* Ground Plane */}
       <Plane args={[100, 100]} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]}>
-        <meshStandardMaterial color="#1a1a1f" />
+        <meshStandardMaterial color="#2a2a35" />
       </Plane>
       
       {/* Render Walls */}
@@ -283,7 +286,7 @@ const Canvas3D: React.FC = () => {
   ];
   
   return (
-    <div className="w-full h-full relative">
+    <div className="w-full h-full relative bg-[#1a1a2e]">
       <Canvas
         shadows
         dpr={[1, 2]}
@@ -293,7 +296,7 @@ const Canvas3D: React.FC = () => {
           powerPreference: 'high-performance',
           toneMappingExposure: lighting.exposure,
         }}
-        style={{ background: isNight ? '#0a0a15' : '#87CEEB' }}
+        style={{ background: isNight ? '#0a0a1a' : '#87CEEB' }}
       >
         <PerspectiveCamera makeDefault position={[10, 10, 10]} fov={50} />
         <CameraController mode={cameraMode3D} />
