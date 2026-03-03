@@ -710,7 +710,7 @@ function App() {
   if (showWelcome) {
     return (
       <>
-        <div className="min-h-screen bg-[#0a0a0f] overflow-y-auto">
+        <div className="bg-[#0a0a0f]">
           <WelcomeScreen 
             onCreateProject={() => setShowCreateModal(true)}
             onOpenProjects={handleOpenProjects}
