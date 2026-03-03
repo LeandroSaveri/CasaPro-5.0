@@ -287,7 +287,7 @@ const App: React.FC = () => {
   }, [initialize]);
 
   const handleCreateProject = () => {
-    createProject();
+    createProject('Novo Projeto');
     setCurrentView('editor');
     setIsSidebarOpen(false);
   };
