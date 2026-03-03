@@ -1,7 +1,3 @@
-// ============================================
-// Canvas3D.tsx - Corrigido (sem import errado)
-// ============================================
-
 import React, { Suspense, useMemo, useState, useEffect } from 'react';
 import { Canvas, useThree } from '@react-three/fiber';
 import { 
@@ -287,7 +283,7 @@ const Canvas3D: React.FC = () => {
   ];
   
   return (
-    <div className="w-full h-full relative bg-[#0a0a0f]">
+    <div className="w-full h-full relative">
       <Canvas
         shadows
         dpr={[1, 2]}
@@ -318,110 +314,111 @@ const Canvas3D: React.FC = () => {
       <button
         data-camera-toggle
         onClick={toggleControls}
-        className={`absolute top-4 right-4 z-20 flex items-center gap-2 px-3 py-2 rounded-xl transition-all duration-200 ${
+        className={`absolute top-4 right-4 z-20 flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${
           showControls 
-            ? 'bg-amber-400 text-[#0a0a0f]' 
+            ? 'bg-[#c9a962] text-[#0a0a0f]' 
             : 'bg-[#1a1a1f]/90 backdrop-blur-xl border border-white/10 text-white/70 hover:text-white hover:bg-[#2a2a2f]'
         }`}
+        title={showControls ? 'Ocultar Configurações' : 'Mostrar Configurações'}
       >
         <Settings2 size={18} />
         <span className="text-sm font-medium">Configurações</span>
       </button>
       
       {/* Controls Overlay */}
-      <AnimatePresence>
-        {showControls && (
-          <motion.div 
-            ref={controlsRef}
-            data-camera-panel
-            initial={{ opacity: 0, y: -10, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -10, scale: 0.95 }}
-            className="absolute top-16 right-4 p-4 bg-[#1a1a1f]/95 backdrop-blur-xl border border-white/10 rounded-xl space-y-4 min-w-[280px] shadow-2xl"
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-medium text-white/80">Configurações da Câmera</span>
-              <button
-                onClick={closeControls}
-                className="w-7 h-7 flex items-center justify-center rounded-lg bg-white/5 text-white/50 hover:bg-white/10 hover:text-white transition-all"
-              >
-                <X size={16} />
-              </button>
+      {showControls && (
+        <div 
+          ref={controlsRef}
+          data-camera-panel
+          className="absolute top-16 right-4 p-4 bg-[#1a1a1f]/95 backdrop-blur-xl border border-white/10 rounded-xl space-y-4 min-w-[280px] shadow-2xl"
+        >
+          {/* Close Button */}
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium text-white/80">Configurações da Câmera</span>
+            <button
+              onClick={closeControls}
+              className="w-7 h-7 flex items-center justify-center rounded-lg bg-white/5 text-white/50 hover:bg-white/10 hover:text-white transition-all"
+              title="Fechar"
+            >
+              <X size={16} />
+            </button>
+          </div>
+          
+          <div className="w-full h-px bg-white/10" />
+          {/* Camera Mode Selector */}
+          <div className="space-y-2">
+            <label className="text-xs text-white/50 uppercase tracking-wider">Câmera</label>
+            <div className="flex gap-2">
+              {cameraModes.map((mode) => (
+                <button
+                  key={mode.id}
+                  onClick={() => setCameraMode3D(mode.id as any)}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all ${
+                    cameraMode3D === mode.id
+                      ? 'bg-[#c9a962] text-[#0a0a0f]'
+                      : 'bg-white/5 text-white/70 hover:bg-white/10'
+                  }`}
+                >
+                  {mode.icon}
+                  {mode.label}
+                </button>
+              ))}
             </div>
-            
-            <div className="w-full h-px bg-white/10" />
-            
-            <div className="space-y-2">
-              <label className="text-xs text-white/50 uppercase tracking-wider">Câmera</label>
-              <div className="flex gap-2">
-                {cameraModes.map((mode) => (
-                  <button
-                    key={mode.id}
-                    onClick={() => setCameraMode3D(mode.id as any)}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all ${
-                      cameraMode3D === mode.id
-                        ? 'bg-amber-400 text-[#0a0a0f]'
-                        : 'bg-white/5 text-white/70 hover:bg-white/10'
-                    }`}
-                  >
-                    {mode.icon}
-                    {mode.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-            
-            <div className="space-y-2">
-              <label className="text-xs text-white/50 uppercase tracking-wider flex items-center gap-2">
-                {isNight ? <Moon size={14} /> : <Sun size={14} />}
-                Horário: {Math.floor(lighting.timeOfDay)}:00
-              </label>
-              <input
-                type="range"
-                min="0"
-                max="24"
-                step="0.5"
-                value={lighting.timeOfDay}
-                onChange={(e) => updateLighting({ timeOfDay: parseFloat(e.target.value) })}
-                className="w-full accent-amber-400"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <label className="text-xs text-white/50 uppercase tracking-wider">Exposição</label>
-              <input
-                type="range"
-                min="0.1"
-                max="2"
-                step="0.1"
-                value={lighting.exposure}
-                onChange={(e) => updateLighting({ exposure: parseFloat(e.target.value) })}
-                className="w-full accent-amber-400"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <label className="text-xs text-white/50 uppercase tracking-wider">Qualidade das Sombras</label>
-              <select
-                value={lighting.shadowQuality}
-                onChange={(e) => updateLighting({ shadowQuality: e.target.value as any })}
-                className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white"
-              >
-                <option value="low">Baixa</option>
-                <option value="medium">Média</option>
-                <option value="high">Alta</option>
-                <option value="ultra">Ultra</option>
-              </select>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </div>
+          
+          {/* Time of Day */}
+          <div className="space-y-2">
+            <label className="text-xs text-white/50 uppercase tracking-wider flex items-center gap-2">
+              {isNight ? <Moon size={14} /> : <Sun size={14} />}
+              Horário: {Math.floor(lighting.timeOfDay)}:00
+            </label>
+            <input
+              type="range"
+              min="0"
+              max="24"
+              step="0.5"
+              value={lighting.timeOfDay}
+              onChange={(e) => updateLighting({ timeOfDay: parseFloat(e.target.value) })}
+              className="w-full accent-[#c9a962]"
+            />
+          </div>
+          
+          {/* Exposure */}
+          <div className="space-y-2">
+            <label className="text-xs text-white/50 uppercase tracking-wider">Exposição</label>
+            <input
+              type="range"
+              min="0.1"
+              max="2"
+              step="0.1"
+              value={lighting.exposure}
+              onChange={(e) => updateLighting({ exposure: parseFloat(e.target.value) })}
+              className="w-full accent-[#c9a962]"
+            />
+          </div>
+          
+          {/* Shadow Quality */}
+          <div className="space-y-2">
+            <label className="text-xs text-white/50 uppercase tracking-wider">Qualidade das Sombras</label>
+            <select
+              value={lighting.shadowQuality}
+              onChange={(e) => updateLighting({ shadowQuality: e.target.value as any })}
+              className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-lg text-sm text-white"
+            >
+              <option value="low">Baixa</option>
+              <option value="medium">Média</option>
+              <option value="high">Alta</option>
+              <option value="ultra">Ultra</option>
+            </select>
+          </div>
+        </div>
+      )}
       
       {/* Render Button */}
       <div className="absolute bottom-4 right-4">
         <button
           onClick={() => alert('Renderização em alta qualidade - Em breve!')}
-          className="flex items-center justify-center gap-2 px-4 py-3 bg-gradient-to-r from-amber-400 to-amber-500 text-[#0a0a0f] rounded-xl font-bold hover:from-amber-300 hover:to-amber-400 transition-all shadow-lg shadow-amber-500/25"
+          className="flex items-center justify-center gap-2 px-4 py-3 bg-[#c9a962] text-[#0a0a0f] rounded-xl font-semibold hover:bg-[#d4b76d] transition-all"
         >
           <Video size={18} />
           Renderizar
