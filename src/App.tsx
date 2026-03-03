@@ -93,7 +93,7 @@ const EditorInterface: React.FC<{
   }, [selectedElement, setPanel]);
 
   return (
-    <div className="min-h-[100dvh] w-full flex bg-[#0a0a0f] overflow-hidden">
+    <div className="min-h-[100dvh] w-full flex bg-[#0a0a0f]">
       {/* ============================================
           TOOLBAR - Barra lateral de ferramentas
           ============================================ */}
@@ -118,7 +118,7 @@ const EditorInterface: React.FC<{
         {/* ============================================
             HEADER PREMIUM - Barra superior elegante
             ============================================ */}
-        <div className="flex-shrink-0 z-10 flex items-center justify-between px-3 sm:px-6 py-3 sm:py-4 bg-gradient-to-r from-[#0a0a0f] via-[#12121a] to-[#0a0a0f] backdrop-blur-xl border-b border-white/10 shadow-lg">
+        <div className="flex-shrink-0 z-10 flex items-center justify-between px-3 sm:px-6 py-2 sm:py-4 bg-gradient-to-r from-[#0a0a0f] via-[#12121a] to-[#0a0a0f] backdrop-blur-xl border-b border-white/10 shadow-lg">
           {/* Lado esquerdo - Informações do projeto */}
           <div className="flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
             {/* Toggle Sidebar - Desktop */}
@@ -223,7 +223,7 @@ const EditorInterface: React.FC<{
             {/* Menu Button - Premium Gold */}
             <button 
               onClick={() => setIsMenuOpen(true)}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#c9a962] to-[#a08040] hover:from-[#d4b76a] hover:to-[#b08d4a] transition-all duration-300 text-[#0a0a0f] font-semibold shadow-lg shadow-[#c9a962]/25 hover:shadow-[#c9a962]/40 border border-[#c9a962]/50"
+              className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl bg-gradient-to-r from-[#c9a962] to-[#a08040] hover:from-[#d4b76a] hover:to-[#b08d4a] transition-all duration-300 text-[#0a0a0f] font-semibold shadow-lg shadow-[#c9a962]/25 hover:shadow-[#c9a962]/40 border border-[#c9a962]/50"
             >
               <Menu size={18} />
               <span className="hidden sm:inline">Menu</span>
