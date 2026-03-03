@@ -28,17 +28,153 @@ import {
   Compass,
   Save,
   Download,
-  Box
+  Box,
+  Layers,
+  User,
+  LogOut,
+  Cloud,
+  CloudOff,
+  Loader2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import './App.css';
+
+// User Menu Component
+const UserMenu: React.FC<{
+  isOpen: boolean;
+  onClose: () => void;
+  onLogin: () => void;
+  onExport: () => void;
+}> = ({ isOpen, onLogin, onExport }) => {
+  const { isAuthenticated, user, logout, isSyncing, lastSync, syncAll } = useUserStore();
+  const { currentProject, updateProject } = useProjectStore();
+  const [showMenu, setShowMenu] = useState(false);
+
+  const handleLogout = async () => {
+    await logout();
+    setShowMenu(false);
+  };
+
+  const handleSave = async () => {
+    if (currentProject) {
+      updateProject({ updatedAt: new Date() });
+    }
+    setShowMenu(false);
+  };
+
+  const handleSync = async () => {
+    await syncAll();
+    setShowMenu(false);
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => isAuthenticated ? setShowMenu(!showMenu) : onLogin()}
+        className="flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-all"
+      >
+        {isAuthenticated && user ? (
+          <>
+            <img 
+              src={user.avatar} 
+              alt={user.name} 
+              className="w-6 h-6 rounded-full"
+            />
+            <span className="text-sm text-white/80 hidden sm:inline">{user.name.split(' ')[0]}</span>
+            {isSyncing ? (
+              <Loader2 className="w-4 h-4 text-blue-400 animate-spin" />
+            ) : lastSync ? (
+              <Cloud className="w-4 h-4 text-green-400" />
+            ) : (
+              <CloudOff className="w-4 h-4 text-amber-400" />
+            )}
+          </>
+        ) : (
+          <>
+            <User className="w-5 h-5 text-white/60" />
+            <span className="text-sm text-white/80">Entrar</span>
+          </>
+        )}
+      </button>
+
+      <AnimatePresence>
+        {showMenu && isAuthenticated && (
+          <motion.div
+            initial={{ opacity: 0, y: -10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            className="absolute right-0 top-full mt-2 w-56 bg-[#1a1a24] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50"
+          >
+            <div className="p-4 border-b border-white/10">
+              <p className="text-white font-medium truncate">{user?.name}</p>
+              <p className="text-xs text-white/50 truncate">{user?.email}</p>
+              <span className="inline-block mt-2 px-2 py-0.5 bg-gradient-to-r from-amber-500/20 to-amber-600/20 text-amber-400 text-xs rounded-full border border-amber-500/30">
+                {user?.plan === 'free' ? 'Gratuito' : user?.plan === 'pro' ? 'Pro' : 'Empresarial'}
+              </span>
+            </div>
+
+            <div className="p-2">
+              <button
+                onClick={handleSave}
+                className="w-full flex items-center gap-3 px-3 py-2 text-sm text-white/80 hover:bg-white/5 rounded-lg transition-colors"
+              >
+                <Save className="w-4 h-4" />
+                Salvar projeto
+              </button>
+              
+              <button
+                onClick={onExport}
+                className="w-full flex items-center gap-3 px-3 py-2 text-sm text-white/80 hover:bg-white/5 rounded-lg transition-colors"
+              >
+                <Download className="w-4 h-4" />
+                Exportar
+              </button>
+              
+              <button
+                onClick={handleSync}
+                disabled={isSyncing}
+                className="w-full flex items-center gap-3 px-3 py-2 text-sm text-white/80 hover:bg-white/5 rounded-lg transition-colors disabled:opacity-50"
+              >
+                {isSyncing ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Cloud className="w-4 h-4" />
+                )}
+                Sincronizar
+              </button>
+            </div>
+
+            <div className="p-2 border-t border-white/10">
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center gap-3 px-3 py-2 text-sm text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+              >
+                <LogOut className="w-4 h-4" />
+                Sair
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {showMenu && (
+        <div 
+          className="fixed inset-0 z-40" 
+          onClick={() => setShowMenu(false)}
+        />
+      )}
+    </div>
+  );
+};
 
 const EditorInterface: React.FC<{
   onBackToWelcome: () => void;
 }> = ({ onBackToWelcome }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { viewMode, currentProject, selectedElement } = useProjectStore();
-  const { panels, setPanel, sidebarOpen, toggleSidebar, setViewMode } = useUIStore();
+  const { viewMode, currentProject, selectedElement, setViewMode } = useProjectStore();
+  const { panels, setPanel, sidebarOpen, toggleSidebar } = useUIStore();
   const { isAuthenticated, syncProject } = useUserStore();
 
   const [showAIGenerationModal, setShowAIGenerationModal] = useState(false);
@@ -90,8 +226,9 @@ const EditorInterface: React.FC<{
       </AnimatePresence>
 
       <div className="flex-1 flex flex-col h-full min-w-0">
+        {/* Header - Nome do projeto centralizado */}
         <div className="flex-shrink-0 z-10 flex items-center justify-between px-3 sm:px-6 py-3 bg-[#0a0a0f]/95 backdrop-blur-xl border-b border-white/10">
-          <div className="flex items-center gap-3 min-w-0 flex-1">
+          <div className="flex items-center gap-3 flex-1">
             <button
               onClick={toggleSidebar}
               className="hidden md:flex p-2.5 hover:bg-white/10 rounded-xl transition-all border border-transparent hover:border-white/20"
@@ -101,45 +238,23 @@ const EditorInterface: React.FC<{
             
             <div className="hidden sm:block h-6 w-px bg-white/20" />
             
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-[#c9a962]" />
-                <span className="text-white font-semibold text-sm sm:text-base truncate">
-                  {currentProject?.name}
-                </span>
-              </div>
-              <div className="text-xs text-white/40 hidden sm:block">
-                {viewMode === '2d' ? 'Planta 2D' : 'Visualização 3D'}
+            {/* Nome do projeto - centralizado na barra */}
+            <div className="flex-1 flex justify-center">
+              <div className="text-center">
+                <div className="flex items-center justify-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-[#c9a962]" />
+                  <span className="text-white font-semibold text-sm sm:text-base truncate max-w-[200px] sm:max-w-[300px]">
+                    {currentProject?.name}
+                  </span>
+                </div>
+                <div className="text-xs text-white/40 hidden sm:block">
+                  {viewMode === '2d' ? 'Planta 2D' : 'Visualização 3D'}
+                </div>
               </div>
             </div>
           </div>
           
           <div className="flex items-center gap-2 flex-shrink-0">
-            <div className="flex items-center bg-[#1a1a24] border border-white/10 rounded-lg p-1">
-              <button
-                onClick={() => setViewMode('2d')}
-                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                  viewMode === '2d'
-                    ? 'bg-[#c9a962] text-[#0a0a0f]'
-                    : 'text-white/50 hover:text-white'
-                }`}
-              >
-                2D
-              </button>
-              <button
-                onClick={() => setViewMode('3d')}
-                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
-                  viewMode === '3d'
-                    ? 'bg-[#c9a962] text-[#0a0a0f]'
-                    : 'text-white/50 hover:text-white'
-                }`}
-              >
-                3D
-              </button>
-            </div>
-
-            <div className="hidden lg:block h-6 w-px bg-white/20 mx-1" />
-
             <button
               onClick={() => setPanel('furniture', !panels.furniture)}
               className={`hidden lg:flex px-3 py-2 rounded-lg text-sm transition-all items-center gap-2 ${
@@ -163,6 +278,13 @@ const EditorInterface: React.FC<{
               <Settings size={16} />
               <span className="hidden xl:inline">Propriedades</span>
             </button>
+
+            <UserMenu
+              isOpen={true}
+              onClose={() => {}}
+              onLogin={() => setShowLoginModal(true)}
+              onExport={() => setShowExportModal(true)}
+            />
 
             <button 
               onClick={() => setIsMenuOpen(true)}
@@ -233,6 +355,8 @@ const EditorInterface: React.FC<{
             setShowAIGenerationModal={setShowAIGenerationModal}
             setPanel={setPanel}
             panels={panels}
+            viewMode={viewMode}
+            setViewMode={setViewMode}
           />
         )}
       </AnimatePresence>
@@ -247,7 +371,9 @@ const SideMenu: React.FC<{
   setShowAIGenerationModal: (value: boolean) => void;
   setPanel: (key: string, value: boolean) => void;
   panels: any;
-}> = ({ onClose, onBackToWelcome, setShowDesignSuggestions, setShowAIGenerationModal, setPanel, panels }) => {
+  viewMode: '2d' | '3d';
+  setViewMode: (mode: '2d' | '3d') => void;
+}> = ({ onClose, onBackToWelcome, setShowDesignSuggestions, setShowAIGenerationModal, setPanel, panels, viewMode, setViewMode }) => {
   const [openAI, setOpenAI] = useState(false);
   const { currentProject, updateProject } = useProjectStore();
 
@@ -272,7 +398,11 @@ const SideMenu: React.FC<{
         animate={{ x: 0 }}
         exit={{ x: '100%' }}
         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-        className="absolute right-0 top-0 bottom-0 w-full max-w-sm bg-[#0f0f16] border-l border-white/10 overflow-y-auto"
+        className="absolute right-0 top-0 bottom-0 w-full max-w-sm bg-[#0f0f16] border-l border-white/10 overflow-auto"
+        style={{ 
+          overscrollBehavior: 'contain',
+          WebkitOverflowScrolling: 'touch'
+        }}
       >
         <div className="sticky top-0 z-10 flex items-center justify-between p-4 bg-[#0f0f16] border-b border-white/10">
           <div className="flex items-center gap-3">
@@ -289,13 +419,57 @@ const SideMenu: React.FC<{
           </button>
         </div>
 
-        <div className="p-4 space-y-4">
+        {/* Container com scroll em ambas direções para mobile */}
+        <div 
+          className="p-4 space-y-4 min-w-[320px]"
+          style={{
+            overflowX: 'auto',
+            overflowY: 'auto',
+            maxHeight: 'calc(100vh - 80px)'
+          }}
+        >
           <div className="bg-[#c9a962]/10 border border-[#c9a962]/30 rounded-xl p-4">
             <div className="flex items-center gap-3 mb-2">
               <FolderOpen size={20} className="text-[#c9a962]" />
               <p className="text-xs uppercase text-[#c9a962] font-medium">Projeto Atual</p>
             </div>
             <p className="text-white font-semibold truncate">{currentProject?.name || 'Novo Projeto'}</p>
+          </div>
+
+          {/* Toggle 2D/3D movido para o menu */}
+          <div className="bg-white/[0.03] rounded-xl border border-white/10 overflow-hidden">
+            <div className="p-4 border-b border-white/10">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-lg bg-[#c9a962]/20 flex items-center justify-center">
+                  <Layers size={18} className="text-[#c9a962]" />
+                </div>
+                <span className="text-white font-medium">Visualização</span>
+              </div>
+            </div>
+            <div className="p-3">
+              <div className="flex items-center bg-[#1a1a24] border border-white/10 rounded-lg p-1">
+                <button
+                  onClick={() => setViewMode('2d')}
+                  className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-all ${
+                    viewMode === '2d'
+                      ? 'bg-[#c9a962] text-[#0a0a0f]'
+                      : 'text-white/50 hover:text-white'
+                  }`}
+                >
+                  2D
+                </button>
+                <button
+                  onClick={() => setViewMode('3d')}
+                  className={`flex-1 px-3 py-2 rounded-md text-sm font-medium transition-all ${
+                    viewMode === '3d'
+                      ? 'bg-[#c9a962] text-[#0a0a0f]'
+                      : 'text-white/50 hover:text-white'
+                  }`}
+                >
+                  3D
+                </button>
+              </div>
+            </div>
           </div>
 
           <div className="bg-white/[0.03] rounded-xl border border-white/10 overflow-hidden">
