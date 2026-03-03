@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useProjectStore } from '@/store/projectStore';
 import { useUserStore } from '@/store/userStore';
-import { X, Plus, Search, Folder, Clock, Star, Trash2, Copy } from 'lucide-react';
+import { X, Plus, Search, Folder, Clock, Star } from 'lucide-react';
 
 interface ProjectModalProps {
   isOpen: boolean;
@@ -18,25 +17,17 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
   onCreateProject,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [activeTab, setActiveTab] = useState<'recent' | 'starred' | 'all'>('recent');
+  const [activeTab, setActiveTab] = useState<'recent' | 'all'>('recent');
   
-  const { projects, deleteProject, duplicateProject } = useProjectStore();
-  const { userProjects } = useUserStore();
+  const { userProjects, deleteProject } = useUserStore();
 
-  const allProjects = [...projects, ...userProjects].filter((project, index, self) => 
-    index === self.findIndex((p) => p.id === project.id)
-  );
-
-  const filteredProjects = allProjects.filter(project => 
+  const filteredProjects = userProjects.filter(project => 
     project.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const recentProjects = filteredProjects.slice(0, 5);
-  const starredProjects = filteredProjects.filter(p => p.isFavorite);
 
-  const displayProjects = activeTab === 'recent' ? recentProjects :
-                         activeTab === 'starred' ? starredProjects :
-                         filteredProjects;
+  const displayProjects = activeTab === 'recent' ? recentProjects : filteredProjects;
 
   if (!isOpen) return null;
 
@@ -56,7 +47,6 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
           onClick={(e) => e.stopPropagation()}
           className="w-full max-w-4xl max-h-[80vh] bg-[#1a1a1f] border border-white/10 rounded-3xl shadow-2xl overflow-hidden flex flex-col"
         >
-          {/* Header */}
           <div className="p-6 border-b border-white/10">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-2xl font-bold">Meus Projetos</h2>
@@ -92,11 +82,9 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
             </div>
           </div>
 
-          {/* Tabs */}
           <div className="flex items-center gap-1 px-6 py-3 border-b border-white/10">
             {[
               { id: 'recent', label: 'Recentes', icon: <Clock size={16} /> },
-              { id: 'starred', label: 'Favoritos', icon: <Star size={16} /> },
               { id: 'all', label: 'Todos', icon: <Folder size={16} /> },
             ].map((tab) => (
               <button
@@ -116,7 +104,6 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
             ))}
           </div>
 
-          {/* Projects Grid */}
           <div className="flex-1 overflow-y-auto p-6">
             {displayProjects.length === 0 ? (
               <div className="text-center py-12">
@@ -148,26 +135,15 @@ const ProjectModal: React.FC<ProjectModalProps> = ({
                       {new Date(project.updatedAt).toLocaleDateString('pt-BR')}
                     </p>
 
-                    <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          duplicateProject(project.id);
-                        }}
-                        className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center"
-                      >
-                        <Copy size={14} />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deleteProject(project.id);
-                        }}
-                        className="w-8 h-8 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400 flex items-center justify-center"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteProject(project.id);
+                      }}
+                      className="absolute top-3 right-3 w-8 h-8 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <span className="text-xs">×</span>
+                    </button>
                   </motion.div>
                 ))}
               </div>
