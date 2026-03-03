@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useProjectStore } from '@/store/projectStore';
 import { useUserStore } from '@/store/userStore';
-import { useUIStore } from '@/store/uiStore';
 import WelcomeScreen from '@/components/welcome/WelcomeScreen';
 import Toolbar from '@/components/ui/Toolbar';
 import Canvas2D from '@/components/canvas/Canvas2D';
@@ -20,15 +19,12 @@ import {
   Save, 
   Share2, 
   Download,
-  MoreVertical,
-  Maximize2,
-  Minimize2
+  MoreVertical
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 // ============================================
 // COMPONENTE: EditorHeader
-// Header premium do editor com controles responsivos
 // ============================================
 interface EditorHeaderProps {
   projectName: string;
@@ -55,9 +51,7 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
 
   return (
     <header className="h-16 bg-[#0a0a0f]/95 backdrop-blur-xl border-b border-white/10 flex items-center justify-between px-4 sticky top-0 z-50">
-      {/* Lado Esquerdo: Logo/Back + Nome do Projeto */}
       <div className="flex items-center gap-3 flex-1 min-w-0">
-        {/* Botão Menu Mobile */}
         {isMobile && (
           <motion.button
             whileTap={{ scale: 0.95 }}
@@ -68,7 +62,6 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
           </motion.button>
         )}
 
-        {/* Botão Voltar */}
         <motion.button
           whileTap={{ scale: 0.95 }}
           onClick={onBack}
@@ -78,7 +71,6 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
           <ChevronLeft size={20} />
         </motion.button>
 
-        {/* Nome do Projeto */}
         <div className="flex items-center gap-2 min-w-0">
           <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#c9a962] to-[#b8984f] flex items-center justify-center flex-shrink-0">
             <Grid3X3 size={16} className="text-[#0a0a0f]" />
@@ -89,7 +81,6 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
         </div>
       </div>
 
-      {/* Centro: Toggle 2D/3D (Desktop) */}
       {!isMobile && (
         <div className="absolute left-1/2 -translate-x-1/2">
           <div className="flex items-center gap-1 p-1 bg-white/5 rounded-xl border border-white/10">
@@ -125,9 +116,7 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
         </div>
       )}
 
-      {/* Lado Direito: Ações */}
       <div className="flex items-center gap-2">
-        {/* Botões Desktop */}
         {!isMobile && (
           <>
             <motion.button
@@ -157,7 +146,6 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
           </>
         )}
 
-        {/* Menu Mobile de Ações */}
         {isMobile && (
           <div className="relative">
             <motion.button
@@ -209,7 +197,6 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
           </div>
         )}
 
-        {/* User Menu */}
         <UserMenu />
       </div>
     </header>
@@ -218,7 +205,6 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
 
 // ============================================
 // COMPONENTE: MainLayout
-// Layout responsivo com drawer mobile
 // ============================================
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -237,18 +223,15 @@ const MainLayout: React.FC<MainLayoutProps> = ({
 }) => {
   return (
     <div className="flex-1 flex overflow-hidden relative">
-      {/* Sidebar Desktop */}
       {!isMobile && (
         <aside className="w-72 flex-shrink-0 border-r border-white/10 bg-[#0a0a0f]">
           {sidebar}
         </aside>
       )}
 
-      {/* Drawer Mobile */}
       <AnimatePresence>
         {isMobile && isSidebarOpen && (
           <>
-            {/* Overlay */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -257,7 +240,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({
               className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
             />
             
-            {/* Drawer */}
             <motion.aside
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
@@ -271,7 +253,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({
         )}
       </AnimatePresence>
 
-      {/* Main Content */}
       <main className="flex-1 overflow-hidden bg-[#0a0a0f]">
         {children}
       </main>
@@ -296,13 +277,11 @@ const App: React.FC = () => {
     setViewMode, 
     saveProject, 
     createProject, 
-    loadProject,
-    setCurrentProject 
+    loadProject
   } = useProjectStore();
 
-  const { isAuthenticated, initialize } = useUserStore();
+  const { initialize } = useUserStore();
 
-  // Detectar mobile
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
@@ -313,15 +292,12 @@ const App: React.FC = () => {
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  // Inicializar auth
   useEffect(() => {
     initialize();
   }, [initialize]);
 
-  // Handlers
   const handleCreateProject = () => {
-    const newProject = createProject('Novo Projeto');
-    setCurrentProject(newProject);
+    createProject('Novo Projeto');
     setCurrentView('editor');
     setIsSidebarOpen(false);
   };
@@ -333,7 +309,6 @@ const App: React.FC = () => {
   const handleLoadProject = (projectId: string) => {
     const project = loadProject(projectId);
     if (project) {
-      setCurrentProject(project);
       setCurrentView('editor');
       setShowProjectModal(false);
       setIsSidebarOpen(false);
@@ -342,7 +317,6 @@ const App: React.FC = () => {
 
   const handleBackToWelcome = () => {
     setCurrentView('welcome');
-    setCurrentProject(null);
     setIsSidebarOpen(false);
   };
 
@@ -352,19 +326,37 @@ const App: React.FC = () => {
     }
   };
 
-  // Render Welcome Screen
   if (currentView === 'welcome') {
     return (
-      <WelcomeScreen
-        onCreateProject={handleCreateProject}
-        onOpenProjects={handleOpenProjects}
-        onExploreTemplates={() => setShowTemplatesModal(true)}
-        onSubscribePro={() => setShowSubscriptionModal(true)}
-      />
+      <>
+        <WelcomeScreen
+          onCreateProject={handleCreateProject}
+          onOpenProjects={handleOpenProjects}
+          onExploreTemplates={() => setShowTemplatesModal(true)}
+          onSubscribePro={() => setShowSubscriptionModal(true)}
+        />
+        
+        <ProjectModal
+          isOpen={showProjectModal}
+          onClose={() => setShowProjectModal(false)}
+          onSelectProject={handleLoadProject}
+          onCreateProject={handleCreateProject}
+        />
+
+        <TemplatesModal
+          isOpen={showTemplatesModal}
+          onClose={() => setShowTemplatesModal(false)}
+          onSelectTemplate={handleCreateProject}
+        />
+
+        <SubscriptionModal
+          isOpen={showSubscriptionModal}
+          onClose={() => setShowSubscriptionModal(false)}
+        />
+      </>
     );
   }
 
-  // Render Editor
   return (
     <div className="h-screen w-screen flex flex-col bg-[#0a0a0f] overflow-hidden">
       <EditorHeader
@@ -387,12 +379,10 @@ const App: React.FC = () => {
         <div className="h-full w-full relative">
           {viewMode === '2d' ? <Canvas2D /> : <Canvas3D />}
           
-          {/* Mobile Toolbar (ferramentas flutuantes) */}
           {isMobile && <MobileToolbar />}
         </div>
       </MainLayout>
 
-      {/* Modals */}
       <ProjectModal
         isOpen={showProjectModal}
         onClose={() => setShowProjectModal(false)}
