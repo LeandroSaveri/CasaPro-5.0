@@ -1,8 +1,8 @@
 // ============================================
-// ARQUIVO: src/App.tsx
+// APP.tsx - CasaPro AI Premium
 // ============================================
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useProjectStore } from '@/store/projectStore';
 import { useUIStore } from '@/store/uiStore';
 import { useUserStore } from '@/store/userStore';
@@ -36,18 +36,24 @@ import {
   Box as BoxIcon,
   SlidersHorizontal,
   Maximize2,
-  PanelLeft
+  PanelLeft,
+  Save,
+  Download,
+  ChevronLeft
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import './App.css';
 
 // ============================================
-// EDITOR INTERFACE - Interface Premium
+// EDITOR INTERFACE - Premium Responsivo
 // ============================================
 const EditorInterface: React.FC<{
   onBackToWelcome: () => void;
 }> = ({ onBackToWelcome }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [activeMobilePanel, setActiveMobilePanel] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+  
   const { 
     viewMode, 
     currentProject, 
@@ -63,6 +69,16 @@ const EditorInterface: React.FC<{
   } = useUIStore();
 
   const { isAuthenticated, syncProject } = useUserStore();
+
+  // Detectar mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024);
+    };
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
 
   // Estados para modais
   const [showAIGenerationModal, setShowAIGenerationModal] = useState(false);
@@ -95,79 +111,80 @@ const EditorInterface: React.FC<{
 
   // Mostrar painel de propriedades quando elemento é selecionado
   useEffect(() => {
-    if (selectedElement) {
+    if (selectedElement && !isMobile) {
       setPanel('properties', true);
     }
-  }, [selectedElement, setPanel]);
+  }, [selectedElement, setPanel, isMobile]);
+
+  // Handler para painéis mobile
+  const toggleMobilePanel = (panelName: string) => {
+    if (activeMobilePanel === panelName) {
+      setActiveMobilePanel(null);
+    } else {
+      setActiveMobilePanel(panelName);
+    }
+  };
 
   return (
-    <div className="w-full h-screen flex bg-[#0a0a0f] overflow-hidden">
-      {/* SIDEBAR - Desktop */}
-      <AnimatePresence mode="wait">
-        {sidebarOpen && (
-          <motion.div
-            initial={{ width: 0, opacity: 0 }}
-            animate={{ width: 80, opacity: 1 }}
-            exit={{ width: 0, opacity: 0 }}
-            transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
-            className="flex-shrink-0 hidden md:block z-20"
-          >
-            <Toolbar />
-          </motion.div>
-        )}
-      </AnimatePresence>
+    <div className="w-full h-screen flex bg-[#0a0a0f] overflow-hidden touch-none">
+      
+      {/* SIDEBAR - Desktop apenas */}
+      {!isMobile && (
+        <AnimatePresence mode="wait">
+          {sidebarOpen && (
+            <motion.div
+              initial={{ width: 0, opacity: 0 }}
+              animate={{ width: 72, opacity: 1 }}
+              exit={{ width: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="flex-shrink-0 z-20 border-r border-white/5"
+            >
+              <Toolbar />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      )}
 
       {/* ÁREA PRINCIPAL */}
-      <div className="flex-1 relative flex flex-col min-w-0">
+      <div className="flex-1 relative flex flex-col min-w-0 overflow-hidden">
         
-        {/* HEADER PREMIUM - Multi-nível */}
-        <header className="flex-shrink-0 z-50 bg-gradient-to-r from-[#0a0a0f] via-[#12121a] to-[#0a0a0f] border-b border-white/10 shadow-2xl shadow-black/50">
+        {/* HEADER PREMIUM - Ultra compacto no mobile */}
+        <header className="flex-shrink-0 z-50 bg-[#0a0a0f] border-b border-white/10">
           
-          {/* NÍVEL 1: Barra Principal */}
-          <div className="flex items-center justify-between px-3 sm:px-4 lg:px-6 py-3">
+          {/* LINHA ÚNICA - Desktop e Mobile */}
+          <div className="flex items-center justify-between px-3 h-14">
             
-            {/* ESQUERDA: Controle + Projeto */}
-            <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-              {/* Toggle Sidebar */}
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={toggleSidebar}
-                className="hidden md:flex p-2.5 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-[#c9a962]/30 transition-all duration-300 group"
-              >
-                <PanelLeft size={20} className="text-white/60 group-hover:text-[#c9a962] transition-colors" />
-              </motion.button>
-              
-              <div className="hidden md:block h-8 w-px bg-gradient-to-b from-transparent via-white/20 to-transparent" />
-              
-              {/* Info do Projeto */}
-              <div className="min-w-0">
-                <motion.div 
-                  className="flex items-center gap-2"
-                  initial={false}
-                  animate={{ opacity: 1 }}
+            {/* ESQUERDA: Logo/Projeto */}
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              {/* Toggle Sidebar - Desktop */}
+              {!isMobile && (
+                <button
+                  onClick={toggleSidebar}
+                  className="p-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-all"
                 >
-                  <motion.div 
-                    animate={{ 
-                      boxShadow: ['0 0 0px #c9a962', '0 0 10px #c9a962', '0 0 0px #c9a962']
-                    }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                    className="w-2 h-2 rounded-full bg-[#c9a962]"
-                  />
-                  <h1 className="text-white font-bold text-sm sm:text-base lg:text-lg tracking-wide truncate">
-                    {currentProject?.name || 'Novo Projeto'}
+                  <PanelLeft size={18} className="text-white/60" />
+                </button>
+              )}
+              
+              {/* Logo + Nome */}
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#c9a962] to-[#a08040] flex items-center justify-center flex-shrink-0">
+                  <span className="text-[#0a0a0f] font-bold text-sm">C</span>
+                </div>
+                <div className="min-w-0">
+                  <h1 className="text-white font-semibold text-sm truncate max-w-[120px] sm:max-w-[200px]">
+                    {currentProject?.name || 'Projeto'}
                   </h1>
-                </motion.div>
-                <p className="text-[10px] sm:text-xs text-white/40 hidden sm:block font-medium">
-                  {viewMode === '2d' ? 'Planta Baixa 2D' : 'Visualização 3D'} • 
-                  {currentProject?.settings?.unit === 'meters' ? ' Métrico' : ' Imperial'}
-                </p>
+                  <p className="text-[10px] text-white/40 hidden sm:block">
+                    {viewMode === '2d' ? '2D' : '3D'}
+                  </p>
+                </div>
               </div>
             </div>
 
-            {/* CENTRO: View Mode - Desktop */}
-            <div className="hidden lg:flex items-center justify-center flex-1">
-              <div className="flex items-center bg-[#1a1a24] border border-white/10 rounded-2xl p-1 shadow-inner shadow-black/50">
+            {/* CENTRO: View Mode */}
+            <div className="flex items-center justify-center">
+              <div className="flex items-center bg-[#1a1a24] border border-white/10 rounded-xl p-0.5">
                 <ViewModeButton 
                   active={viewMode === '2d'} 
                   onClick={() => setViewMode('2d')}
@@ -182,77 +199,61 @@ const EditorInterface: React.FC<{
             </div>
 
             {/* DIREITA: Ações */}
-            <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
+            <div className="flex items-center gap-1 flex-shrink-0">
               
-              {/* View Mode Compacto - Mobile/Tablet */}
-              <div className="flex lg:hidden items-center bg-[#1a1a24] border border-white/10 rounded-xl p-0.5 shadow-inner">
-                <CompactViewButton 
-                  active={viewMode === '2d'} 
-                  onClick={() => setViewMode('2d')}
-                  label="2D"
-                />
-                <CompactViewButton 
-                  active={viewMode === '3d'} 
-                  onClick={() => setViewMode('3d')}
-                  label="3D"
-                />
-              </div>
-
-              {/* Painéis - Desktop */}
-              <PanelToggleButton
-                icon={<BoxIcon size={18} />}
-                label="Móveis"
-                active={panels.furniture}
-                onClick={() => setPanel('furniture', !panels.furniture)}
-                className="hidden xl:flex"
-              />
-              
-              <PanelToggleButton
-                icon={<SlidersHorizontal size={18} />}
-                label="Propriedades"
-                active={panels.properties}
-                onClick={() => setPanel('properties', !panels.properties)}
-                className="hidden xl:flex"
-              />
-
-              {/* Menu Principal - Premium */}
-              <motion.button 
-                whileHover={{ scale: 1.05, boxShadow: '0 0 30px rgba(201,169,98,0.4)' }}
-                whileTap={{ scale: 0.95 }}
+              {/* Botão Menu Principal - Sempre visível */}
+              <button 
                 onClick={() => setIsMenuOpen(true)}
-                className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 rounded-xl bg-gradient-to-r from-[#c9a962] via-[#b8944f] to-[#a08040] hover:from-[#d4b76a] hover:via-[#c9a962] hover:to-[#b08d4a] transition-all duration-300 text-[#0a0a0f] font-bold shadow-lg shadow-[#c9a962]/30 border border-[#c9a962]/50"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-[#c9a962] to-[#a08040] text-[#0a0a0f] font-semibold text-sm shadow-lg shadow-[#c9a962]/20"
               >
-                <Menu size={18} />
-                <span className="hidden sm:inline text-sm">Menu</span>
-              </motion.button>
+                <Menu size={16} />
+                <span className="hidden sm:inline">Menu</span>
+              </button>
             </div>
           </div>
+        </header>
 
-          {/* NÍVEL 2: Barra de Ferramentas Mobile - SEMPRE VISÍVEL */}
-          <div className="xl:hidden border-t border-white/5 bg-[#0d0d12]/95 backdrop-blur-xl">
-            <div className="flex items-center gap-1 px-3 py-2 overflow-x-auto scrollbar-hide">
-              <MobileToolPill
-                icon={<BoxIcon size={16} />}
+        {/* CANVAS AREA - Com touch habilitado */}
+        <div className="relative flex-1 overflow-hidden bg-[#0a0a0f] touch-pan-y">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={viewMode}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="w-full h-full"
+            >
+              {viewMode === '2d' ? <Canvas2D /> : <Canvas3D />}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+
+        {/* BARRA INFERIOR MOBILE - Ferramentas rápidas */}
+        {isMobile && (
+          <div className="flex-shrink-0 bg-[#0a0a0f] border-t border-white/10 px-2 py-2">
+            <div className="flex items-center justify-around gap-1">
+              <MobileActionButton
+                icon={<BoxIcon size={20} />}
                 label="Móveis"
-                active={panels.furniture}
-                onClick={() => setPanel('furniture', !panels.furniture)}
+                active={activeMobilePanel === 'furniture'}
+                onClick={() => toggleMobilePanel('furniture')}
               />
-              <MobileToolPill
-                icon={<SlidersHorizontal size={16} />}
+              <MobileActionButton
+                icon={<Sparkles size={20} />}
+                label="IA"
+                active={activeMobilePanel === 'ai'}
+                onClick={() => toggleMobilePanel('ai')}
+              />
+              <MobileActionButton
+                icon={<SlidersHorizontal size={20} />}
                 label="Propriedades"
-                active={panels.properties}
-                onClick={() => setPanel('properties', !panels.properties)}
+                active={activeMobilePanel === 'properties'}
+                onClick={() => toggleMobilePanel('properties')}
               />
-              <MobileToolPill
-                icon={<LayoutGrid size={16} />}
-                label="Camadas"
-                active={panels.ai}
-                onClick={() => setPanel('ai', !panels.ai)}
-              />
-              <MobileToolPill
-                icon={<Maximize2 size={16} />}
+              <MobileActionButton
+                icon={<Maximize2 size={20} />}
                 label="Tela Cheia"
-                active={false}
                 onClick={() => {
                   if (!document.fullscreenElement) {
                     document.documentElement.requestFullscreen();
@@ -263,47 +264,49 @@ const EditorInterface: React.FC<{
               />
             </div>
           </div>
-        </header>
-
-        {/* CANVAS AREA */}
-        <div className="relative flex-1 overflow-hidden bg-[#0a0a0f]">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={viewMode}
-              initial={{ opacity: 0, scale: 0.97 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.97 }}
-              transition={{ duration: 0.35, ease: [0.4, 0, 0.2, 1] }}
-              className="w-full h-full"
-            >
-              {viewMode === '2d' ? <Canvas2D /> : <Canvas3D />}
-            </motion.div>
-          </AnimatePresence>
-        </div>
+        )}
       </div>
 
       {/* PAINÉIS LATERAIS - Desktop */}
+      {!isMobile && (
+        <>
+          <AnimatePresence>
+            {panels.furniture && (
+              <PanelWrapper width={300}>
+                <FurniturePanel />
+              </PanelWrapper>
+            )}
+          </AnimatePresence>
+          
+          <AnimatePresence>
+            {panels.ai && (
+              <PanelWrapper width={300}>
+                <AIAssistant />
+              </PanelWrapper>
+            )}
+          </AnimatePresence>
+          
+          <AnimatePresence>
+            {panels.properties && (
+              <PanelWrapper width={280}>
+                <PropertiesPanel />
+              </PanelWrapper>
+            )}
+          </AnimatePresence>
+        </>
+      )}
+
+      {/* PAINÉIS MOBILE - Bottom Sheet */}
       <AnimatePresence>
-        {panels.furniture && (
-          <PanelWrapper width={320}>
-            <FurniturePanel />
-          </PanelWrapper>
-        )}
-      </AnimatePresence>
-      
-      <AnimatePresence>
-        {panels.ai && (
-          <PanelWrapper width={320}>
-            <AIAssistant />
-          </PanelWrapper>
-        )}
-      </AnimatePresence>
-      
-      <AnimatePresence>
-        {panels.properties && (
-          <PanelWrapper width={288}>
-            <PropertiesPanel />
-          </PanelWrapper>
+        {isMobile && activeMobilePanel && (
+          <MobilePanel
+            title={activeMobilePanel === 'furniture' ? 'Móveis' : activeMobilePanel === 'ai' ? 'Assistente IA' : 'Propriedades'}
+            onClose={() => setActiveMobilePanel(null)}
+          >
+            {activeMobilePanel === 'furniture' && <FurniturePanel />}
+            {activeMobilePanel === 'ai' && <AIAssistant />}
+            {activeMobilePanel === 'properties' && <PropertiesPanel />}
+          </MobilePanel>
         )}
       </AnimatePresence>
 
@@ -344,8 +347,8 @@ const EditorInterface: React.FC<{
             onBackToWelcome={onBackToWelcome}
             setShowDesignSuggestions={setShowDesignSuggestions}
             setShowAIGenerationModal={setShowAIGenerationModal}
-            setPanel={setPanel}
-            panels={panels}
+            setShowExportModal={setShowExportModal}
+            isMobile={isMobile}
           />
         )}
       </AnimatePresence>
@@ -354,7 +357,7 @@ const EditorInterface: React.FC<{
 };
 
 // ============================================
-// COMPONENTES AUXILIARES PREMIUM
+// COMPONENTES AUXILIARES
 // ============================================
 
 const ViewModeButton: React.FC<{
@@ -362,78 +365,35 @@ const ViewModeButton: React.FC<{
   onClick: () => void;
   label: string;
 }> = ({ active, onClick, label }) => (
-  <motion.button
-    whileHover={{ scale: 1.03 }}
-    whileTap={{ scale: 0.97 }}
-    onClick={onClick}
-    className={`relative px-6 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${
-      active
-        ? 'bg-gradient-to-br from-[#c9a962] to-[#a08040] text-[#0a0a0f] shadow-lg shadow-[#c9a962]/30'
-        : 'text-white/50 hover:text-white hover:bg-white/5'
-    }`}
-  >
-    {label}
-  </motion.button>
-);
-
-const CompactViewButton: React.FC<{
-  active: boolean;
-  onClick: () => void;
-  label: string;
-}> = ({ active, onClick, label }) => (
-  <motion.button
-    whileTap={{ scale: 0.95 }}
+  <button
     onClick={onClick}
     className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
       active
         ? 'bg-gradient-to-br from-[#c9a962] to-[#a08040] text-[#0a0a0f]'
-        : 'text-white/50 hover:text-white'
+        : 'text-white/50 hover:text-white hover:bg-white/5'
     }`}
   >
     {label}
-  </motion.button>
+  </button>
 );
 
-const PanelToggleButton: React.FC<{
+const MobileActionButton: React.FC<{
   icon: React.ReactNode;
   label: string;
-  active: boolean;
-  onClick: () => void;
-  className?: string;
-}> = ({ icon, label, active, onClick, className = '' }) => (
-  <motion.button
-    whileHover={{ scale: 1.05 }}
-    whileTap={{ scale: 0.95 }}
-    onClick={onClick}
-    className={`items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 border ${
-      active 
-        ? 'bg-[#c9a962]/15 text-[#c9a962] border-[#c9a962]/40 shadow-[0_0_20px_rgba(201,169,98,0.15)]' 
-        : 'bg-white/[0.03] text-white/60 border-white/10 hover:bg-white/[0.08] hover:text-white hover:border-white/20'
-    } ${className}`}
-  >
-    {icon}
-    <span>{label}</span>
-  </motion.button>
-);
-
-const MobileToolPill: React.FC<{
-  icon: React.ReactNode;
-  label: string;
-  active: boolean;
+  active?: boolean;
   onClick: () => void;
 }> = ({ icon, label, active, onClick }) => (
-  <motion.button
-    whileTap={{ scale: 0.95 }}
+  <button
     onClick={onClick}
-    className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all duration-300 ${
+    className={`flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all min-w-[60px] ${
       active
-        ? 'bg-gradient-to-r from-[#c9a962]/20 to-[#a08040]/10 text-[#c9a962] border border-[#c9a962]/40 shadow-[0_0_15px_rgba(201,169,98,0.15)]'
-        : 'bg-white/5 text-white/60 border border-white/10 hover:bg-white/10 hover:text-white hover:border-white/20'
+        ? 'bg-[#c9a962]/20 text-[#c9a962]'
+        : 'text-white/60 hover:text-white hover:bg-white/5'
     }`}
   >
     {icon}
-    <span>{label}</span>
-  </motion.button>
+    <span className="text-[10px] font-medium">{label}</span>
+  </button>
 );
 
 const PanelWrapper: React.FC<{
@@ -441,34 +401,74 @@ const PanelWrapper: React.FC<{
   children: React.ReactNode;
 }> = ({ width, children }) => (
   <motion.div
-    initial={{ width: 0, opacity: 0, x: 20 }}
-    animate={{ width, opacity: 1, x: 0 }}
-    exit={{ width: 0, opacity: 0, x: 20 }}
-    transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-    className="hidden xl:flex flex-shrink-0 overflow-hidden"
+    initial={{ width: 0, opacity: 0 }}
+    animate={{ width, opacity: 1 }}
+    exit={{ width: 0, opacity: 0 }}
+    transition={{ duration: 0.2 }}
+    className="flex-shrink-0 overflow-hidden border-l border-white/5 bg-[#0a0a0f]"
   >
     {children}
   </motion.div>
 );
 
 // ============================================
-// SIDEMENU PREMIUM
+// MOBILE PANEL - Bottom Sheet
+// ============================================
+const MobilePanel: React.FC<{
+  title: string;
+  onClose: () => void;
+  children: React.ReactNode;
+}> = ({ title, onClose, children }) => (
+  <>
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/50 z-40"
+      onClick={onClose}
+    />
+    <motion.div
+      initial={{ y: '100%' }}
+      animate={{ y: 0 }}
+      exit={{ y: '100%' }}
+      transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+      className="fixed bottom-0 left-0 right-0 z-50 bg-[#0f0f16] border-t border-white/10 rounded-t-2xl max-h-[70vh] flex flex-col"
+    >
+      {/* Header do painel */}
+      <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+        <h3 className="text-white font-semibold">{title}</h3>
+        <button 
+          onClick={onClose}
+          className="p-2 rounded-lg hover:bg-white/10 text-white/60"
+        >
+          <X size={20} />
+        </button>
+      </div>
+      
+      {/* Conteúdo scrollável */}
+      <div className="flex-1 overflow-y-auto p-4 touch-pan-y">
+        {children}
+      </div>
+    </motion.div>
+  </>
+);
+
+// ============================================
+// SIDEMENU PREMIUM - Simplificado
 // ============================================
 const SideMenu: React.FC<{
   onClose: () => void;
   onBackToWelcome: () => void;
   setShowDesignSuggestions: (value: boolean) => void;
   setShowAIGenerationModal: (value: boolean) => void;
-  setPanel: (key: string, value: boolean) => void;
-  panels: any;
-}> = ({ onClose, onBackToWelcome, setShowDesignSuggestions, setShowAIGenerationModal, setPanel, panels }) => {
-  const [openAI, setOpenAI] = useState(false);
-  const { currentProject, updateProject } = useProjectStore();
+  setShowExportModal: (value: boolean) => void;
+  isMobile: boolean;
+}> = ({ onClose, onBackToWelcome, setShowDesignSuggestions, setShowAIGenerationModal, setShowExportModal, isMobile }) => {
+  const [openSection, setOpenSection] = useState<string | null>(null);
+  const { currentProject } = useProjectStore();
 
-  const handleSave = () => {
-    if (currentProject) {
-      updateProject({ updatedAt: new Date() });
-    }
+  const toggleSection = (section: string) => {
+    setOpenSection(openSection === section ? null : section);
   };
 
   return (
@@ -477,251 +477,277 @@ const SideMenu: React.FC<{
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        transition={{ duration: 0.3 }}
-        className="absolute inset-0 bg-black/70 backdrop-blur-md"
+        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
         onClick={onClose}
       />
       
       <motion.div 
-        initial={{ x: '100%', opacity: 0.8 }}
-        animate={{ x: 0, opacity: 1 }}
-        exit={{ x: '100%', opacity: 0.8 }}
+        initial={{ x: '100%' }}
+        animate={{ x: 0 }}
+        exit={{ x: '100%' }}
         transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-        className="absolute right-0 top-0 bottom-0 w-full max-w-md bg-gradient-to-b from-[#0f0f16] to-[#0a0a0f] border-l border-white/10 overflow-y-auto shadow-2xl"
+        className={`absolute right-0 top-0 bottom-0 bg-[#0a0a0f] border-l border-white/10 overflow-y-auto ${
+          isMobile ? 'w-full' : 'w-96'
+        }`}
       >
         {/* Header */}
-        <div className="sticky top-0 z-10 flex items-center justify-between p-5 bg-[#0f0f16]/95 backdrop-blur-xl border-b border-white/10">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#c9a962] to-[#a08040] flex items-center justify-center shadow-lg shadow-[#c9a962]/30">
-              <span className="text-[#0a0a0f] font-bold text-xl">C</span>
+        <div className="sticky top-0 z-10 flex items-center justify-between p-4 bg-[#0a0a0f] border-b border-white/10">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#c9a962] to-[#a08040] flex items-center justify-center">
+              <span className="text-[#0a0a0f] font-bold text-lg">C</span>
             </div>
             <div>
-              <p className="text-white font-bold text-lg tracking-wide">CasaPro</p>
-              <p className="text-xs text-[#c9a962] font-medium tracking-wider uppercase">Menu Principal</p>
+              <p className="text-white font-bold">CasaPro</p>
+              <p className="text-xs text-[#c9a962]">Menu</p>
             </div>
           </div>
-          <motion.button 
-            whileTap={{ scale: 0.9 }}
+          <button 
             onClick={onClose} 
-            className="p-3 hover:bg-white/10 rounded-xl transition-all text-white/60 hover:text-white border border-transparent hover:border-white/20"
+            className="p-2 hover:bg-white/10 rounded-lg text-white/60"
           >
             <X size={24} />
-          </motion.button>
+          </button>
         </div>
 
-        <div className="p-5 space-y-5">
+        <div className="p-4 space-y-4">
           {/* Projeto Atual */}
-          <div className="bg-gradient-to-br from-[#c9a962]/20 via-[#c9a962]/8 to-transparent border border-[#c9a962]/40 rounded-2xl p-5 shadow-[0_0_30px_rgba(201,169,98,0.1)]">
-            <div className="flex items-center gap-4 mb-4">
-              <div className="w-12 h-12 rounded-xl bg-[#c9a962]/20 flex items-center justify-center border border-[#c9a962]/30">
-                <FolderOpen size={24} className="text-[#c9a962]" />
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-widest text-[#c9a962] font-semibold">Projeto Atual</p>
-                <div className="w-8 h-0.5 bg-gradient-to-r from-[#c9a962] to-transparent mt-1" />
-              </div>
+          <div className="bg-gradient-to-br from-[#c9a962]/10 to-transparent border border-[#c9a962]/30 rounded-xl p-4">
+            <div className="flex items-center gap-3 mb-3">
+              <FolderOpen size={20} className="text-[#c9a962]" />
+              <span className="text-xs uppercase text-[#c9a962] font-medium">Projeto Atual</span>
             </div>
-            <p className="text-white font-bold text-xl truncate">{currentProject?.name || 'Novo Projeto'}</p>
-            <p className="text-sm text-white/50 mt-2 flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#c9a962]" />
-              {currentProject?.settings?.unit === 'meters' ? 'Sistema Métrico' : 'Imperial'}
-            </p>
+            <p className="text-white font-semibold truncate">{currentProject?.name || 'Novo Projeto'}</p>
           </div>
 
-          {/* Inteligência AI */}
-          <div className="bg-white/[0.02] rounded-2xl border border-white/10 overflow-hidden">
-            <button
-              onClick={() => setOpenAI(!openAI)}
-              className="w-full flex items-center justify-between p-4 hover:bg-white/[0.04] transition-all group"
+          {/* Seções do Menu */}
+          <div className="space-y-2">
+            {/* IA Section */}
+            <MenuSection
+              title="Inteligência AI"
+              icon={<Sparkles size={18} className="text-violet-400" />}
+              isOpen={openSection === 'ai'}
+              onToggle={() => toggleSection('ai')}
             >
-              <div className="flex items-center gap-4">
-                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-violet-500/20 to-purple-600/10 flex items-center justify-center border border-violet-500/30">
-                  <Sparkles size={20} className="text-violet-400" />
-                </div>
-                <div className="text-left">
-                  <span className="text-white font-semibold block">Inteligência AI</span>
-                  <span className="text-xs text-white/40">Assistente inteligente</span>
-                </div>
-              </div>
-              <div className={`p-2 rounded-lg bg-white/5 transition-transform ${openAI ? 'rotate-180' : ''}`}>
-                <ChevronDown size={20} className="text-white/50" />
-              </div>
-            </button>
-
-            <AnimatePresence>
-              {openAI && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: 'auto', opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  transition={{ duration: 0.3 }}
-                  className="overflow-hidden"
-                >
-                  <div className="p-3 pt-0 space-y-2">
-                    <MenuItem
-                      icon={<Lightbulb size={18} className="text-amber-400" />}
-                      label="Sugestões"
-                      description="Ideias de design"
-                      onClick={() => { setShowDesignSuggestions(true); onClose(); }}
-                    />
-                    <MenuItem
-                      icon={<Sparkles size={18} className="text-[#c9a962]" />}
-                      label="Assistente IA"
-                      description="Chat inteligente"
-                      onClick={() => { setPanel('ai', true); onClose(); }}
-                    />
-                    <MenuItem
-                      icon={<Wand2 size={18} className="text-violet-400" />}
-                      label="Gerar com IA"
-                      description="Criação automática"
-                      onClick={() => { setShowAIGenerationModal(true); onClose(); }}
-                    />
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          {/* Ferramentas */}
-          <div>
-            <p className="text-xs uppercase tracking-widest text-white/30 font-semibold mb-3 ml-1 flex items-center gap-2">
-              <div className="w-4 h-px bg-white/20" />
-              Ferramentas
-              <div className="flex-1 h-px bg-white/10" />
-            </p>
-            <div className="space-y-2">
-              <ToolButton
-                icon="🛋️"
-                label="Móveis"
-                description="Biblioteca de móveis"
-                active={panels.furniture}
-                onClick={() => { setPanel('furniture', !panels.furniture); onClose(); }}
+              <MenuItem
+                icon={<Lightbulb size={16} />}
+                label="Sugestões de Design"
+                onClick={() => { setShowDesignSuggestions(true); onClose(); }}
               />
-              <ToolButton
-                icon={<Settings size={20} />}
-                label="Propriedades"
-                description="Configurações do projeto"
-                active={panels.properties}
-                onClick={() => { setPanel('properties', !panels.properties); onClose(); }}
+              <MenuItem
+                icon={<Wand2 size={16} />}
+                label="Gerar com IA"
+                onClick={() => { setShowAIGenerationModal(true); onClose(); }}
               />
-            </div>
-          </div>
+            </MenuSection>
 
-          {/* Ações */}
-          <div>
-            <p className="text-xs uppercase tracking-widest text-white/30 font-semibold mb-3 ml-1 flex items-center gap-2">
-              <div className="w-4 h-px bg-white/20" />
-              Ações
-              <div className="flex-1 h-px bg-white/10" />
-            </p>
-            <div className="space-y-2">
-              <ActionButton
-                icon={
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-                  </svg>
-                }
-                label="Salvar Projeto"
-                onClick={() => { handleSave(); onClose(); }}
-              />
-              <ActionButton
-                icon={
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                  </svg>
-                }
-                label="Exportar"
+            {/* Ferramentas */}
+            <MenuSection
+              title="Ferramentas"
+              icon={<Settings size={18} className="text-[#c9a962]" />}
+              isOpen={openSection === 'tools'}
+              onToggle={() => toggleSection('tools')}
+            >
+              <MenuItem
+                icon={<BoxIcon size={16} />}
+                label="Biblioteca de Móveis"
                 onClick={onClose}
               />
-            </div>
+              <MenuItem
+                icon={<LayoutGrid size={16} />}
+                label="Camadas"
+                onClick={onClose}
+              />
+            </MenuSection>
+
+            {/* Ações */}
+            <MenuSection
+              title="Ações"
+              icon={<Save size={18} className="text-emerald-400" />}
+              isOpen={openSection === 'actions'}
+              onToggle={() => toggleSection('actions')}
+            >
+              <MenuItem
+                icon={<Save size={16} />}
+                label="Salvar Projeto"
+                onClick={onClose}
+              />
+              <MenuItem
+                icon={<Download size={16} />}
+                label="Exportar"
+                onClick={() => { setShowExportModal(true); onClose(); }}
+              />
+            </MenuSection>
           </div>
 
           {/* Voltar para Home */}
-          <div className="pt-4 border-t border-white/10">
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => { onBackToWelcome(); onClose(); }}
-              className="w-full flex items-center justify-center gap-3 px-6 py-4 rounded-xl bg-gradient-to-r from-[#c9a962] via-[#b8944f] to-[#a08040] hover:from-[#d4b76a] hover:via-[#c9a962] hover:to-[#b08d4a] transition-all text-[#0a0a0f] font-bold shadow-xl shadow-[#c9a962]/30 border border-[#c9a962]/60"
-            >
-              <div className="w-10 h-10 rounded-xl bg-[#0a0a0f]/20 flex items-center justify-center">
-                <Home size={20} className="text-[#0a0a0f]" />
-              </div>
-              <span className="text-lg">Voltar para Home</span>
-            </motion.button>
-          </div>
+          <button
+            onClick={() => { onBackToWelcome(); onClose(); }}
+            className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-gradient-to-r from-[#c9a962] to-[#a08040] text-[#0a0a0f] font-semibold mt-6"
+          >
+            <Home size={18} />
+            <span>Voltar para Home</span>
+          </button>
         </div>
       </motion.div>
     </div>
   );
 };
 
-const MenuItem: React.FC<{
+const MenuSection: React.FC<{
+  title: string;
   icon: React.ReactNode;
-  label: string;
-  description: string;
-  onClick: () => void;
-}> = ({ icon, label, description, onClick }) => (
-  <motion.button
-    whileTap={{ scale: 0.98 }}
-    onClick={onClick}
-    className="w-full flex items-center gap-4 px-4 py-3.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/5 hover:border-[#c9a962]/30 transition-all group"
-  >
-    <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center group-hover:bg-[#c9a962]/10 transition-colors">
-      {icon}
-    </div>
-    <div className="text-left">
-      <span className="text-white/90 font-medium block group-hover:text-white">{label}</span>
-      <span className="text-xs text-white/40">{description}</span>
-    </div>
-  </motion.button>
+  isOpen: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}> = ({ title, icon, isOpen, onToggle, children }) => (
+  <div className="bg-white/[0.02] rounded-xl border border-white/5 overflow-hidden">
+    <button
+      onClick={onToggle}
+      className="w-full flex items-center justify-between p-3 hover:bg-white/[0.04] transition-all"
+    >
+      <div className="flex items-center gap-3">
+        <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center">
+          {icon}
+        </div>
+        <span className="text-white font-medium text-sm">{title}</span>
+      </div>
+      <ChevronDown 
+        size={18} 
+        className={`text-white/40 transition-transform ${isOpen ? 'rotate-180' : ''}`} 
+      />
+    </button>
+
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          initial={{ height: 0 }}
+          animate={{ height: 'auto' }}
+          exit={{ height: 0 }}
+          className="overflow-hidden"
+        >
+          <div className="p-2 pt-0 space-y-1">
+            {children}
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  </div>
 );
 
-const ToolButton: React.FC<{
-  icon: React.ReactNode | string;
-  label: string;
-  description: string;
-  active: boolean;
-  onClick: () => void;
-}> = ({ icon, label, description, active, onClick }) => (
-  <motion.button
-    whileTap={{ scale: 0.98 }}
-    onClick={onClick}
-    className={`w-full flex items-center gap-4 px-4 py-4 rounded-xl border transition-all ${
-      active 
-        ? 'bg-[#c9a962]/10 border-[#c9a962]/40 shadow-[0_0_20px_rgba(201,169,98,0.1)]' 
-        : 'bg-white/[0.03] border-white/10 hover:bg-white/[0.06] hover:border-white/20'
-    }`}
-  >
-    <div className={`w-11 h-11 rounded-xl flex items-center justify-center text-xl ${active ? 'bg-[#c9a962]/20' : 'bg-white/5'}`}>
-      {typeof icon === 'string' ? icon : icon}
-    </div>
-    <div className="text-left">
-      <span className={`font-semibold block ${active ? 'text-[#c9a962]' : 'text-white/90'}`}>{label}</span>
-      <span className="text-xs text-white/40">{description}</span>
-    </div>
-    {active && <div className="ml-auto w-2 h-2 rounded-full bg-[#c9a962]" />}
-  </motion.button>
-);
-
-const ActionButton: React.FC<{
+const MenuItem: React.FC<{
   icon: React.ReactNode;
   label: string;
   onClick: () => void;
 }> = ({ icon, label, onClick }) => (
-  <motion.button
-    whileTap={{ scale: 0.98 }}
+  <button
     onClick={onClick}
-    className="w-full flex items-center gap-4 px-4 py-4 rounded-xl bg-white/[0.03] border border-white/10 hover:bg-white/[0.06] hover:border-[#c9a962]/30 transition-all group"
+    className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-white/[0.05] transition-all text-left"
   >
-    <div className="w-11 h-11 rounded-xl bg-white/5 flex items-center justify-center border border-white/10 group-hover:border-[#c9a962]/30 group-hover:bg-[#c9a962]/10 transition-all text-white/50 group-hover:text-[#c9a962]">
-      {icon}
-    </div>
-    <div className="text-left">
-      <span className="text-white/90 font-semibold block group-hover:text-white">{label}</span>
-    </div>
-  </motion.button>
+    <span className="text-white/60">{icon}</span>
+    <span className="text-white/80 text-sm">{label}</span>
+  </button>
 );
+
+// ============================================
+// WELCOME SCREEN - Premium Simplificado
+// ============================================
+const WelcomeScreen: React.FC<{
+  onCreateProject: () => void;
+  onOpenProjects: () => void;
+  onExploreTemplates: () => void;
+}> = ({ onCreateProject, onOpenProjects, onExploreTemplates }) => {
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-[#0a0a0f] via-[#0d0d12] to-[#0a0a0f] flex flex-col">
+      {/* Header */}
+      <header className="flex items-center justify-between px-6 py-4 border-b border-white/5">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#c9a962] to-[#a08040] flex items-center justify-center">
+            <span className="text-[#0a0a0f] font-bold text-xl">C</span>
+          </div>
+          <span className="text-white font-bold text-xl">CasaPro</span>
+        </div>
+        <button className="px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white/80 text-sm font-medium transition-all">
+          Entrar
+        </button>
+      </header>
+
+      {/* Hero Section */}
+      <main className="flex-1 flex flex-col items-center justify-center px-6 py-12 text-center">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+          className="max-w-2xl"
+        >
+          <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
+            Design de Interiores{' '}
+            <span className="bg-gradient-to-r from-[#c9a962] to-[#e8d5a3] bg-clip-text text-transparent">
+              Inteligente
+            </span>
+          </h1>
+          
+          <p className="text-lg text-white/60 mb-10 max-w-xl mx-auto">
+            Crie plantas baixas profissionais em 2D e visualize em 3D com auxílio de IA
+          </p>
+
+          {/* Botões Principais */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={onCreateProject}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-gradient-to-r from-[#c9a962] to-[#a08040] text-[#0a0a0f] font-bold text-lg shadow-xl shadow-[#c9a962]/20"
+            >
+              <Compass size={22} />
+              <span>Criar Projeto</span>
+            </motion.button>
+
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={onOpenProjects}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-semibold transition-all"
+            >
+              <FolderOpen size={22} />
+              <span>Meus Projetos</span>
+            </motion.button>
+          </div>
+
+          {/* Templates */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3, duration: 0.6 }}
+            className="mt-16"
+          >
+            <p className="text-white/40 text-sm mb-6 uppercase tracking-wider">Templates Populares</p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {['Sala', 'Cozinha', 'Quarto', 'Escritório'].map((room, i) => (
+                <button
+                  key={room}
+                  onClick={onExploreTemplates}
+                  className="p-4 rounded-xl bg-white/[0.03] hover:bg-white/[0.06] border border-white/5 hover:border-[#c9a962]/30 transition-all group"
+                >
+                  <div className="w-12 h-12 mx-auto mb-3 rounded-lg bg-white/5 group-hover:bg-[#c9a962]/10 flex items-center justify-center text-2xl">
+                    {['🛋️', '🍳', '🛏️', '💼'][i]}
+                  </div>
+                  <span className="text-white/70 text-sm font-medium group-hover:text-white">{room}</span>
+                </button>
+              ))}
+            </div>
+          </motion.div>
+        </motion.div>
+      </main>
+
+      {/* Footer */}
+      <footer className="px-6 py-6 border-t border-white/5 text-center">
+        <p className="text-white/30 text-sm">
+          CasaPro AI © 2024 - Design inteligente para todos
+        </p>
+      </footer>
+    </div>
+  );
+};
 
 // ============================================
 // APP COMPONENT
@@ -754,30 +780,12 @@ function App() {
   if (showWelcome) {
     return (
       <>
-        <div className="bg-[#0a0a0f] min-h-screen overflow-y-auto touch-pan-y">
-          <WelcomeScreen 
-            onCreateProject={() => setShowCreateModal(true)}
-            onOpenProjects={() => setShowCreateModal(true)}
-            onExploreTemplates={() => setShowCreateModal(true)}
-            onSubscribePro={() => alert('Assinatura Pro - Em breve!')}
-          />
-        </div>
+        <WelcomeScreen 
+          onCreateProject={() => setShowCreateModal(true)}
+          onOpenProjects={() => setShowCreateModal(true)}
+          onExploreTemplates={() => setShowCreateModal(true)}
+        />
         
-        <motion.button
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5, duration: 0.6 }}
-          onClick={() => {
-            if (!currentProject) createProject('Projeto Teste', 'Projeto temporário');
-            setShowWelcome(false);
-          }}
-          className="fixed bottom-8 right-8 z-50 flex items-center gap-3 px-6 py-4 bg-gradient-to-r from-[#c9a962] via-[#b8944f] to-[#a08040] hover:from-[#d4b76a] hover:via-[#c9a962] hover:to-[#b08d4a] transition-all text-[#0a0a0f] font-bold rounded-2xl shadow-2xl shadow-[#c9a962]/40 border border-[#c9a962]/70"
-        >
-          <Compass size={22} />
-          <span>Ir para Canvas</span>
-          <ChevronRight size={20} />
-        </motion.button>
-
         <CreateProjectModal
           isOpen={showCreateModal}
           onClose={() => setShowCreateModal(false)}
