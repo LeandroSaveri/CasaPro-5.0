@@ -8,15 +8,9 @@ import {
   LogOut, 
   Crown,
   ChevronDown,
-  Cloud,
-  Moon,
-  Sun
+  Cloud
 } from 'lucide-react';
 
-// ============================================
-// COMPONENTE: UserMenu
-// Menu dropdown premium do usuário
-// ============================================
 const UserMenu: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { isAuthenticated, user, currentPlan, logout } = useUserStore();
@@ -26,7 +20,6 @@ const UserMenu: React.FC = () => {
     setIsOpen(false);
   };
 
-  // Usuário não logado
   if (!isAuthenticated) {
     return (
       <motion.button
@@ -42,7 +35,6 @@ const UserMenu: React.FC = () => {
 
   return (
     <div className="relative">
-      {/* Botão do Usuário */}
       <motion.button
         whileTap={{ scale: 0.95 }}
         onClick={() => setIsOpen(!isOpen)}
@@ -54,7 +46,6 @@ const UserMenu: React.FC = () => {
           }
         `}
       >
-        {/* Avatar */}
         <div className={`
           w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold
           ${isPro 
@@ -65,7 +56,6 @@ const UserMenu: React.FC = () => {
           {user?.name?.charAt(0).toUpperCase() || 'U'}
         </div>
         
-        {/* Info (hidden em telas muito pequenas) */}
         <div className="hidden sm:block text-left">
           <div className="text-sm font-medium leading-tight">{user?.name?.split(' ')[0]}</div>
           <div className="text-[10px] text-white/50 leading-tight">
@@ -79,11 +69,9 @@ const UserMenu: React.FC = () => {
         />
       </motion.button>
 
-      {/* Dropdown */}
       <AnimatePresence>
         {isOpen && (
           <>
-            {/* Overlay para fechar ao clicar fora */}
             <div 
               className="fixed inset-0 z-40" 
               onClick={() => setIsOpen(false)}
@@ -93,10 +81,8 @@ const UserMenu: React.FC = () => {
               initial={{ opacity: 0, y: 10, scale: 0.95 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: 10, scale: 0.95 }}
-              transition={{ duration: 0.15 }}
               className="absolute right-0 top-full mt-2 w-64 bg-[#1a1a1f] border border-white/10 rounded-2xl shadow-2xl shadow-black/50 overflow-hidden z-50"
             >
-              {/* Header do Menu */}
               <div className="p-4 border-b border-white/10">
                 <div className="flex items-center gap-3">
                   <div className={`
@@ -114,7 +100,6 @@ const UserMenu: React.FC = () => {
                   </div>
                 </div>
                 
-                {/* Badge do Plano */}
                 {isPro && (
                   <div className="mt-3 flex items-center gap-2 px-3 py-1.5 bg-[#c9a962]/10 border border-[#c9a962]/30 rounded-lg">
                     <Crown size={14} className="text-[#c9a962]" />
@@ -125,7 +110,6 @@ const UserMenu: React.FC = () => {
                 )}
               </div>
 
-              {/* Opções */}
               <div className="p-2">
                 <MenuItem icon={<User size={16} />} label="Meu Perfil" />
                 <MenuItem icon={<Cloud size={16} />} label="Meus Projetos" />
@@ -149,9 +133,6 @@ const UserMenu: React.FC = () => {
   );
 };
 
-// ============================================
-// COMPONENTE: MenuItem
-// ============================================
 interface MenuItemProps {
   icon: React.ReactNode;
   label: string;
