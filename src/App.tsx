@@ -34,7 +34,6 @@ import {
   X,
   Compass,
   Layers,
-  Box
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import './App.css';
