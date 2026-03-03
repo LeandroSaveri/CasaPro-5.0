@@ -76,9 +76,9 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
   const [activeTab, setActiveTab] = useState<'home' | 'templates' | 'pricing'>('home');
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f] text-white overflow-x-hidden">
+    <div className="w-full min-h-full flex flex-col bg-[#0a0a0f] text-white overflow-x-hidden">
       {/* Background Effects */}
-      <div className="fixed inset-0 pointer-events-none">
+      <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-0 left-1/4 w-96 h-96 bg-[#c9a962]/10 rounded-full blur-[120px]" />
         <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-[120px]" />
         <div className="absolute inset-0 opacity-50" style={{
@@ -569,4 +569,3 @@ export const WelcomeScreen: React.FC<WelcomeScreenProps> = ({
 };
 
 export default WelcomeScreen;
-
