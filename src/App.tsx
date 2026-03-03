@@ -23,18 +23,13 @@ import {
   Settings,
   FolderOpen,
   ChevronDown,
-  ChevronRight,
-  Home,
-  Menu,
-  X
+  ChevronRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import './App.css';
 
 // Interface principal do editor
-const EditorInterface: React.FC<{
-  onBackToWelcome: () => void;
-}> = ({ onBackToWelcome }) => {
+const EditorInterface: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const { 
     viewMode, 
@@ -76,7 +71,7 @@ const EditorInterface: React.FC<{
     if (currentProject && isAuthenticated) {
       const timeout = setTimeout(() => {
         syncProject(currentProject);
-      }, 30000);
+      }, 30000); // Auto-save after 30 seconds
 
       return () => clearTimeout(timeout);
     }
@@ -91,7 +86,7 @@ const EditorInterface: React.FC<{
 
   return (
     <div className="h-screen flex bg-[#0a0a0f] overflow-hidden">
-      {/* Toolbar */}
+      {/* Toolbar - Sempre visível */}
       <AnimatePresence mode="wait">
         {sidebarOpen && (
           <motion.div
@@ -99,22 +94,21 @@ const EditorInterface: React.FC<{
             animate={{ width: 80, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="flex-shrink-0 hidden md:block"
+            className="flex-shrink-0"
           >
             <Toolbar />
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Área principal */}
-      <div className="flex-1 relative flex flex-col">
-        {/* Header Premium */}
-        <div className="flex-shrink-0 z-10 flex items-center justify-between px-3 sm:px-4 py-2 sm:py-3 bg-[#0a0a0f]/95 backdrop-blur-xl border-b border-white/10">
-          {/* Lado esquerdo */}
-          <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
+      {/* Área principal do canvas */}
+      <div className="flex-1 relative">
+        {/* Header do projeto */}
+        <div className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-4 py-3 bg-[#0a0a0f]/90 backdrop-blur-xl border-b border-white/10">
+          <div className="flex items-center gap-4">
             <button
               onClick={toggleSidebar}
-              className="hidden md:flex p-2 hover:bg-white/10 rounded-lg transition-colors"
+              className="p-2 hover:bg-white/10 rounded-lg transition-colors"
               title="Toggle Sidebar"
             >
               <div className="w-5 h-5 flex flex-col justify-center gap-1">
@@ -123,27 +117,22 @@ const EditorInterface: React.FC<{
                 <div className="w-full h-0.5 bg-white/60" />
               </div>
             </button>
-            
-            <div className="hidden sm:block h-6 w-px bg-white/20" />
-            
-            <div className="min-w-0 flex-1">
-              <div className="text-white font-semibold text-sm sm:text-base truncate">
-                {currentProject?.name}
-              </div>
-              <div className="text-xs text-white/50 hidden sm:block">
+            <div className="h-6 w-px bg-white/20" />
+            <div>
+              <div className="text-white font-semibold">{currentProject?.name}</div>
+              <div className="text-xs text-white/50">
                 {viewMode === '2d' ? 'Planta 2D' : 'Visualização 3D'} • 
-                {currentProject?.settings?.unit === 'meters' ? ' Metros' : ' Pés'}
+                {currentProject?.settings.unit === 'meters' ? ' Metros' : ' Pés'}
               </div>
             </div>
           </div>
           
-          {/* Lado direito */}
-          <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-            {/* View Mode Toggle - Premium */}
-            <div className="flex items-center bg-white/5 border border-white/10 rounded-lg p-0.5 sm:p-1">
+          <div className="flex items-center gap-2">
+            {/* View Mode Toggle */}
+            <div className="flex items-center bg-white/5 border border-white/10 rounded-lg p-1">
               <button
                 onClick={() => setViewMode('2d')}
-                className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-md text-xs sm:text-sm font-medium transition-all ${
+                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
                   viewMode === '2d'
                     ? 'bg-[#c9a962] text-[#0a0a0f]'
                     : 'text-white/60 hover:text-white'
@@ -153,7 +142,7 @@ const EditorInterface: React.FC<{
               </button>
               <button
                 onClick={() => setViewMode('3d')}
-                className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-md text-xs sm:text-sm font-medium transition-all ${
+                className={`px-3 py-1.5 rounded-md text-sm font-medium transition-all ${
                   viewMode === '3d'
                     ? 'bg-[#c9a962] text-[#0a0a0f]'
                     : 'text-white/60 hover:text-white'
@@ -163,46 +152,44 @@ const EditorInterface: React.FC<{
               </button>
             </div>
 
-            <div className="hidden md:block h-6 w-px bg-white/20 mx-1" />
+            <div className="h-6 w-px bg-white/20 mx-1" />
 
-            {/* Panel Toggles - Desktop */}
+            {/* Panel Toggles */}
             <button
               onClick={() => setPanel('furniture', !panels.furniture)}
-              className={`hidden md:flex px-3 py-2 rounded-lg text-sm transition-all items-center gap-2 ${
+              className={`px-3 py-2 rounded-lg text-sm transition-all flex items-center gap-2 ${
                 panels.furniture 
                   ? 'bg-[#c9a962]/20 text-[#c9a962] border border-[#c9a962]/30' 
                   : 'bg-white/5 text-white/70 hover:bg-white/10 border border-transparent'
               }`}
             >
               <span>🛋️</span>
-              <span className="hidden lg:inline">Móveis</span>
+              <span className="hidden sm:inline">Móveis</span>
             </button>
             
             <button
               onClick={() => setPanel('properties', !panels.properties)}
-              className={`hidden md:flex px-3 py-2 rounded-lg text-sm transition-all items-center gap-2 ${
+              className={`px-3 py-2 rounded-lg text-sm transition-all flex items-center gap-2 ${
                 panels.properties 
                   ? 'bg-[#c9a962]/20 text-[#c9a962] border border-[#c9a962]/30' 
                   : 'bg-white/5 text-white/70 hover:bg-white/10 border border-transparent'
               }`}
             >
               <Settings size={16} />
-              <span className="hidden lg:inline">Propriedades</span>
+              <span className="hidden sm:inline">Propriedades</span>
             </button>
 
-            {/* Menu Button - Premium Style */}
-            <button 
-              onClick={() => setIsMenuOpen(true)}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gradient-to-r from-[#c9a962]/20 to-[#c9a962]/10 border border-[#c9a962]/40 hover:bg-[#c9a962]/30 hover:border-[#c9a962]/60 transition-all text-[#c9a962] hover:text-white"
-            >
-              <Menu size={18} />
-              <span className="hidden sm:inline text-sm font-medium">Menu</span>
+            <div className="h-6 w-px bg-white/20 mx-1" />
+
+            {/* Menu Button */}
+            <button onClick={() => setIsMenuOpen(true)}>
+              Menu
             </button>
           </div>
         </div>
 
         {/* Canvas */}
-        <div className="flex-1 relative overflow-hidden">
+        <div className="h-full pt-16">
           <AnimatePresence mode="wait">
             <motion.div
               key={viewMode}
@@ -210,7 +197,7 @@ const EditorInterface: React.FC<{
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.3 }}
-              className="absolute inset-0"
+              className="h-full"
             >
               {viewMode === '2d' ? <Canvas2D /> : <Canvas3D />}
             </motion.div>
@@ -226,7 +213,7 @@ const EditorInterface: React.FC<{
             animate={{ width: 320, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="hidden lg:flex flex-shrink-0 overflow-hidden"
+            className="flex-shrink-0 overflow-hidden"
           >
             <FurniturePanel />
           </motion.div>
@@ -240,7 +227,7 @@ const EditorInterface: React.FC<{
             animate={{ width: 320, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="hidden lg:flex flex-shrink-0 overflow-hidden"
+            className="flex-shrink-0 overflow-hidden"
           >
             <AIAssistant />
           </motion.div>
@@ -254,7 +241,7 @@ const EditorInterface: React.FC<{
             animate={{ width: 288, opacity: 1 }}
             exit={{ width: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="hidden lg:flex flex-shrink-0 overflow-hidden"
+            className="flex-shrink-0 overflow-hidden"
           >
             <PropertiesPanel />
           </motion.div>
@@ -285,23 +272,20 @@ const EditorInterface: React.FC<{
         />
       )}
 
+      {/* Admin Panel - Hidden, accessible via Ctrl+Shift+A */}
       <AdminPanel
         isOpen={showAdminPanel}
         onClose={() => setShowAdminPanel(false)}
       />
 
-      {/* SideMenu - Responsivo */}
       <AnimatePresence>
         {isMenuOpen && (
           <SideMenu
             onClose={() => setIsMenuOpen(false)}
-            onBackToWelcome={onBackToWelcome}
             setShowDesignSuggestions={setShowDesignSuggestions}
             setShowAIGenerationModal={setShowAIGenerationModal}
             setPanel={setPanel}
             panels={panels}
-            viewMode={viewMode}
-            setViewMode={setViewMode}
           />
         )}
       </AnimatePresence>
@@ -309,17 +293,14 @@ const EditorInterface: React.FC<{
   );
 };
 
-// SideMenu Component - Responsivo Premium
+// SideMenu Component
 const SideMenu: React.FC<{
   onClose: () => void;
-  onBackToWelcome: () => void;
   setShowDesignSuggestions: (value: boolean) => void;
   setShowAIGenerationModal: (value: boolean) => void;
   setPanel: (key: string, value: boolean) => void;
   panels: any;
-  viewMode: string;
-  setViewMode: (mode: '2d' | '3d') => void;
-}> = ({ onClose, onBackToWelcome, setShowDesignSuggestions, setShowAIGenerationModal, setPanel, panels, viewMode, setViewMode }) => {
+}> = ({ onClose, setShowDesignSuggestions, setShowAIGenerationModal, setPanel, panels }) => {
   const [openAI, setOpenAI] = useState(false);
   const { currentProject, updateProject } = useProjectStore();
 
@@ -331,74 +312,34 @@ const SideMenu: React.FC<{
 
   return (
     <div className="fixed inset-0 z-50 flex">
-      {/* Overlay */}
       <motion.div 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={onClose}
-      />
-      
-      {/* Menu Panel - Responsivo */}
-      <motion.div 
-        initial={{ x: '100%' }}
+        initial={{ x: '-100%' }}
         animate={{ x: 0 }}
-        exit={{ x: '100%' }}
+        exit={{ x: '-100%' }}
         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-        className="absolute right-0 top-0 bottom-0 w-full max-w-sm bg-[#0f0f16] border-l border-white/10 overflow-y-auto"
+        className="w-80 bg-[#0f0f16] border-r border-white/10 h-full overflow-y-auto"
       >
-        {/* Header */}
-        <div className="sticky top-0 z-10 flex items-center justify-between p-4 bg-[#0f0f16]/95 backdrop-blur-xl border-b border-white/10">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#c9a962] to-[#a08040] flex items-center justify-center shadow-lg shadow-[#c9a962]/20">
-              <span className="text-[#0a0a0f] font-bold text-lg">C</span>
+        <div className="p-4">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#c9a962] to-[#a08040] flex items-center justify-center shadow-lg shadow-[#c9a962]/20">
+                <span className="text-[#0a0a0f] font-bold text-lg">C</span>
+              </div>
+              <div>
+                <p className="text-white font-semibold">CasaPro</p>
+                <p className="text-xs text-[#c9a962]">Menu</p>
+              </div>
             </div>
-            <div>
-              <p className="text-white font-semibold">CasaPro</p>
-              <p className="text-xs text-[#c9a962]">Menu</p>
-            </div>
-          </div>
-          <button 
-            onClick={onClose} 
-            className="p-2 hover:bg-white/10 rounded-lg transition-colors text-white/60 hover:text-white"
-          >
-            <X size={24} />
-          </button>
-        </div>
-
-        <div className="p-4 space-y-4">
-          {/* View Mode - Mobile Only */}
-          <div className="md:hidden bg-white/[0.03] border border-white/10 rounded-xl p-3">
-            <p className="text-xs uppercase tracking-wider text-white/30 font-medium mb-3">
-              Visualização
-            </p>
-            <div className="flex gap-2">
-              <button
-                onClick={() => setViewMode('2d')}
-                className={`flex-1 py-3 rounded-lg text-sm font-medium transition-all ${
-                  viewMode === '2d'
-                    ? 'bg-[#c9a962] text-[#0a0a0f]'
-                    : 'bg-white/5 text-white/60 hover:text-white'
-                }`}
-              >
-                2D
-              </button>
-              <button
-                onClick={() => setViewMode('3d')}
-                className={`flex-1 py-3 rounded-lg text-sm font-medium transition-all ${
-                  viewMode === '3d'
-                    ? 'bg-[#c9a962] text-[#0a0a0f]'
-                    : 'bg-white/5 text-white/60 hover:text-white'
-                }`}
-              >
-                3D
-              </button>
-            </div>
+            <button 
+              onClick={onClose} 
+              className="p-2 hover:bg-white/10 rounded-lg transition-colors text-white/60 hover:text-white"
+            >
+              <span className="text-xl">✕</span>
+            </button>
           </div>
 
           {/* Projeto Atual */}
-          <div className="bg-gradient-to-br from-[#c9a962]/20 via-[#c9a962]/5 to-transparent border border-[#c9a962]/40 rounded-2xl p-4 shadow-lg shadow-[#c9a962]/5">
+          <div className="mb-6 bg-gradient-to-br from-[#c9a962]/20 via-[#c9a962]/5 to-transparent border border-[#c9a962]/40 rounded-2xl p-5 shadow-lg shadow-[#c9a962]/5">
             <div className="flex items-center gap-3 mb-3">
               <div className="w-10 h-10 rounded-xl bg-[#c9a962]/20 flex items-center justify-center">
                 <FolderOpen size={20} className="text-[#c9a962]" />
@@ -416,7 +357,7 @@ const SideMenu: React.FC<{
           </div>
 
           {/* Inteligência AI */}
-          <div>
+          <div className="mb-6">
             <button
               onClick={() => setOpenAI(!openAI)}
               className="w-full flex items-center justify-between p-4 rounded-xl bg-white/[0.03] border border-white/10 hover:bg-white/[0.06] hover:border-[#c9a962]/30 transition-all group"
@@ -464,6 +405,19 @@ const SideMenu: React.FC<{
 
                 <button
                   onClick={() => {
+                    setPanel('ai', true);
+                    onClose();
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-white/[0.02] border border-white/5 hover:bg-white/[0.05] hover:border-[#c9a962]/20 transition-all text-white/80 hover:text-white"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-violet-500/10 flex items-center justify-center">
+                    <Wand2 size={16} className="text-violet-400" />
+                  </div>
+                  <span>Inteligência Artificial</span>
+                </button>
+
+                <button
+                  onClick={() => {
                     setShowAIGenerationModal(true);
                     onClose();
                   }}
@@ -479,29 +433,10 @@ const SideMenu: React.FC<{
           </div>
 
           {/* Ferramentas */}
-          <div>
+          <div className="mb-6">
             <p className="text-xs uppercase tracking-wider text-white/30 font-medium mb-3 ml-1">
               Ferramentas
             </p>
-            <button
-              onClick={() => {
-                setPanel('furniture', !panels.furniture);
-                onClose();
-              }}
-              className={`w-full flex items-center gap-3 px-4 py-4 rounded-xl border transition-all mb-2 ${
-                panels.furniture 
-                  ? 'bg-[#c9a962]/10 border-[#c9a962]/40' 
-                  : 'bg-white/[0.03] border-white/10 hover:bg-white/[0.06] hover:border-[#c9a962]/30'
-              }`}
-            >
-              <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center text-xl">
-                🛋️
-              </div>
-              <span className={`font-medium ${panels.furniture ? 'text-[#c9a962]' : 'text-white/90'}`}>
-                Móveis
-              </span>
-            </button>
-            
             <button
               onClick={() => {
                 setPanel('properties', !panels.properties);
@@ -527,57 +462,59 @@ const SideMenu: React.FC<{
           </div>
 
           {/* Ações */}
-          <div>
+          <div className="mb-6">
             <p className="text-xs uppercase tracking-wider text-white/30 font-medium mb-3 ml-1">
               Ações
             </p>
-            <button
-              onClick={() => {
-                handleSave();
-                onClose();
-              }}
-              className="w-full flex items-center gap-3 px-4 py-4 rounded-xl bg-white/[0.03] border border-white/10 hover:bg-white/[0.06] hover:border-[#c9a962]/30 transition-all group mb-2"
-            >
-              <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center border border-white/10 group-hover:border-[#c9a962]/30 transition-colors">
-                <svg className="w-5 h-5 text-white/60 group-hover:text-[#c9a962] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
-                </svg>
-              </div>
-              <span className="text-white/90 font-medium group-hover:text-white transition-colors">Salvar</span>
-            </button>
+            <div className="space-y-2">
+              <button
+                onClick={() => {
+                  handleSave();
+                  onClose();
+                }}
+                className="w-full flex items-center gap-3 px-4 py-4 rounded-xl bg-white/[0.03] border border-white/10 hover:bg-white/[0.06] hover:border-[#c9a962]/30 transition-all group"
+              >
+                <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center border border-white/10 group-hover:border-[#c9a962]/30 transition-colors">
+                  <svg className="w-5 h-5 text-white/60 group-hover:text-[#c9a962] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                  </svg>
+                </div>
+                <span className="text-white/90 font-medium group-hover:text-white transition-colors">Salvar</span>
+              </button>
 
-            <button
-              onClick={() => {
-                onClose();
-              }}
-              className="w-full flex items-center gap-3 px-4 py-4 rounded-xl bg-white/[0.03] border border-white/10 hover:bg-white/[0.06] hover:border-[#c9a962]/30 transition-all group"
-            >
-              <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center border border-white/10 group-hover:border-[#c9a962]/30 transition-colors">
-                <svg className="w-5 h-5 text-white/60 group-hover:text-[#c9a962] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
-              </div>
-              <span className="text-white/90 font-medium group-hover:text-white transition-colors">Exportar</span>
-            </button>
+              <button
+                onClick={() => {
+                  onClose();
+                }}
+                className="w-full flex items-center gap-3 px-4 py-4 rounded-xl bg-white/[0.03] border border-white/10 hover:bg-white/[0.06] hover:border-[#c9a962]/30 transition-all group"
+              >
+                <div className="w-10 h-10 rounded-lg bg-white/5 flex items-center justify-center border border-white/10 group-hover:border-[#c9a962]/30 transition-colors">
+                  <svg className="w-5 h-5 text-white/60 group-hover:text-[#c9a962] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  </svg>
+                </div>
+                <span className="text-white/90 font-medium group-hover:text-white transition-colors">Exportar</span>
+              </button>
+            </div>
           </div>
 
-          {/* Voltar para Home - Premium */}
+          {/* Fechar Projeto */}
           <div className="pt-4 border-t border-white/10">
             <button
               onClick={() => {
-                onBackToWelcome();
                 onClose();
               }}
-              className="w-full flex items-center justify-center gap-3 px-5 py-4 rounded-xl bg-gradient-to-r from-[#c9a962] to-[#a08040] hover:from-[#d4b76a] hover:to-[#b08d4a] transition-all text-[#0a0a0f] font-semibold shadow-lg shadow-[#c9a962]/20"
+              className="w-full flex items-center justify-center gap-3 px-5 py-4 rounded-xl border border-white/10 hover:bg-white/[0.03] hover:border-white/20 transition-all text-white/50 hover:text-white/80"
             >
-              <div className="w-8 h-8 rounded-lg bg-[#0a0a0f]/20 flex items-center justify-center">
-                <Home size={18} className="text-[#0a0a0f]" />
+              <div className="w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center">
+                <FolderOpen size={16} className="text-white/40" />
               </div>
-              <span>Voltar para Home</span>
+              <span className="font-medium">Fechar Projeto</span>
             </button>
           </div>
         </div>
       </motion.div>
+      <div className="flex-1 bg-black/50" onClick={onClose} />
     </div>
   );
 };
@@ -586,10 +523,11 @@ const SideMenu: React.FC<{
 function App() {
   const [showWelcome, setShowWelcome] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const { currentProject, createProject, clearCurrentProject } = useProjectStore();
+  const { currentProject, createProject } = useProjectStore();
   const { loadTemplates, loadStyles } = useTemplateStore();
   const { loadPlans, initialize } = useUserStore();
 
+  // Load initial data
   useEffect(() => {
     loadTemplates();
     loadStyles();
@@ -597,6 +535,7 @@ function App() {
     initialize();
   }, [loadTemplates, loadStyles, loadPlans, initialize]);
 
+  // Se já tem projeto, mostrar editor
   useEffect(() => {
     if (currentProject) {
       setShowWelcome(false);
@@ -604,35 +543,37 @@ function App() {
   }, [currentProject]);
 
   const handleCreateProject = (config: ProjectConfig) => {
+    // Create project with configuration
     createProject(config.name, config.description);
     
+    // Apply template if selected
     if (config.template) {
-      // TODO: Apply template
+      // TODO: Apply template rooms and settings
     }
     
+    // Apply style if selected
     if (config.style) {
-      // TODO: Apply style
+      // TODO: Apply style colors and materials
     }
     
+    // Close modal and show editor
     setShowCreateModal(false);
     setShowWelcome(false);
   };
 
   const handleOpenProjects = () => {
+    // TODO: Implement projects list view
     setShowCreateModal(true);
   };
 
   const handleExploreTemplates = () => {
+    // TODO: Navigate to templates tab
     setShowCreateModal(true);
   };
 
   const handleSubscribePro = () => {
+    // TODO: Navigate to pricing
     alert('Assinatura Pro - Em breve!');
-  };
-
-  const handleBackToWelcome = () => {
-    clearCurrentProject();
-    setShowWelcome(true);
   };
 
   if (showWelcome) {
@@ -653,7 +594,7 @@ function App() {
     );
   }
 
-  return <EditorInterface onBackToWelcome={handleBackToWelcome} />;
+  return <EditorInterface />;
 }
 
 export default App;
