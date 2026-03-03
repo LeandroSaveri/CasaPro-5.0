@@ -328,39 +328,39 @@ const Canvas3D: React.FC = () => {
         <span className="text-sm font-medium">Configurações</span>
       </button>
       
-      {/* Controls Overlay - MAIS CLARO/VISÍVEL */}
+      {/* MELHORIA: Controls Overlay - MAIS CLARO/VISÍVEL */}
       {showControls && (
         <div 
           ref={controlsRef}
           data-camera-panel
-          className="absolute top-16 right-4 p-5 bg-[#252532]/98 backdrop-blur-xl border border-white/20 rounded-xl space-y-4 min-w-[300px] shadow-2xl"
+          className="absolute top-16 right-4 p-5 bg-[#2a2a3a]/98 backdrop-blur-xl border border-white/25 rounded-xl space-y-4 min-w-[300px] shadow-2xl"
         >
           {/* Close Button */}
           <div className="flex items-center justify-between">
             <span className="text-sm font-semibold text-white">Configurações da Câmera</span>
             <button
               onClick={closeControls}
-              className="w-7 h-7 flex items-center justify-center rounded-lg bg-white/10 text-white/70 hover:bg-white/20 hover:text-white transition-all"
+              className="w-7 h-7 flex items-center justify-center rounded-lg bg-white/15 text-white/80 hover:bg-white/25 hover:text-white transition-all"
               title="Fechar"
             >
               <X size={16} />
             </button>
           </div>
           
-          <div className="w-full h-px bg-white/20" />
+          <div className="w-full h-px bg-white/25" />
           
           {/* Camera Mode Selector */}
           <div className="space-y-2">
-            <label className="text-xs text-white/70 uppercase tracking-wider font-medium">Modo da Câmera</label>
+            <label className="text-xs text-white/80 uppercase tracking-wider font-semibold">Modo da Câmera</label>
             <div className="flex gap-2">
               {cameraModes.map((mode) => (
                 <button
                   key={mode.id}
                   onClick={() => setCameraMode3D(mode.id as any)}
-                  className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                  className={`flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-semibold transition-all ${
                     cameraMode3D === mode.id
                       ? 'bg-[#c9a962] text-[#0a0a0f]'
-                      : 'bg-white/10 text-white/80 hover:bg-white/20'
+                      : 'bg-white/15 text-white/90 hover:bg-white/25'
                   }`}
                 >
                   {mode.icon}
@@ -372,7 +372,7 @@ const Canvas3D: React.FC = () => {
           
           {/* Time of Day */}
           <div className="space-y-2">
-            <label className="text-xs text-white/70 uppercase tracking-wider font-medium flex items-center gap-2">
+            <label className="text-xs text-white/80 uppercase tracking-wider font-semibold flex items-center gap-2">
               {isNight ? <Moon size={14} className="text-blue-300" /> : <Sun size={14} className="text-amber-300" />}
               Horário: {Math.floor(lighting.timeOfDay)}:00
             </label>
@@ -383,13 +383,13 @@ const Canvas3D: React.FC = () => {
               step="0.5"
               value={lighting.timeOfDay}
               onChange={(e) => updateLighting({ timeOfDay: parseFloat(e.target.value) })}
-              className="w-full accent-[#c9a962] h-2 bg-white/20 rounded-lg appearance-none cursor-pointer"
+              className="w-full accent-[#c9a962] h-2 bg-white/25 rounded-lg appearance-none cursor-pointer"
             />
           </div>
           
           {/* Exposure */}
           <div className="space-y-2">
-            <label className="text-xs text-white/70 uppercase tracking-wider font-medium">Exposição</label>
+            <label className="text-xs text-white/80 uppercase tracking-wider font-semibold">Exposição</label>
             <input
               type="range"
               min="0.1"
@@ -397,17 +397,17 @@ const Canvas3D: React.FC = () => {
               step="0.1"
               value={lighting.exposure}
               onChange={(e) => updateLighting({ exposure: parseFloat(e.target.value) })}
-              className="w-full accent-[#c9a962] h-2 bg-white/20 rounded-lg appearance-none cursor-pointer"
+              className="w-full accent-[#c9a962] h-2 bg-white/25 rounded-lg appearance-none cursor-pointer"
             />
           </div>
           
           {/* Shadow Quality */}
           <div className="space-y-2">
-            <label className="text-xs text-white/70 uppercase tracking-wider font-medium">Qualidade das Sombras</label>
+            <label className="text-xs text-white/80 uppercase tracking-wider font-semibold">Qualidade das Sombras</label>
             <select
               value={lighting.shadowQuality}
               onChange={(e) => updateLighting({ shadowQuality: e.target.value as any })}
-              className="w-full px-3 py-2.5 bg-white/10 border border-white/20 rounded-lg text-sm text-white font-medium focus:outline-none focus:border-[#c9a962]"
+              className="w-full px-3 py-2.5 bg-white/15 border border-white/25 rounded-lg text-sm text-white font-semibold focus:outline-none focus:border-[#c9a962]"
             >
               <option value="low">Baixa</option>
               <option value="medium">Média</option>
@@ -429,9 +429,9 @@ const Canvas3D: React.FC = () => {
         </button>
       </div>
       
-      {/* Info Panel */}
-      <div className="absolute bottom-4 left-4 p-3 bg-[#252532]/95 backdrop-blur-xl border border-white/20 rounded-xl">
-        <div className="text-xs text-white/70 space-y-1">
+      {/* MELHORIA: Info Panel mais claro */}
+      <div className="absolute bottom-4 left-4 p-3 bg-[#2a2a3a]/95 backdrop-blur-xl border border-white/25 rounded-xl">
+        <div className="text-xs text-white/80 space-y-1">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-[#c9a962]"></span>
             Qualidade: {lighting.shadowQuality.toUpperCase()}
