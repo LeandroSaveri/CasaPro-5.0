@@ -457,4 +457,4 @@ const Canvas3D: React.FC = () => {
   );
 };
 
-export default ;
+export default Canvas3D;
