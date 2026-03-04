@@ -11,7 +11,7 @@
  * - precisão ao desenhar paredes
  */
 
-import { Vector2, Wall } from '../project/projectTypes'
+import type { Vector2, Wall } from '../project/projectTypes'
 import { distance } from '../geometry/geometryUtils'
 
 export interface SnapResult {
