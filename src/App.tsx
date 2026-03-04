@@ -1,3 +1,13 @@
+ * FILE: App.tsx
+ *
+ * O que este arquivo faz:
+ * Arquivo principal do aplicativo CasaPro.
+ *
+ * Responsabilidade:
+ * Decidir qual tela mostrar:
+ * - WelcomeScreen (tela inicial)
+ * - EditorView (editor completo do projeto)
+ */
 import React, { useState, useEffect } from 'react';
 
 import EditorView from '@/features/editor/EditorView';
@@ -7,9 +17,9 @@ import { useUserStore } from '@/store/userStore';
 
 import WelcomeScreen from '@/components/welcome/WelcomeScreen';
 
-import ProjectModal from '@/modals/ProjectModal';
-import TemplatesModal from '@/modals/TemplatesModal';
-import SubscriptionModal from '@/modals/SubscriptionModal';
+import ProjectModal from '@/components/modals/ProjectModal';
+import TemplatesModal from '@/components/modals/TemplatesModal';
+import SubscriptionModal from '@/components/modals/SubscriptionModal';
 
 const App: React.FC = () => {
 
@@ -88,7 +98,6 @@ const App: React.FC = () => {
           onOpenProjects={handleOpenProjects}
           onExploreTemplates={() => setShowTemplatesModal(true)}
           onSubscribePro={() => setShowSubscriptionModal(true)}
-          onEnterEditor={handleEnterEditor}
         />
         
         <ProjectModal
@@ -97,6 +106,7 @@ const App: React.FC = () => {
           onSelectProject={handleLoadProject}
           onCreateProject={handleCreateProject}
         />
+
         <TemplatesModal
           isOpen={showTemplatesModal}
           onClose={() => setShowTemplatesModal(false)}
@@ -108,26 +118,9 @@ const App: React.FC = () => {
 
         <SubscriptionModal
           isOpen={showSubscriptionModal}
-          onClose={() => setShowSubscriptionModal(false)}
-        />
-      </>
-    );
-  }
-
-/**
- * FILE: App.tsx
- *
- * O que este arquivo faz:
- * Arquivo principal do aplicativo CasaPro.
- *
- * Responsabilidade:
- * Decidir qual tela mostrar:
- * - WelcomeScreen (tela inicial)
- * - EditorView (editor completo do projeto)
- */
+          onClose={() => setShowSubscriptionModal(/**
 
   return <EditorView />;
 };
 
 export default App;
- 
