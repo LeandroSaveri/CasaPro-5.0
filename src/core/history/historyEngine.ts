@@ -11,7 +11,7 @@
  * - histórico de alterações do projeto
  */
 
-import { ProjectData } from '../project/projectTypes'
+import type { ProjectData } from '../project/projectTypes'
 
 export interface HistoryState {
   past: ProjectData[]
