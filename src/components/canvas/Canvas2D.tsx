@@ -1,16 +1,34 @@
+/**
+ * FILE: Canvas2D.tsx
+ *
+ * O que este arquivo faz:
+ * Renderiza o ambiente 2D do CasaPro.
+ *
+ * Responsabilidade:
+ * - desenhar paredes
+ * - desenhar cômodos
+ * - desenhar portas
+ * - desenhar janelas
+ * - desenhar móveis
+ * - renderizar grid e medições
+ * - controlar interação do usuário no canvas
+ *
+ * Utiliza:
+ * PointerEngine para gerenciar interações de mouse, touch e stylus.
+ */
+
 import React, { useRef, useEffect, useState, useCallback } from 'react';
 import { useProjectStore } from '@/store/projectStore';
 import { useUIStore } from '@/store/uiStore';
 import type { Point, Wall, Room } from '@/types';
 import { Ruler, Grid3X3, Magnet } from 'lucide-react';
-
 import { PointerEngine } from '@/core/interaction/pointerEngine';
+
+const pointerEngine = new PointerEngine();
 
 // Snap angles configuration
 const SNAP_ANGLES = [0, 45, 90, 135, 180, 225, 270, 315];
 const ANGLE_SNAP_THRESHOLD = 8; // degrees
-
-const pointerEngine = new PointerEngine();
 
 interface SnapPoint {
   point: Point;
@@ -38,6 +56,10 @@ const Canvas2D: React.FC = () => {
     drawCurrent,
     selectedElement,
     selectedElementType,
+    startDrawing,
+    updateDrawing,
+    endDrawing,
+    selectElement,
   } = useProjectStore();
 
   const {
@@ -47,6 +69,18 @@ const Canvas2D: React.FC = () => {
   } = useUIStore();
 
   const { scale, offset } = canvas2D;
+
+  useEffect(() => {
+
+    if (!canvasRef.current) return;
+
+    pointerEngine.attach(canvasRef.current);
+
+    return () => {
+      pointerEngine.detach();
+    };
+
+  }, []);
 
   // Convert world coordinates to canvas
   const worldToCanvas = useCallback((point: Point): Point => {
