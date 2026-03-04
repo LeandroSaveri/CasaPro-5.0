@@ -10,16 +10,6 @@ import {
   Share2, 
   Download,
   MoreVertical,
-  // Layers,
-  // Crown,
-  // Maximize2,
-  // Minimize2,
-  // Settings,
-  // User,
-  // LogOut,
-  // Plus,
-  // FolderOpen,
-  // LayoutTemplate
 } from 'lucide-react';
 import { useProjectStore } from '@/store/projectStore';
 import { useUserStore } from '@/store/userStore';
@@ -27,11 +17,6 @@ import WelcomeScreen from '@/components/welcome/WelcomeScreen';
 import Toolbar from '@/components/ui/Toolbar';
 import Canvas2D from '@/components/canvas/Canvas2D';
 import Canvas3D from '@/components/canvas/Canvas3D';
-// import ProjectModal from '@/components/modals/ProjectModal';
-// import TemplatesModal from '@/components/modals/TemplatesModal';
-// import SubscriptionModal from '@/components/modals/SubscriptionModal';
-// import UserMenu from '@/components/ui/UserMenu';
-// import MobileToolbar from '@/components/ui/MobileToolbar';
 
 // ============================================
 // HEADER PREMIUM
@@ -65,17 +50,6 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
   onSubscribe,
 }) => {
   const [showActions, setShowActions] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-
-  const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen();
-      setIsFullscreen(true);
-    } else {
-      document.exitFullscreen();
-      setIsFullscreen(false);
-    }
-  };
 
   return (
     <header className="h-16 bg-slate-900/95 backdrop-blur-xl border-b border-slate-800 flex items-center justify-between px-4 sticky top-0 z-50">
@@ -198,15 +172,6 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
             >
               <Share2 size={16} />
               <span className="hidden lg:inline">Compartilhar</span>
-            </motion.button>
-
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={toggleFullscreen}
-              className="hidden sm:flex p-2 rounded-xl bg-slate-800/50 border border-slate-700/50 text-slate-300 hover:bg-slate-700/50 hover:text-white transition-all"
-            >
-              <Box size={18} />
             </motion.button>
 
             <motion.button
@@ -371,9 +336,6 @@ const MainLayout: React.FC<MainLayoutProps> = ({
 
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<'welcome' | 'editor'>('welcome');
-  const [showProjectModal, setShowProjectModal] = useState(false);
-  const [showTemplatesModal, setShowTemplatesModal] = useState(false);
-  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -410,16 +372,6 @@ const App: React.FC = () => {
     setIsSidebarOpen(false);
   };
 
-  const handleOpenProjects = () => {
-    setShowProjectModal(true);
-  };
-
-  const handleLoadProject = () => {
-    setCurrentView('editor');
-    setShowProjectModal(false);
-    setIsSidebarOpen(false);
-  };
-
   const handleBackToWelcome = () => {
     setCurrentView('welcome');
     setIsSidebarOpen(false);
@@ -433,38 +385,12 @@ const App: React.FC = () => {
 
   if (currentView === 'welcome') {
     return (
-      <>
-        <WelcomeScreen
-          onCreateProject={handleCreateProject}
-          onOpenProjects={handleOpenProjects}
-          onExploreTemplates={() => setShowTemplatesModal(true)}
-          onSubscribePro={() => setShowSubscriptionModal(true)}
-        />
-        
-        {/* ProjectModal temporariamente removido - criar componente */}
-        {/* <ProjectModal
-          isOpen={showProjectModal}
-          onClose={() => setShowProjectModal(false)}
-          onSelectProject={handleLoadProject}
-          onCreateProject={handleCreateProject}
-        /> */}
-
-        {/* TemplatesModal temporariamente removido - criar componente */}
-        {/* <TemplatesModal
-          isOpen={showTemplatesModal}
-          onClose={() => setShowTemplatesModal(false)}
-          onSelectTemplate={() => {
-            handleCreateProject();
-            setShowTemplatesModal(false);
-          }}
-        /> */}
-
-        {/* SubscriptionModal temporariamente removido - criar componente */}
-        {/* <SubscriptionModal
-          isOpen={showSubscriptionModal}
-          onClose={() => setShowSubscriptionModal(false)}
-        /> */}
-      </>
+      <WelcomeScreen
+        onCreateProject={handleCreateProject}
+        onOpenProjects={() => {}}
+        onExploreTemplates={() => {}}
+        onSubscribePro={() => {}}
+      />
     );
   }
 
@@ -480,8 +406,8 @@ const App: React.FC = () => {
         isSidebarOpen={isSidebarOpen}
         isMobile={isMobile}
         onNewProject={handleCreateProject}
-        onOpenTemplates={() => setShowTemplatesModal(true)}
-        onSubscribe={() => setShowSubscriptionModal(true)}
+        onOpenTemplates={() => {}}
+        onSubscribe={() => {}}
       />
 
       <MainLayout
@@ -516,18 +442,8 @@ const App: React.FC = () => {
               </motion.div>
             )}
           </AnimatePresence>
-          
-          {/* MobileToolbar temporariamente removido - criar componente */}
-          {/* {isMobile && <MobileToolbar />} */}
         </div>
       </MainLayout>
-
-      {/* ProjectModal temporariamente removido */}
-      {/* <ProjectModal ... /> */}
-      {/* TemplatesModal temporariamente removido */}
-      {/* <TemplatesModal ... /> */}
-      {/* SubscriptionModal temporariamente removido */}
-      {/* <SubscriptionModal ... /> */}
     </div>
   );
 };
