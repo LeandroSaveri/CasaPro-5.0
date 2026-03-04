@@ -193,7 +193,7 @@ function applyMomentum(
  * Detecta tipo de gesto baseado nos toques
  */
 function detectGestureType(
-  state: GestureState,
+  _state: GestureState, // CORREÇÃO: prefixo _ para variável não utilizada
   touches: TouchPoint[],
   config: GestureConfig
 ): GestureType {
@@ -201,13 +201,13 @@ function detectGestureType(
 
   if (count === 0) return 'none'
   if (count === 1) {
-    if (state.tapCount === 1) return 'tap'
+    if (_state.tapCount === 1) return 'tap'
     return 'pan'
   }
   if (count >= 2) {
-    if (config.enableRotation && state.startAngle !== null) {
+    if (config.enableRotation && _state.startAngle !== null) {
       const currentAngle = angle(touches[0].position, touches[1].position)
-      const angleDiff = Math.abs(currentAngle - state.startAngle)
+      const angleDiff = Math.abs(currentAngle - _state.startAngle)
       if (angleDiff > config.rotateThreshold) return 'rotate'
     }
     return 'pinch'
@@ -249,7 +249,7 @@ export function updateTouches(
 
   // Caso sem toques suficientes
   if (touches.length < 2) {
-    const newState: GestureState = {
+    const _newState: GestureState = { // CORREÇÃO: prefixo _ para variável não utilizada
       ...state,
       touches,
       type: detectGestureType(state, touches, config),
@@ -259,7 +259,7 @@ export function updateTouches(
     }
 
     return {
-      type: newState.type,
+      type: _newState.type,
       zoom: 1,
       pan: touches.length === 1 ? velocity : { x: 0, y: 0 },
       rotate: 0,
@@ -279,7 +279,7 @@ export function updateTouches(
 
   // Inicializa gesto
   if (state.startDistance === null || state.startCenter === null) {
-    const newState: GestureState = {
+    const _newState: GestureState = { // CORREÇÃO: prefixo _ para variável não utilizada
       ...state,
       touches,
       startDistance: dist,
@@ -326,7 +326,7 @@ export function updateTouches(
     }
   }
 
-  const newState: GestureState = {
+  const _newState: GestureState = { // CORREÇÃO: prefixo _ para variável não utilizada
     ...state,
     touches,
     type: detectGestureType(state, touches, config),
@@ -340,7 +340,7 @@ export function updateTouches(
   }
 
   return {
-    type: newState.type,
+    type: _newState.type,
     zoom: zoomFactor,
     pan: finalPan,
     rotate: rotateDelta,
@@ -366,7 +366,7 @@ export function processTap(
     state.tapStartTime &&
     now - state.tapStartTime < config.doubleTapDelay
   ) {
-    const newState: GestureState = {
+    const _newState: GestureState = { // CORREÇÃO: prefixo _ para variável não utilizada
       ...createGestureState(),
       tapCount: 0,
       tapStartTime: null,
@@ -383,7 +383,7 @@ export function processTap(
     }
   }
 
-  const newState: GestureState = {
+  const _newState: GestureState = { // CORREÇÃO: prefixo _ para variável não utilizada
     ...state,
     tapCount: 1,
     tapStartTime: now,
@@ -396,7 +396,7 @@ export function processTap(
     pan: { x: 0, y: 0 },
     rotate: 0,
     center: position,
-    metrics: newState.metrics,
+    metrics: _newState.metrics,
     isComplete: false,
   }
 }
@@ -433,7 +433,7 @@ export function checkLongPress(
 /**
  * Limpa estado de gesto
  */
-export function resetGesture(state: GestureState): GestureState {
+export function resetGesture(_state: GestureState): GestureState { // CORREÇÃO: prefixo _ para parâmetro não utilizado
   return createGestureState()
 }
 
@@ -464,4 +464,134 @@ export function createGestureConfig(
     ...DEFAULT_GESTURE_CONFIG,
     ...overrides,
   }
+}
+
+/**
+ * Detecta swipe com direção e velocidade
+ * PREMIUM: Reconhecimento de gestos avançado
+ */
+export function detectSwipe(
+  state: GestureState,
+  minVelocity: number = 0.5
+): { direction: 'left' | 'right' | 'up' | 'down' | null; velocity: number } {
+  if (!state.metrics || state.metrics.speed < minVelocity) {
+    return { direction: null, velocity: 0 }
+  }
+
+  const angleDeg = state.metrics.direction
+  let direction: 'left' | 'right' | 'up' | 'down'
+
+  // Normaliza ângulo para 0-360
+  const normalizedAngle = ((angleDeg % 360) + 360) % 360
+
+  if (normalizedAngle >= 315 || normalizedAngle < 45) {
+    direction = 'right'
+  } else if (normalizedAngle >= 45 && normalizedAngle < 135) {
+    direction = 'down'
+  } else if (normalizedAngle >= 135 && normalizedAngle < 225) {
+    direction = 'left'
+  } else {
+    direction = 'up'
+  }
+
+  return { direction, velocity: state.metrics.speed }
+}
+
+/**
+ * Calcula bounding box de múltiplos toques
+ * PREMIUM: Para gestos complexos com 3+ dedos
+ */
+export function getTouchesBounds(touches: TouchPoint[]): { 
+  center: Vector2; 
+  width: number; 
+  height: number;
+  radius: number;
+} | null {
+  if (touches.length === 0) return null
+
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity
+
+  for (const touch of touches) {
+    minX = Math.min(minX, touch.position.x)
+    maxX = Math.max(maxX, touch.position.x)
+    minY = Math.min(minY, touch.position.y)
+    maxY = Math.max(maxY, touch.position.y)
+  }
+
+  const center = {
+    x: (minX + maxX) / 2,
+    y: (minY + maxY) / 2,
+  }
+
+  const width = maxX - minX
+  const height = maxY - minY
+  const radius = Math.sqrt(width * width + height * height) / 2
+
+  return { center, width, height, radius }
+}
+
+/**
+ * Prediz posição futura baseada em momentum
+ * PREMIUM: Para implementações de inércia avançada
+ */
+export function predictPosition(
+  state: GestureState,
+  deltaTime: number = 100
+): Vector2 {
+  if (!state.metrics || state.metrics.speed === 0) {
+    return state.pan
+  }
+
+  const decay = Math.pow(0.9, deltaTime / 16)
+  const remainingVelocity = {
+    x: state.metrics.velocity.x * (1 - decay) / (1 - 0.9),
+    y: state.metrics.velocity.y * (1 - decay) / (1 - 0.9),
+  }
+
+  return {
+    x: state.pan.x + remainingVelocity.x,
+    y: state.pan.y + remainingVelocity.y,
+  }
+}
+
+/**
+ * Verifica se gesto é válido (evita toques acidentais)
+ * PREMIUM: Filtragem de ruído para experiência premium
+ */
+export function isValidGesture(
+  state: GestureState,
+  minDuration: number = 50,
+  minDistance: number = 3
+): boolean {
+  if (!state.initialTouch || !state.tapStartTime) return false
+
+  const duration = performance.now() - state.tapStartTime
+  if (duration < minDuration) return false
+
+  if (state.touches.length === 1) {
+    const distance = Math.sqrt(
+      Math.pow(state.pan.x, 2) + Math.pow(state.pan.y, 2)
+    )
+    return distance >= minDistance
+  }
+
+  return true
+}
+
+/**
+ * Calcula ângulo de rotação com suavização
+ * PREMIUM: Para rotações precisas e suaves
+ */
+export function getSmoothedRotation(
+  state: GestureState,
+  smoothing: number = 0.3
+): number {
+  if (state.startAngle === null || state.rotate === 0) return 0
+  
+  // Normaliza ângulo para evitar saltos de 360°
+  let delta = state.rotate
+  while (delta > 180) delta -= 360
+  while (delta < -180) delta += 360
+  
+  return delta * smoothing
 }
