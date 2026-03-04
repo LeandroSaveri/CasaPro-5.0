@@ -17,6 +17,10 @@ import WelcomeScreen from '@/components/welcome/WelcomeScreen';
 import Toolbar from '@/components/ui/Toolbar';
 import Canvas2D from '@/components/canvas/Canvas2D';
 import Canvas3D from '@/components/canvas/Canvas3D';
+import ProjectModal from '@/components/modals/ProjectModal';
+import TemplatesModal from '@/components/modals/TemplatesModal';
+import SubscriptionModal from '@/components/modals/SubscriptionModal';
+import UserMenu from '@/components/ui/UserMenu';
 
 // ============================================
 // HEADER PREMIUM
@@ -259,10 +263,7 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
           </div>
         )}
 
-        {/* Placeholder para UserMenu */}
-        <div className="w-10 h-10 rounded-full bg-slate-700/50 border border-slate-600/50 flex items-center justify-center text-slate-400">
-          <Box size={20} />
-        </div>
+        <UserMenu />
       </div>
     </header>
   );
@@ -338,6 +339,9 @@ const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<'welcome' | 'editor'>('welcome');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [showProjectModal, setShowProjectModal] = useState(false);
+  const [showTemplatesModal, setShowTemplatesModal] = useState(false);
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
 
   const { 
     currentProject, 
@@ -372,6 +376,16 @@ const App: React.FC = () => {
     setIsSidebarOpen(false);
   };
 
+  const handleOpenProjects = () => {
+    setShowProjectModal(true);
+  };
+
+  const handleLoadProject = () => {
+    setCurrentView('editor');
+    setShowProjectModal(false);
+    setIsSidebarOpen(false);
+  };
+
   const handleBackToWelcome = () => {
     setCurrentView('welcome');
     setIsSidebarOpen(false);
@@ -385,12 +399,35 @@ const App: React.FC = () => {
 
   if (currentView === 'welcome') {
     return (
-      <WelcomeScreen
-        onCreateProject={handleCreateProject}
-        onOpenProjects={() => {}}
-        onExploreTemplates={() => {}}
-        onSubscribePro={() => {}}
-      />
+      <>
+        <WelcomeScreen
+          onCreateProject={handleCreateProject}
+          onOpenProjects={handleOpenProjects}
+          onExploreTemplates={() => setShowTemplatesModal(true)}
+          onSubscribePro={() => setShowSubscriptionModal(true)}
+        />
+        
+        <ProjectModal
+          isOpen={showProjectModal}
+          onClose={() => setShowProjectModal(false)}
+          onSelectProject={handleLoadProject}
+          onCreateProject={handleCreateProject}
+        />
+
+        <TemplatesModal
+          isOpen={showTemplatesModal}
+          onClose={() => setShowTemplatesModal(false)}
+          onSelectTemplate={() => {
+            handleCreateProject();
+            setShowTemplatesModal(false);
+          }}
+        />
+
+        <SubscriptionModal
+          isOpen={showSubscriptionModal}
+          onClose={() => setShowSubscriptionModal(false)}
+        />
+      </>
     );
   }
 
@@ -406,8 +443,8 @@ const App: React.FC = () => {
         isSidebarOpen={isSidebarOpen}
         isMobile={isMobile}
         onNewProject={handleCreateProject}
-        onOpenTemplates={() => {}}
-        onSubscribe={() => {}}
+        onOpenTemplates={() => setShowTemplatesModal(true)}
+        onSubscribe={() => setShowSubscriptionModal(true)}
       />
 
       <MainLayout
@@ -444,6 +481,27 @@ const App: React.FC = () => {
           </AnimatePresence>
         </div>
       </MainLayout>
+
+      <ProjectModal
+        isOpen={showProjectModal}
+        onClose={() => setShowProjectModal(false)}
+        onSelectProject={handleLoadProject}
+        onCreateProject={handleCreateProject}
+      />
+
+      <TemplatesModal
+        isOpen={showTemplatesModal}
+        onClose={() => setShowTemplatesModal(false)}
+        onSelectTemplate={() => {
+          handleCreateProject();
+          setShowTemplatesModal(false);
+        }}
+      />
+
+      <SubscriptionModal
+        isOpen={showSubscriptionModal}
+        onClose={() => setShowSubscriptionModal(false)}
+      />
     </div>
   );
 };
