@@ -9,60 +9,6 @@ import ProjectModal from '@/modals/ProjectModal'
 import TemplatesModal from '@/modals/TemplatesModal'
 import SubscriptionModal from '@/modals/SubscriptionModal'
 import EditorHeader from '@/features/editor/EditorHeader'
-interface MainLayoutProps {
-  children: React.ReactNode;
-  sidebar: React.ReactNode;
-  isSidebarOpen: boolean;
-  onCloseSidebar: () => void;
-  isMobile: boolean;
-}
-
-const MainLayout: React.FC<MainLayoutProps> = ({
-  children,
-  sidebar,
-  isSidebarOpen,
-  onCloseSidebar,
-  isMobile,
-}) => {
-  return (
-    <div className="flex-1 flex overflow-hidden relative">
-      {!isMobile && (
-        <aside className="w-64 lg:w-72 flex-shrink-0 border-r border-white/10 bg-[#0a0a0f]">
-          {sidebar}
-        </aside>
-      )}
-
-      <AnimatePresence>
-        {isMobile && isSidebarOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={onCloseSidebar}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
-            />
-            
-            <motion.aside
-              initial={{ x: '-100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '-100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed left-0 top-14 sm:top-16 bottom-0 w-72 bg-[#0a0a0f] border-r border-white/10 z-50 overflow-y-auto"
-            >
-              {sidebar}
-            </motion.aside>
-          </>
-        )}
-      </AnimatePresence>
-
-      <main className="flex-1 overflow-hidden bg-[#0a0a0f] relative">
-        {children}
-      </main>
-    </div>
-  );
-};
-
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<'welcome' | 'editor'>('welcome');
   const [showProjectModal, setShowProjectModal] = useState(false);
