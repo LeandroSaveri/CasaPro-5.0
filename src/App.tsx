@@ -14,9 +14,6 @@ import {
   Crown,
   Maximize2,
   Minimize2,
-  Settings,
-  User,
-  LogOut,
   Plus,
   FolderOpen,
   LayoutTemplate
@@ -27,11 +24,11 @@ import WelcomeScreen from '@/components/welcome/WelcomeScreen';
 import Toolbar from '@/components/ui/Toolbar';
 import Canvas2D from '@/components/canvas/Canvas2D';
 import Canvas3D from '@/components/canvas/Canvas3D';
-import ProjectModal from '@/components/modals/ProjectModal';
-import TemplatesModal from '@/components/modals/TemplatesModal';
-import SubscriptionModal from '@/components/modals/SubscriptionModal';
-import UserMenu from '@/components/ui/UserMenu';
-import MobileToolbar from '@/components/ui/MobileToolbar';
+import projectModal from '@/components/modals/projectModal';
+import templatesModal from '@/components/modals/templatesModal';
+import subscriptionModal from '@/components/modals/subscriptionModal';
+import userMenu from '@/components/ui/userMenu';
+import mobileToolbar from '@/components/ui/mobileToolbar';
 
 // ============================================
 // HEADER PREMIUM
@@ -294,7 +291,7 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
           </div>
         )}
 
-        <UserMenu />
+        <userMenu />
       </div>
     </header>
   );
@@ -384,6 +381,11 @@ const App: React.FC = () => {
 
   const { initialize } = useUserStore();
 
+  const ProjectModalComponent = projectModal;
+  const TemplatesModalComponent = templatesModal;
+  const SubscriptionModalComponent = subscriptionModal;
+  const MobileToolbarComponent = mobileToolbar;
+
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 1024);
@@ -438,14 +440,14 @@ const App: React.FC = () => {
           onSubscribePro={() => setShowSubscriptionModal(true)}
         />
         
-        <ProjectModal
+        <ProjectModalComponent
           isOpen={showProjectModal}
           onClose={() => setShowProjectModal(false)}
           onSelectProject={handleLoadProject}
           onCreateProject={handleCreateProject}
         />
 
-        <TemplatesModal
+        <TemplatesModalComponent
           isOpen={showTemplatesModal}
           onClose={() => setShowTemplatesModal(false)}
           onSelectTemplate={() => {
@@ -454,7 +456,7 @@ const App: React.FC = () => {
           }}
         />
 
-        <SubscriptionModal
+        <SubscriptionModalComponent
           isOpen={showSubscriptionModal}
           onClose={() => setShowSubscriptionModal(false)}
         />
@@ -511,18 +513,18 @@ const App: React.FC = () => {
             )}
           </AnimatePresence>
           
-          {isMobile && <MobileToolbar />}
+          {isMobile && <MobileToolbarComponent />}
         </div>
       </MainLayout>
 
-      <ProjectModal
+      <ProjectModalComponent
         isOpen={showProjectModal}
         onClose={() => setShowProjectModal(false)}
         onSelectProject={handleLoadProject}
         onCreateProject={handleCreateProject}
       />
 
-      <TemplatesModal
+      <TemplatesModalComponent
         isOpen={showTemplatesModal}
         onClose={() => setShowTemplatesModal(false)}
         onSelectTemplate={() => {
@@ -531,7 +533,7 @@ const App: React.FC = () => {
         }}
       />
 
-      <SubscriptionModal
+      <SubscriptionModalComponent
         isOpen={showSubscriptionModal}
         onClose={() => setShowSubscriptionModal(false)}
       />
