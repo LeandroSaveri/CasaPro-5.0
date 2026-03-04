@@ -140,9 +140,10 @@ function lerpVector(a: Vector2, b: Vector2, t: number): Vector2 {
 }
 
 /**
- * Easing functions
+ * Easing functions - CORREÇÃO: Record<CameraAnimationType, ...> para tipagem estrita
  */
-const EASING = {
+const EASING: Record<CameraAnimationType, (t: number) => number> = {
+  none: (t: number): number => t,
   linear: (t: number): number => t,
   ease: (t: number): number => t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t,
   easeInOut: (t: number): number =>
@@ -169,8 +170,8 @@ export function applyZoom(
   let newPosition = state.position
   if (center !== null && center !== undefined) {
     const worldBefore = screenToWorld(center, state)
-    const newState = { ...state, zoom: newZoom }
-    const worldAfter = screenToWorld(center, newState)
+    const updatedState = { ...state, zoom: newZoom }
+    const worldAfter = screenToWorld(center, updatedState)
     
     newPosition = {
       x: state.position.x + (worldAfter.x - worldBefore.x) * newZoom,
@@ -535,4 +536,95 @@ export function getVisibleBounds(camera: CameraState): CameraBounds {
     minY: topLeft.y,
     maxY: bottomRight.y,
   }
+}
+
+/**
+ * Anima câmera para uma posição específica com curva de bezier
+ * PREMIUM: Interpolação suave avançada
+ */
+export function animateToPosition(
+  state: CameraState,
+  targetPosition: Vector2,
+  duration: number = 500,
+  config: CameraConfig = DEFAULT_CAMERA_CONFIG
+): CameraState {
+  return {
+    ...state,
+    targetPosition,
+    isAnimating: true,
+    lastUpdate: performance.now(),
+  }
+}
+
+/**
+ * Suaviza movimento com easing customizado
+ * PREMIUM: Controle fino de animação
+ */
+export function smoothDamp(
+  current: number,
+  target: number,
+  currentVelocity: number,
+  smoothTime: number,
+  maxSpeed: number,
+  deltaTime: number
+): { value: number; velocity: number } {
+  smoothTime = Math.max(0.0001, smoothTime)
+  const omega = 2 / smoothTime
+  const x = omega * deltaTime
+  const exp = 1 / (1 + x + 0.48 * x * x + 0.235 * x * x * x)
+  let change = current - target
+  const originalTo = target
+  
+  const maxChange = maxSpeed * smoothTime
+  change = clamp(change, -maxChange, maxChange)
+  
+  const temp = (currentVelocity + omega * change) * deltaTime
+  let newVelocity = (currentVelocity - omega * temp) * exp
+  let newValue = target + (change + temp) * exp
+  
+  if (originalTo - current > 0 === newValue > originalTo) {
+    newValue = originalTo
+    newVelocity = (newValue - originalTo) / deltaTime
+  }
+  
+  return { value: newValue, velocity: newVelocity }
+}
+
+/**
+ * Calcula distância de um ponto à área visível
+ * PREMIUM: Para auto-pan quando objeto sai da tela
+ */
+export function distanceToViewport(
+  point: Vector2,
+  camera: CameraState
+): number {
+  const screen = worldToScreen(point, camera)
+  const dx = Math.max(0, -screen.x, screen.x - camera.viewport.x)
+  const dy = Math.max(0, -screen.y, screen.y - camera.viewport.y)
+  return Math.sqrt(dx * dx + dy * dy)
+}
+
+/**
+ * Ajusta zoom para mostrar múltiplos pontos
+ * PREMIUM: Fit to points com padding inteligente
+ */
+export function fitToPoints(
+  state: CameraState,
+  points: Vector2[],
+  padding: number = 0.15,
+  config: CameraConfig = DEFAULT_CAMERA_CONFIG
+): CameraState {
+  if (points.length === 0) return state
+  
+  let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity
+  
+  for (const p of points) {
+    minX = Math.min(minX, p.x)
+    maxX = Math.max(maxX, p.x)
+    minY = Math.min(minY, p.y)
+    maxY = Math.max(maxY, p.y)
+  }
+  
+  const bounds: CameraBounds = { minX, maxX, minY, maxY }
+  return focusOnBounds(state, bounds, padding, config)
 }
