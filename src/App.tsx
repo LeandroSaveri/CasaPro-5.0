@@ -20,8 +20,7 @@ import {
   Share2, 
   Download,
   MoreVertical,
-  Settings,
-  Maximize2
+  Settings
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -34,7 +33,7 @@ interface EditorHeaderProps {
   onToggleSidebar: () => void;
   isSidebarOpen: boolean;
   isMobile: boolean;
-  onOpenSettings?: () => void;
+  onOpenCameraSettings?: () => void;
 }
 
 const EditorHeader: React.FC<EditorHeaderProps> = ({
@@ -46,7 +45,7 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
   onToggleSidebar,
   isSidebarOpen,
   isMobile,
-  onOpenSettings,
+  onOpenCameraSettings,
 }) => {
   const [showActions, setShowActions] = useState(false);
 
@@ -65,7 +64,7 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
           </motion.button>
         )}
 
-        {/* Botão Voltar - Desktop */}
+        {/* Botão Voltar - Desktop (escondido em mobile) */}
         {!isMobile && (
           <motion.button
             whileTap={{ scale: 0.95 }}
@@ -88,7 +87,7 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
         </div>
       </div>
 
-      {/* CENTRO: Toggle 2D/3D - Desktop */}
+      {/* CENTRO: Toggle 2D/3D - Desktop apenas */}
       {!isMobile && (
         <div className="absolute left-1/2 -translate-x-1/2">
           <div className="flex items-center gap-1 p-1 bg-white/5 rounded-xl border border-white/10">
@@ -126,11 +125,11 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
 
       {/* DIREITA: Ações */}
       <div className="flex items-center gap-1 sm:gap-2">
-        {/* Botão Configurações - Desktop (canto superior direito) */}
-        {!isMobile && onOpenSettings && (
+        {/* Configurações da Câmera - Desktop */}
+        {!isMobile && onOpenCameraSettings && (
           <motion.button
             whileTap={{ scale: 0.95 }}
-            onClick={onOpenSettings}
+            onClick={onOpenCameraSettings}
             className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-all"
             title="Configurações da Câmera"
           >
@@ -198,11 +197,11 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
                     <Download size={16} />
                     Exportar
                   </button>
-                  {onOpenSettings && (
+                  {onOpenCameraSettings && (
                     <>
                       <div className="border-t border-white/10" />
                       <button
-                        onClick={() => { onOpenSettings(); setShowActions(false); }}
+                        onClick={() => { onOpenCameraSettings(); setShowActions(false); }}
                         className="w-full flex items-center gap-3 px-4 py-3 text-white/80 hover:bg-white/5 hover:text-white transition-colors text-sm"
                       >
                         <Settings size={16} />
@@ -279,8 +278,8 @@ const MainLayout: React.FC<MainLayoutProps> = ({
         )}
       </AnimatePresence>
 
-      {/* Área Principal */}
-      <main className="flex-1 overflow-hidden bg-[#0a0a0f] relative">
+      {/* Área Principal - Touch habilitado para gestos */}
+      <main className="flex-1 overflow-hidden bg-[#0a0a0f] touch-none">
         {children}
       </main>
     </div>
@@ -306,7 +305,7 @@ const App: React.FC = () => {
 
   const { initialize } = useUserStore();
 
-  // Detectar mobile com breakpoint mais preciso
+  // Detectar mobile com breakpoint preciso
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
@@ -351,7 +350,7 @@ const App: React.FC = () => {
   // TELA DE BOAS-VINDAS
   if (currentView === 'welcome') {
     return (
-      <div className="min-h-screen w-full bg-[#0a0a0f]">
+      <div className="min-h-screen w-full bg-[#0a0a0f] overflow-x-hidden">
         <WelcomeScreen
           onCreateProject={handleCreateProject}
           onOpenProjects={handleOpenProjects}
@@ -395,7 +394,7 @@ const App: React.FC = () => {
         onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
         isSidebarOpen={isSidebarOpen}
         isMobile={isMobile}
-        onOpenSettings={() => setShowCameraSettings(true)}
+        onOpenCameraSettings={() => setShowCameraSettings(true)}
       />
 
       <MainLayout
@@ -447,7 +446,7 @@ const App: React.FC = () => {
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
-              className="bg-[#1a1a1f] border border-white/10 rounded-2xl p-6 w-full max-w-md"
+              className="bg-[#1a1a1f] border border-white/10 rounded-2xl p-6 w-full max-w-md mx-4"
             >
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-white font-semibold text-lg">Configurações da Câmera</h3>
