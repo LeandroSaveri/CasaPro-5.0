@@ -14,7 +14,7 @@
 
 import React from 'react';
 
-import WelcomeScreen from '@/components/welcome/WelcomeScreen';
+import WelcomeScreen from './WelcomeScreen';
 
 import ProjectModal from '@/components/modals/ProjectModal';
 import TemplatesModal from '@/components/modals/TemplatesModal';
