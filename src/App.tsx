@@ -1,3 +1,4 @@
+import EditorView from '@/features/editor/EditorView'
 import React, { useState, useEffect } from 'react';
 import { useProjectStore } from '@/store/projectStore';
 import { useUserStore } from '@/store/userStore';
@@ -94,7 +95,6 @@ const App: React.FC = () => {
           onSelectProject={handleLoadProject}
           onCreateProject={handleCreateProject}
         />
-
         <TemplatesModal
           isOpen={showTemplatesModal}
           onClose={() => setShowTemplatesModal(false)}
@@ -112,53 +112,20 @@ const App: React.FC = () => {
     );
   }
 
-  return (
-    <div className="h-screen w-screen flex flex-col bg-[#0a0a0f] overflow-hidden">
-      <EditorHeader
-        projectName={currentProject?.name || ''}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-        onSave={handleSaveProject}
-        onBack={handleBackToWelcome}
-        onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
-        isSidebarOpen={isSidebarOpen}
-        isMobile={isMobile}
-        onOpenSettings={() => setShowSettingsModal(true)}
-      />
+/**
+ * FILE: App.tsx
+ *
+ * O que este arquivo faz:
+ * Arquivo principal do aplicativo CasaPro.
+ *
+ * Responsabilidade:
+ * Decidir qual tela mostrar:
+ * - WelcomeScreen (tela inicial)
+ * - EditorView (editor completo do projeto)
+ */
 
-      <MainLayout
-        sidebar={<Toolbar />}
-        isSidebarOpen={isSidebarOpen}
-        onCloseSidebar={() => setIsSidebarOpen(false)}
-        isMobile={isMobile}
-      >
-        <div className="h-full w-full relative">
-          {viewMode === '2d' ? <Canvas2D /> : <Canvas3D />}
-        </div>
-      </MainLayout>
-
-      <ProjectModal
-        isOpen={showProjectModal}
-        onClose={() => setShowProjectModal(false)}
-        onSelectProject={handleLoadProject}
-        onCreateProject={handleCreateProject}
-      />
-
-      <TemplatesModal
-        isOpen={showTemplatesModal}
-        onClose={() => setShowTemplatesModal(false)}
-        onSelectTemplate={() => {
-          handleCreateProject();
-          setShowTemplatesModal(false);
-        }}
-      />
-
-      <SubscriptionModal
-        isOpen={showSubscriptionModal}
-        onClose={() => setShowSubscriptionModal(false)}
-      />
-    </div>
-  );
+  return <EditorView />;
 };
 
 export default App;
+ 
