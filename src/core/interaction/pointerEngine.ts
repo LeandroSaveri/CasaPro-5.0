@@ -11,7 +11,7 @@
  * - posição do ponteiro
  */
 
-import { Vector2 } from '../project/projectTypes'
+import type { Vector2 } from '../project/projectTypes'
 
 export interface PointerState {
   isDown: boolean
