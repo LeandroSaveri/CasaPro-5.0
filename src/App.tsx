@@ -22,7 +22,7 @@ import {
   MoreVertical
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import type { Project } from '@/types';
+import type { Project, ProjectTemplate } from '@/types';
 
 interface EditorHeaderProps {
   projectName: string;
@@ -292,14 +292,36 @@ const App: React.FC = () => {
       id: crypto.randomUUID(),
       name: 'Novo Projeto',
       description: '',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
+      createdAt: new Date(),
+      updatedAt: new Date(),
       rooms: [],
       furniture: [],
       settings: {
         gridSize: 50,
         snapToGrid: true,
-        units: 'meters',
+        unit: 'meters',
+        wallHeight: 2.8,
+        wallThickness: 0.15
+      }
+    };
+    createProject(newProject);
+    setCurrentView('editor');
+    setIsSidebarOpen(false);
+  };
+
+  const handleCreateProjectFromTemplate = (template: ProjectTemplate) => {
+    const newProject: Project = {
+      id: crypto.randomUUID(),
+      name: template.name,
+      description: template.description || '',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      rooms: template.rooms || [],
+      furniture: template.furniture || [],
+      settings: {
+        gridSize: 50,
+        snapToGrid: true,
+        unit: 'meters',
         wallHeight: 2.8,
         wallThickness: 0.15
       }
@@ -351,7 +373,7 @@ const App: React.FC = () => {
         <TemplatesModal
           isOpen={showTemplatesModal}
           onClose={() => setShowTemplatesModal(false)}
-          onSelectTemplate={handleCreateProject}
+          onSelectTemplate={handleCreateProjectFromTemplate}
         />
 
         <SubscriptionModal
@@ -398,7 +420,7 @@ const App: React.FC = () => {
       <TemplatesModal
         isOpen={showTemplatesModal}
         onClose={() => setShowTemplatesModal(false)}
-        onSelectTemplate={handleCreateProject}
+        onSelectTemplate={handleCreateProjectFromTemplate}
       />
 
       <SubscriptionModal
