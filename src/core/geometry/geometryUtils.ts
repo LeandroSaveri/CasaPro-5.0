@@ -10,7 +10,7 @@
  * - utilidades geométricas
  */
 
-import { Vector2 } from '../project/projectTypes'
+import type { Vector2 } from '../project/projectTypes'
 
 /**
  * Calcula distância entre dois pontos
