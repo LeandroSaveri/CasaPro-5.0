@@ -1,9 +1,15 @@
+import React, { useState, useEffect } from 'react'
 
-const App: React.FC = () => {
-  const [currentView, setCurrentView] = useState<'welcome' | 'editor'>('welcome');
-  const [showProjectModal, setShowProjectModal] = useState(false);
-  const [showTemplatesModal, setShowTemplatesModal] = useState(false);
-  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+import EditorView from '@/features/editor/EditorView'
+
+import { useProjectStore } from '@/store/projectStore'
+import { useUserStore } from '@/store/userStore'
+
+import WelcomeScreen from '@/components/welcome/WelcomeScreen'
+
+import ProjectModal from '@/modals/ProjectModal'
+import TemplatesModal from '@/modals/TemplatesModal'
+import SubscriptionModal from '@/modals/SubscriptionModal'
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
