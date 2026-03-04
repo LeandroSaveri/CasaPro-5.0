@@ -28,29 +28,13 @@ const App: React.FC = () => {
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [showTemplatesModal, setShowTemplatesModal] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
-  const [showSettingsModal, setShowSettingsModal] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
 
   const { 
-    currentProject, 
-    viewMode, 
-    setViewMode, 
-    saveProject, 
+    currentProject,
     createProject
   } = useProjectStore();
 
   const { initialize } = useUserStore();
-
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-   };
-    
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
 
   useEffect(() => {
     initialize();
@@ -59,15 +43,6 @@ const App: React.FC = () => {
   const handleCreateProject = () => {
     createProject('Novo Projeto', '');
     setCurrentView('editor');
-    setIsSidebarOpen(false);
-  };
-
-  const handleEnterEditor = () => {
-    if (!currentProject) {
-      createProject('Novo Projeto', '');
-    }
-    setCurrentView('editor');
-    setIsSidebarOpen(false);
   };
 
   const handleOpenProjects = () => {
@@ -77,18 +52,6 @@ const App: React.FC = () => {
   const handleLoadProject = () => {
     setCurrentView('editor');
     setShowProjectModal(false);
-    setIsSidebarOpen(false);
-  };
-
-  const handleBackToWelcome = () => {
-    setCurrentView('welcome');
-    setIsSidebarOpen(false);
-  };
-
-  const handleSaveProject = () => {
-    if (currentProject) {
-      saveProject();
-    }
   };
 
   if (currentView === 'welcome') {
