@@ -266,8 +266,7 @@ const App: React.FC = () => {
     viewMode, 
     setViewMode, 
     saveProject, 
-    createProject, 
-    loadProject
+    createProject
   } = useProjectStore();
 
   const { initialize } = useUserStore();
@@ -296,9 +295,7 @@ const App: React.FC = () => {
     setShowProjectModal(true);
   };
 
-  const handleLoadProject = (projectId: string) => {
-    // Buscar projeto do store ou localStorage pelo ID
-    // Por enquanto, apenas fecha o modal e vai pro editor
+  const handleLoadProject = () => {
     setCurrentView('editor');
     setShowProjectModal(false);
     setIsSidebarOpen(false);
@@ -336,7 +333,6 @@ const App: React.FC = () => {
           isOpen={showTemplatesModal}
           onClose={() => setShowTemplatesModal(false)}
           onSelectTemplate={() => {
-            // Template modal chama sem parâmetro - criar projeto genérico
             handleCreateProject();
             setShowTemplatesModal(false);
           }}
