@@ -1,3 +1,4 @@
+/**
  * FILE: App.tsx
  *
  * O que este arquivo faz:
@@ -8,6 +9,7 @@
  * - WelcomeScreen (tela inicial)
  * - EditorView (editor completo do projeto)
  */
+
 import React, { useState, useEffect } from 'react';
 
 import EditorView from '@/features/editor/EditorView';
@@ -118,7 +120,11 @@ const App: React.FC = () => {
 
         <SubscriptionModal
           isOpen={showSubscriptionModal}
-          onClose={() => setShowSubscriptionModal(/**
+          onClose={() => setShowSubscriptionModal(false)}
+        />
+      </>
+    );
+  }
 
   return <EditorView />;
 };
