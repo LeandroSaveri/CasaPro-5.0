@@ -22,9 +22,6 @@ import { useProjectStore } from '@/store/projectStore';
 import { useUIStore } from '@/store/uiStore';
 import type { Point, Wall, Room } from '@/types';
 import { Ruler, Grid3X3, Magnet } from 'lucide-react';
-import { PointerEngine } from '@/core/interaction/pointerEngine';
-
-const pointerEngine = new PointerEngine();
 
 // Snap angles configuration
 const SNAP_ANGLES = [0, 45, 90, 135, 180, 225, 270, 315];
@@ -73,12 +70,6 @@ const Canvas2D: React.FC = () => {
   useEffect(() => {
 
     if (!canvasRef.current) return;
-
-    pointerEngine.attach(canvasRef.current);
-
-    return () => {
-      pointerEngine.detach();
-    };
 
   }, []);
 
