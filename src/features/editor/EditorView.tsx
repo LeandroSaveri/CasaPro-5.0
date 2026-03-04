@@ -32,7 +32,7 @@ const EditorView: React.FC = () => {
 
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [, setShowSettingsModal] = useState(false);
 
   const { 
     currentProject, 
