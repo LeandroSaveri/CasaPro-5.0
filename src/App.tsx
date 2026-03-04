@@ -1,15 +1,22 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect } from 'react';
 
-import EditorView from '@/features/editor/EditorView'
+import EditorView from '@/features/editor/EditorView';
 
-import { useProjectStore } from '@/store/projectStore'
-import { useUserStore } from '@/store/userStore'
+import { useProjectStore } from '@/store/projectStore';
+import { useUserStore } from '@/store/userStore';
 
-import WelcomeScreen from '@/components/welcome/WelcomeScreen'
+import WelcomeScreen from '@/components/welcome/WelcomeScreen';
 
-import ProjectModal from '@/modals/ProjectModal'
-import TemplatesModal from '@/modals/TemplatesModal'
-import SubscriptionModal from '@/modals/SubscriptionModal'
+import ProjectModal from '@/modals/ProjectModal';
+import TemplatesModal from '@/modals/TemplatesModal';
+import SubscriptionModal from '@/modals/SubscriptionModal';
+
+const App: React.FC = () => {
+
+  const [currentView, setCurrentView] = useState<'welcome' | 'editor'>('welcome');
+  const [showProjectModal, setShowProjectModal] = useState(false);
+  const [showTemplatesModal, setShowTemplatesModal] = useState(false);
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -27,7 +34,7 @@ import SubscriptionModal from '@/modals/SubscriptionModal'
   useEffect(() => {
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
-    };
+   };
     
     checkMobile();
     window.addEventListener('resize', checkMobile);
