@@ -13,7 +13,7 @@
  * Este arquivo será usado futuramente pelo Canvas2D e Canvas3D.
  */
 
-import { ProjectData, Wall } from './projectTypes'
+import type { ProjectData, Wall } from './projectTypes'
 
 /**
  * Cria um projeto vazio
