@@ -22,6 +22,7 @@ import {
   MoreVertical
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import type { Project } from '@/types';
 
 interface EditorHeaderProps {
   projectName: string;
@@ -287,7 +288,23 @@ const App: React.FC = () => {
   }, [initialize]);
 
   const handleCreateProject = () => {
-    createProject('Novo Projeto');
+    const newProject: Project = {
+      id: crypto.randomUUID(),
+      name: 'Novo Projeto',
+      description: '',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      rooms: [],
+      furniture: [],
+      settings: {
+        gridSize: 50,
+        snapToGrid: true,
+        units: 'meters',
+        wallHeight: 2.8,
+        wallThickness: 0.15
+      }
+    };
+    createProject(newProject);
     setCurrentView('editor');
     setIsSidebarOpen(false);
   };
