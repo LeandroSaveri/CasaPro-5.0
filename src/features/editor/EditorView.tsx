@@ -16,14 +16,15 @@
  * Este arquivo representa toda a interface do editor.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 
 import { useProjectStore } from '@/store/projectStore';
 import { useUserStore } from '@/store/userStore';
 
 import Toolbar from '@/components/ui/Toolbar';
-import Canvas2D from '@/components/canvas/Canvas2D';
-import Canvas3D from '@/components/canvas/Canvas3D';
+
+const Canvas2D = lazy(() => import('@/components/canvas/Canvas2D'));
+const Canvas3D = lazy(() => import('@/components/canvas/Canvas3D'));
 
 import EditorHeader from './EditorHeader';
 import MainLayout from './EditorLayout';
@@ -92,7 +93,17 @@ const EditorView: React.FC = () => {
         isMobile={isMobile}
       >
         <div className="h-full w-full relative">
-          {viewMode === '2d' ? <Canvas2D /> : <Canvas3D />}
+
+          <Suspense
+            fallback={
+              <div className="w-full h-full flex items-center justify-center text-white/50">
+                Carregando ambiente...
+              </div>
+            }
+          >
+            {viewMode === '2d' ? <Canvas2D /> : <Canvas3D />}
+          </Suspense>
+
         </div>
       </MainLayout>
 
