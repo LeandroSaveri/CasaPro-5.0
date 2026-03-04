@@ -22,6 +22,9 @@ import { useProjectStore } from '@/store/projectStore';
 import { useUIStore } from '@/store/uiStore';
 import type { Point, Wall, Room } from '@/types';
 import { Ruler, Grid3X3, Magnet } from 'lucide-react';
+import { GestureEngine } from '@/core/interaction/gestureEngine';
+
+const gestureEngine = new GestureEngine();
 
 // Snap angles configuration
 const SNAP_ANGLES = [0, 45, 90, 135, 180, 225, 270, 315];
@@ -71,7 +74,30 @@ const Canvas2D: React.FC = () => {
 
     if (!canvasRef.current) return;
 
-  }, []);
+    gestureEngine.attach(canvasRef.current, {
+
+      onPan: (dx, dy) => {
+
+        setCanvasOffset({
+          x: offset.x + dx,
+          y: offset.y + dy
+        })
+
+      },
+
+      onZoom: (scaleFactor) => {
+
+        setCanvasScale(scale * scaleFactor)
+
+      }
+
+    })
+
+    return () => {
+      gestureEngine.detach();
+    };
+
+  }, [scale, offset, setCanvasScale, setCanvasOffset]);
 
   // Convert world coordinates to canvas
   const worldToCanvas = useCallback((point: Point): Point => {
