@@ -9,7 +9,6 @@
  * - WelcomeScreen (tela inicial)
  * - EditorView (editor completo do projeto)
  */
-
 import React, { useState, useEffect } from 'react';
 
 import EditorView from '@/features/editor/EditorView';
