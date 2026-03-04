@@ -1,5 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useProjectStore } from '@/store/projectStore';
+import { useUserStore } from '@/store/userStore';
+import WelcomeScreen from '@/components/welcome/WelcomeScreen';
+import Toolbar from '@/components/ui/Toolbar';
+import Canvas2D from '@/components/canvas/Canvas2D';
+import Canvas3D from '@/components/canvas/Canvas3D';
+import ProjectModal from '@/components/modals/ProjectModal';
+import TemplatesModal from '@/components/modals/TemplatesModal';
+import SubscriptionModal from '@/components/modals/SubscriptionModal';
+import UserMenu from '@/components/ui/UserMenu';
+import MobileToolbar from '@/components/ui/MobileToolbar';
 import { 
   Menu, 
   X, 
@@ -10,7 +20,6 @@ import {
   Share2, 
   Download,
   MoreVertical,
-  Layers,
   Crown,
   Maximize2,
   Minimize2,
@@ -18,20 +27,10 @@ import {
   FolderOpen,
   LayoutTemplate
 } from 'lucide-react';
-import { useProjectStore } from '@/store/projectStore';
-import { useUserStore } from '@/store/userStore';
-import WelcomeScreen from '@/components/welcome/WelcomeScreen';
-import Toolbar from '@/components/ui/Toolbar';
-import Canvas2D from '@/components/canvas/Canvas2D';
-import Canvas3D from '@/components/canvas/Canvas3D';
-import projectModal from '@/components/modals/projectModal';
-import templatesModal from '@/components/modals/templatesModal';
-import subscriptionModal from '@/components/modals/subscriptionModal';
-import userMenu from '@/components/ui/userMenu';
-import mobileToolbar from '@/components/ui/mobileToolbar';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // ============================================
-// HEADER PREMIUM
+// HEADER PREMIUM - RESPONSIVO
 // ============================================
 
 interface EditorHeaderProps {
@@ -75,230 +74,224 @@ const EditorHeader: React.FC<EditorHeaderProps> = ({
   };
 
   return (
-    <header className="h-16 bg-slate-900/95 backdrop-blur-xl border-b border-slate-800 flex items-center justify-between px-4 sticky top-0 z-50">
-      {/* Logo e Brand */}
-      <div className="flex items-center gap-3 flex-1 min-w-0">
+    <header className="h-16 bg-[#0a0a0f]/95 backdrop-blur-xl border-b border-white/10 flex items-center justify-between px-3 sm:px-4 sticky top-0 z-50 touch-none">
+      {/* Esquerda - Logo e Navegação */}
+      <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
         {isMobile && (
           <motion.button
-            whileTap={{ scale: 0.95 }}
+            whileTap={{ scale: 0.9 }}
             onClick={onToggleSidebar}
-            className="w-10 h-10 rounded-xl bg-slate-800/50 border border-slate-700/50 flex items-center justify-center text-slate-300 hover:bg-slate-700/50 hover:text-white transition-all"
+            className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/80 active:bg-white/15 transition-all"
           >
             {isSidebarOpen ? <X size={20} /> : <Menu size={20} />}
           </motion.button>
         )}
 
         <motion.button
-          whileTap={{ scale: 0.95 }}
+          whileTap={{ scale: 0.9 }}
           onClick={onBack}
-          className="w-10 h-10 rounded-xl bg-slate-800/50 border border-slate-700/50 flex items-center justify-center text-slate-300 hover:bg-slate-700/50 hover:text-white transition-all hidden sm:flex"
+          className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/80 active:bg-white/15 transition-all hidden sm:flex"
         >
           <ChevronLeft size={20} />
         </motion.button>
 
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-            <Layers size={20} className="text-white" />
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-[#c9a962] to-[#b8984f] flex items-center justify-center flex-shrink-0 shadow-lg shadow-[#c9a962]/20">
+            <Grid3X3 size={16} className="text-[#0a0a0f]" />
           </div>
-          <div className="hidden sm:block">
-            <h1 className="font-bold text-lg text-white leading-tight">CasaPro</h1>
-            <p className="text-xs text-slate-400">5.0 Premium</p>
+          <div className="hidden sm:block min-w-0">
+            <h1 className="text-white font-semibold text-sm leading-tight truncate">
+              {projectName || 'Novo Projeto'}
+            </h1>
+            <p className="text-[10px] text-white/40 uppercase tracking-wider">Premium</p>
           </div>
         </div>
+      </div>
 
-        {projectName && (
-          <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-slate-800/50 rounded-xl border border-slate-700/50 ml-4">
-            <FolderOpen size={16} className="text-indigo-400" />
-            <span className="text-sm font-medium text-slate-200 truncate max-w-[150px]">
-              {projectName}
-            </span>
+      {/* Centro - View Toggle (Desktop) / Logo (Mobile) */}
+      <div className="flex items-center justify-center">
+        {!isMobile ? (
+          <div className="flex items-center gap-1 p-1 bg-white/5 rounded-xl border border-white/10">
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={() => onViewModeChange('2d')}
+              className={`
+                flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all
+                ${viewMode === '2d' 
+                  ? 'bg-[#c9a962] text-[#0a0a0f] shadow-lg shadow-[#c9a962]/30' 
+                  : 'text-white/60 hover:text-white hover:bg-white/5'
+                }
+              `}
+            >
+              <Grid3X3 size={16} />
+              <span className="hidden md:inline">2D</span>
+            </motion.button>
+            <motion.button
+              whileTap={{ scale: 0.95 }}
+              onClick={() => onViewModeChange('3d')}
+              className={`
+                flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all
+                ${viewMode === '3d' 
+                  ? 'bg-[#c9a962] text-[#0a0a0f] shadow-lg shadow-[#c9a962]/30' 
+                  : 'text-white/60 hover:text-white hover:bg-white/5'
+                }
+              `}
+            >
+              <Box size={16} />
+              <span className="hidden md:inline">3D</span>
+            </motion.button>
           </div>
+        ) : (
+          <span className="text-white/60 text-sm font-medium sm:hidden">
+            {projectName || 'CasaPro'}
+          </span>
         )}
       </div>
 
-      {/* Centro - View Toggle */}
-      <div className="absolute left-1/2 -translate-x-1/2">
-        <div className="flex items-center gap-1 p-1 bg-slate-800/50 rounded-xl border border-slate-700/50">
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => onViewModeChange('2d')}
-            className={`
-              flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all
-              ${viewMode === '2d' 
-                ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/25' 
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/30'
-              }
-            `}
-          >
-            <Grid3X3 size={16} />
-            <span className="hidden sm:inline">2D</span>
-          </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={() => onViewModeChange('3d')}
-            className={`
-              flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all
-              ${viewMode === '3d' 
-                ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/25' 
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/30'
-              }
-            `}
-          >
-            <Box size={16} />
-            <span className="hidden sm:inline">3D</span>
-          </motion.button>
-        </div>
-      </div>
-
-      {/* Ações Direita */}
-      <div className="flex items-center gap-2">
-        {!isMobile && (
+      {/* Direita - Ações */}
+      <div className="flex items-center gap-1 sm:gap-2">
+        {!isMobile ? (
           <>
             <motion.button
-              whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={onNewProject}
-              className="hidden lg:flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-500/10 border border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/20 transition-all text-sm font-medium"
+              className="hidden lg:flex items-center gap-2 px-3 py-2 rounded-xl bg-[#c9a962]/10 border border-[#c9a962]/30 text-[#c9a962] hover:bg-[#c9a962]/20 transition-all text-sm font-medium"
             >
               <Plus size={16} />
               Novo
             </motion.button>
 
             <motion.button
-              whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={onOpenTemplates}
-              className="hidden lg:flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800/50 border border-slate-700/50 text-slate-300 hover:bg-slate-700/50 hover:text-white transition-all text-sm font-medium"
+              className="hidden xl:flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 transition-all text-sm font-medium"
             >
               <LayoutTemplate size={16} />
               Templates
             </motion.button>
 
-            <div className="w-px h-6 bg-slate-700/50 mx-1 hidden lg:block" />
+            <div className="w-px h-6 bg-white/10 mx-1 hidden lg:block" />
 
             <motion.button
-              whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={onSave}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 transition-all text-sm font-medium"
+              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#c9a962]/10 border border-[#c9a962]/30 text-[#c9a962] hover:bg-[#c9a962]/20 transition-all text-sm font-medium"
             >
               <Save size={16} />
               <span className="hidden md:inline">Salvar</span>
             </motion.button>
-            
-            <motion.button
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="hidden md:flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-800/50 border border-slate-700/50 text-slate-300 hover:bg-slate-700/50 hover:text-white transition-all text-sm font-medium"
-            >
-              <Share2 size={16} />
-              <span className="hidden lg:inline">Compartilhar</span>
-            </motion.button>
 
             <motion.button
-              whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={toggleFullscreen}
-              className="hidden sm:flex p-2 rounded-xl bg-slate-800/50 border border-slate-700/50 text-slate-300 hover:bg-slate-700/50 hover:text-white transition-all"
+              className="hidden sm:flex w-10 h-10 rounded-xl bg-white/5 border border-white/10 items-center justify-center text-white/80 hover:bg-white/10 transition-all"
             >
               {isFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
             </motion.button>
 
             <motion.button
-              whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={onSubscribe}
-              className="hidden xl:flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/30 text-amber-400 hover:from-amber-500/30 hover:to-orange-500/30 transition-all text-sm font-medium"
+              className="hidden xl:flex items-center gap-2 px-3 py-2 rounded-xl bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/30 text-amber-400 hover:from-amber-500/30 hover:to-orange-500/30 transition-all text-sm font-medium"
             >
               <Crown size={16} />
               Premium
             </motion.button>
           </>
-        )}
-
-        {isMobile && (
+        ) : (
           <div className="relative">
             <motion.button
-              whileTap={{ scale: 0.95 }}
+              whileTap={{ scale: 0.9 }}
               onClick={() => setShowActions(!showActions)}
-              className="w-10 h-10 rounded-xl bg-slate-800/50 border border-slate-700/50 flex items-center justify-center text-slate-300 hover:bg-slate-700/50 hover:text-white transition-all"
+              className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/80 active:bg-white/15 transition-all"
             >
               <MoreVertical size={20} />
             </motion.button>
 
             <AnimatePresence>
               {showActions && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  className="absolute right-0 top-full mt-2 w-52 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl shadow-black/50 overflow-hidden z-50"
-                >
-                  <button
-                    onClick={() => { onNewProject(); setShowActions(false); }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-slate-300 hover:bg-slate-800 hover:text-white transition-colors text-sm"
+                <>
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    onClick={() => setShowActions(false)}
+                    className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40"
+                  />
+                  <motion.div
+                    initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    animate={{ opacity: 1, y: 0, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                    className="absolute right-0 top-full mt-2 w-56 bg-[#1a1a1f] border border-white/10 rounded-2xl shadow-2xl shadow-black/50 overflow-hidden z-50"
                   >
-                    <Plus size={16} className="text-indigo-400" />
-                    Novo Projeto
-                  </button>
-                  <button
-                    onClick={() => { onOpenTemplates(); setShowActions(false); }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-slate-300 hover:bg-slate-800 hover:text-white transition-colors text-sm"
-                  >
-                    <LayoutTemplate size={16} />
-                    Templates
-                  </button>
-                  <button
-                    onClick={() => { onSave(); setShowActions(false); }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-slate-300 hover:bg-slate-800 hover:text-white transition-colors text-sm"
-                  >
-                    <Save size={16} className="text-emerald-400" />
-                    Salvar
-                  </button>
-                  <button
-                    className="w-full flex items-center gap-3 px-4 py-3 text-slate-300 hover:bg-slate-800 hover:text-white transition-colors text-sm"
-                  >
-                    <Share2 size={16} />
-                    Compartilhar
-                  </button>
-                  <button
-                    className="w-full flex items-center gap-3 px-4 py-3 text-slate-300 hover:bg-slate-800 hover:text-white transition-colors text-sm"
-                  >
-                    <Download size={16} />
-                    Exportar
-                  </button>
-                  <div className="border-t border-slate-700" />
-                  <button
-                    onClick={() => { onViewModeChange(viewMode === '2d' ? '3d' : '2d'); setShowActions(false); }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-slate-300 hover:bg-slate-800 hover:text-white transition-colors text-sm"
-                  >
-                    {viewMode === '2d' ? <Box size={16} /> : <Grid3X3 size={16} />}
-                    Mudar para {viewMode === '2d' ? '3D' : '2D'}
-                  </button>
-                  <div className="border-t border-slate-700" />
-                  <button
-                    onClick={() => { onSubscribe(); setShowActions(false); }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-amber-400 hover:bg-slate-800 transition-colors text-sm"
-                  >
-                    <Crown size={16} />
-                    Premium
-                  </button>
-                </motion.div>
+                    <div className="p-2">
+                      <button
+                        onClick={() => { onNewProject(); setShowActions(false); }}
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-white/80 hover:bg-white/5 hover:text-white transition-colors text-sm"
+                      >
+                        <Plus size={18} className="text-[#c9a962]" />
+                        Novo Projeto
+                      </button>
+                      <button
+                        onClick={() => { onOpenTemplates(); setShowActions(false); }}
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-white/80 hover:bg-white/5 hover:text-white transition-colors text-sm"
+                      >
+                        <LayoutTemplate size={18} />
+                        Templates
+                      </button>
+                      <button
+                        onClick={() => { onSave(); setShowActions(false); }}
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-white/80 hover:bg-white/5 hover:text-white transition-colors text-sm"
+                      >
+                        <Save size={18} className="text-emerald-400" />
+                        Salvar
+                      </button>
+                      <button
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-white/80 hover:bg-white/5 hover:text-white transition-colors text-sm"
+                      >
+                        <Share2 size={18} />
+                        Compartilhar
+                      </button>
+                      <button
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-white/80 hover:bg-white/5 hover:text-white transition-colors text-sm"
+                      >
+                        <Download size={18} />
+                        Exportar
+                      </button>
+                    </div>
+                    <div className="border-t border-white/10 p-2">
+                      <button
+                        onClick={() => { onViewModeChange(viewMode === '2d' ? '3d' : '2d'); setShowActions(false); }}
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-white/80 hover:bg-white/5 hover:text-white transition-colors text-sm"
+                      >
+                        {viewMode === '2d' ? <Box size={18} /> : <Grid3X3 size={18} />}
+                        <span>Mudar para {viewMode === '2d' ? '3D' : '2D'}</span>
+                      </button>
+                    </div>
+                    <div className="border-t border-white/10 p-2">
+                      <button
+                        onClick={() => { onSubscribe(); setShowActions(false); }}
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-amber-400 hover:bg-amber-500/10 transition-colors text-sm font-medium"
+                      >
+                        <Crown size={18} />
+                        Assinar Premium
+                      </button>
+                    </div>
+                  </motion.div>
+                </>
               )}
             </AnimatePresence>
           </div>
         )}
 
-        <userMenu />
+        <UserMenu />
       </div>
     </header>
   );
 };
 
 // ============================================
-// MAIN LAYOUT
+// MAIN LAYOUT - COM SCROLL OTIMIZADO
 // ============================================
 
 interface MainLayoutProps {
@@ -317,15 +310,11 @@ const MainLayout: React.FC<MainLayoutProps> = ({
   isMobile,
 }) => {
   return (
-    <div className="flex-1 flex overflow-hidden relative bg-slate-950">
+    <div className="flex-1 flex overflow-hidden relative bg-[#0a0a0f] touch-pan-y">
       {!isMobile && (
-        <motion.aside
-          initial={{ x: -280, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          className="w-72 flex-shrink-0 border-r border-slate-800 bg-slate-900/50 backdrop-blur-xl"
-        >
+        <aside className="w-72 flex-shrink-0 border-r border-white/10 bg-[#0a0a0f] overflow-y-auto">
           {sidebar}
-        </motion.aside>
+        </aside>
       )}
 
       <AnimatePresence>
@@ -336,7 +325,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={onCloseSidebar}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 touch-none"
             />
             
             <motion.aside
@@ -344,7 +333,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed left-0 top-16 bottom-0 w-72 bg-slate-900/95 backdrop-blur-xl border-r border-slate-800 z-50 overflow-y-auto"
+              className="fixed left-0 top-16 bottom-0 w-72 bg-[#0a0a0f] border-r border-white/10 z-50 overflow-y-auto touch-pan-y"
             >
               {sidebar}
             </motion.aside>
@@ -352,7 +341,7 @@ const MainLayout: React.FC<MainLayoutProps> = ({
         )}
       </AnimatePresence>
 
-      <main className="flex-1 overflow-hidden relative">
+      <main className="flex-1 overflow-hidden relative touch-pan-y">
         {children}
       </main>
     </div>
@@ -381,15 +370,11 @@ const App: React.FC = () => {
 
   const { initialize } = useUserStore();
 
-  const ProjectModalComponent = projectModal;
-  const TemplatesModalComponent = templatesModal;
-  const SubscriptionModalComponent = subscriptionModal;
-  const MobileToolbarComponent = mobileToolbar;
-
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 1024);
-      if (window.innerWidth < 1024) {
+      const mobile = window.innerWidth < 1024;
+      setIsMobile(mobile);
+      if (mobile && isSidebarOpen) {
         setIsSidebarOpen(false);
       }
     };
@@ -397,7 +382,7 @@ const App: React.FC = () => {
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
-  }, []);
+  }, [isSidebarOpen]);
 
   useEffect(() => {
     initialize();
@@ -440,14 +425,14 @@ const App: React.FC = () => {
           onSubscribePro={() => setShowSubscriptionModal(true)}
         />
         
-        <ProjectModalComponent
+        <ProjectModal
           isOpen={showProjectModal}
           onClose={() => setShowProjectModal(false)}
           onSelectProject={handleLoadProject}
           onCreateProject={handleCreateProject}
         />
 
-        <TemplatesModalComponent
+        <TemplatesModal
           isOpen={showTemplatesModal}
           onClose={() => setShowTemplatesModal(false)}
           onSelectTemplate={() => {
@@ -456,7 +441,7 @@ const App: React.FC = () => {
           }}
         />
 
-        <SubscriptionModalComponent
+        <SubscriptionModal
           isOpen={showSubscriptionModal}
           onClose={() => setShowSubscriptionModal(false)}
         />
@@ -465,7 +450,7 @@ const App: React.FC = () => {
   }
 
   return (
-    <div className="h-screen w-screen flex flex-col bg-slate-950 overflow-hidden">
+    <div className="h-screen w-screen flex flex-col bg-[#0a0a0f] overflow-hidden">
       <EditorHeader
         projectName={currentProject?.name || ''}
         viewMode={viewMode}
@@ -486,7 +471,7 @@ const App: React.FC = () => {
         onCloseSidebar={() => setIsSidebarOpen(false)}
         isMobile={isMobile}
       >
-        <div className="h-full w-full relative">
+        <div className="h-full w-full relative touch-pan-y">
           <AnimatePresence mode="wait">
             {viewMode === '2d' ? (
               <motion.div
@@ -494,8 +479,8 @@ const App: React.FC = () => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                className="absolute inset-0"
+                transition={{ duration: 0.15 }}
+                className="absolute inset-0 touch-pan-y"
               >
                 <Canvas2D />
               </motion.div>
@@ -505,26 +490,26 @@ const App: React.FC = () => {
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                className="absolute inset-0"
+                transition={{ duration: 0.15 }}
+                className="absolute inset-0 touch-pan-y"
               >
                 <Canvas3D />
               </motion.div>
             )}
           </AnimatePresence>
           
-          {isMobile && <MobileToolbarComponent />}
+          {isMobile && <MobileToolbar />}
         </div>
       </MainLayout>
 
-      <ProjectModalComponent
+      <ProjectModal
         isOpen={showProjectModal}
         onClose={() => setShowProjectModal(false)}
         onSelectProject={handleLoadProject}
         onCreateProject={handleCreateProject}
       />
 
-      <TemplatesModalComponent
+      <TemplatesModal
         isOpen={showTemplatesModal}
         onClose={() => setShowTemplatesModal(false)}
         onSelectTemplate={() => {
@@ -533,7 +518,7 @@ const App: React.FC = () => {
         }}
       />
 
-      <SubscriptionModalComponent
+      <SubscriptionModal
         isOpen={showSubscriptionModal}
         onClose={() => setShowSubscriptionModal(false)}
       />
