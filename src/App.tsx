@@ -5,9 +5,9 @@ import WelcomeScreen from '@/components/welcome/WelcomeScreen';
 import Toolbar from '@/components/ui/Toolbar';
 import Canvas2D from '@/components/canvas/Canvas2D';
 import Canvas3D from '@/components/canvas/Canvas3D';
-import ProjectModal from '@/components/modals/ProjectModal';
-import TemplatesModal from '@/components/modals/TemplatesModal';
-import SubscriptionModal from '@/components/modals/SubscriptionModal';
+import ProjectModal from '@/modals/ProjectModal'
+import TemplatesModal from '@/modals/TemplatesModal'
+import SubscriptionModal from '@/modals/SubscriptionModal'
 import UserMenu from '@/components/ui/UserMenu';
 import { 
   Menu, 
