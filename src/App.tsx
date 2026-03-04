@@ -1,467 +1,364 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { useProjectStore } from '@/store/projectStore';
-import { useUserStore } from '@/store/userStore';
-import WelcomeScreen from '@/components/welcome/WelcomeScreen';
-import Toolbar from '@/components/ui/Toolbar';
-import Canvas2D from '@/components/canvas/Canvas2D';
-import Canvas3D from '@/components/canvas/Canvas3D';
-import ProjectModal from '@/components/modals/ProjectModal';
-import TemplatesModal from '@/components/modals/TemplatesModal';
-import SubscriptionModal from '@/components/modals/SubscriptionModal';
-import UserMenu from '@/components/ui/UserMenu';
-import MobileToolbar from '@/components/ui/MobileToolbar';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Menu, 
   X, 
-  ChevronLeft, 
-  Grid3X3, 
+  ChevronRight, 
+  Layers, 
   Box, 
-  Save, 
-  Share2, 
-  Download,
-  MoreVertical,
-  Settings
+  Settings, 
+  User, 
+  LogOut,
+  Plus,
+  FolderOpen,
+  LayoutTemplate,
+  Crown,
+  Maximize2,
+  Minimize2,
+  Smartphone,
+  Monitor
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useProjectStore } from '@/store/projectStore';
+import { useUIStore } from '@/store/uiStore';
+import Canvas2D from '@/components/canvas/Canvas2D';
+import Canvas3D from '@/components/canvas/Canvas3D';
+import Toolbar from '@/components/toolbar/Toolbar';
+import PropertiesPanel from '@/components/panels/PropertiesPanel';
+import LayersPanel from '@/components/panels/LayersPanel';
+import projectModal from '@/components/modals/projectModal';
+import templatesModal from '@/components/modals/templatesModal';
+import subscriptionModal from '@/components/modals/subscriptionModal';
+import userMenu from '@/components/ui/userMenu';
+import mobileToolbar from '@/components/ui/mobileToolbar';
 
-interface EditorHeaderProps {
-  projectName: string;
-  viewMode: '2d' | '3d';
-  onViewModeChange: (mode: '2d' | '3d') => void;
-  onSave: () => void;
-  onBack: () => void;
-  onToggleSidebar: () => void;
-  isSidebarOpen: boolean;
-  isMobile: boolean;
-  onOpenCameraSettings?: () => void;
+// ============================================
+// TIPOS E INTERFACES
+// ============================================
+
+type ViewMode = '2d' | '3d';
+type ToolType = 'select' | 'wall' | 'door' | 'window' | 'furniture' | 'measure';
+
+interface Project {
+  id: string;
+  name: string;
+  thumbnail?: string;
+  lastModified: Date;
 }
 
-const EditorHeader: React.FC<EditorHeaderProps> = ({
-  projectName,
-  viewMode,
-  onViewModeChange,
-  onSave,
-  onBack,
-  onToggleSidebar,
-  isSidebarOpen,
-  isMobile,
-  onOpenCameraSettings,
-}) => {
-  const [showActions, setShowActions] = useState(false);
-
-  return (
-    <header className="h-14 sm:h-16 bg-[#0a0a0f]/95 backdrop-blur-xl border-b border-white/10 flex items-center justify-between px-3 sm:px-4 sticky top-0 z-50">
-      {/* ESQUERDA: Logo + Navegação */}
-      <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-        {/* Menu Mobile */}
-        {isMobile && (
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            onClick={onToggleSidebar}
-            className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/80 hover:bg-white/10 hover:text-white transition-all"
-          >
-            {isSidebarOpen ? <X size={18} /> : <Menu size={18} />}
-          </motion.button>
-        )}
-
-        {/* Botão Voltar - Desktop (escondido em mobile) */}
-        {!isMobile && (
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            onClick={onBack}
-            className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/80 hover:bg-white/10 hover:text-white transition-all"
-          >
-            <ChevronLeft size={20} />
-          </motion.button>
-        )}
-
-        {/* Logo + Nome do Projeto */}
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br from-[#c9a962] to-[#b8984f] flex items-center justify-center flex-shrink-0">
-            <Grid3X3 size={14} className="text-[#0a0a0f] sm:hidden" />
-            <Grid3X3 size={16} className="text-[#0a0a0f] hidden sm:block" />
-          </div>
-          <h1 className="text-white font-semibold text-sm sm:text-base truncate max-w-[100px] sm:max-w-[150px] md:max-w-[200px]">
-            {projectName || 'Novo Projeto'}
-          </h1>
-        </div>
-      </div>
-
-      {/* CENTRO: Toggle 2D/3D - Desktop apenas */}
-      {!isMobile && (
-        <div className="absolute left-1/2 -translate-x-1/2">
-          <div className="flex items-center gap-1 p-1 bg-white/5 rounded-xl border border-white/10">
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={() => onViewModeChange('2d')}
-              className={`
-                flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-all
-                ${viewMode === '2d' 
-                  ? 'bg-[#c9a962] text-[#0a0a0f] shadow-lg shadow-[#c9a962]/30' 
-                  : 'text-white/60 hover:text-white hover:bg-white/5'
-                }
-              `}
-            >
-              <Grid3X3 size={16} />
-              <span className="hidden sm:inline">2D</span>
-            </motion.button>
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={() => onViewModeChange('3d')}
-              className={`
-                flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-all
-                ${viewMode === '3d' 
-                  ? 'bg-[#c9a962] text-[#0a0a0f] shadow-lg shadow-[#c9a962]/30' 
-                  : 'text-white/60 hover:text-white hover:bg-white/5'
-                }
-              `}
-            >
-              <Box size={16} />
-              <span className="hidden sm:inline">3D</span>
-            </motion.button>
-          </div>
-        </div>
-      )}
-
-      {/* DIREITA: Ações */}
-      <div className="flex items-center gap-1 sm:gap-2">
-        {/* Configurações da Câmera - Desktop */}
-        {!isMobile && onOpenCameraSettings && (
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            onClick={onOpenCameraSettings}
-            className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/60 hover:text-white hover:bg-white/10 transition-all"
-            title="Configurações da Câmera"
-          >
-            <Settings size={18} />
-          </motion.button>
-        )}
-
-        {/* Ações Desktop */}
-        {!isMobile && (
-          <>
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={onSave}
-              className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl bg-[#c9a962]/10 border border-[#c9a962]/30 text-[#c9a962] hover:bg-[#c9a962]/20 transition-all text-sm font-medium"
-            >
-              <Save size={16} />
-              <span className="hidden md:inline">Salvar</span>
-            </motion.button>
-            
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 hover:text-white transition-all text-sm font-medium"
-            >
-              <Share2 size={16} />
-              <span className="hidden md:inline">Compartilhar</span>
-            </motion.button>
-          </>
-        )}
-
-        {/* Menu Mobile de Ações */}
-        {isMobile && (
-          <div className="relative">
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setShowActions(!showActions)}
-              className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/80 hover:bg-white/10 hover:text-white transition-all"
-            >
-              <MoreVertical size={18} />
-            </motion.button>
-
-            <AnimatePresence>
-              {showActions && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  className="absolute right-0 top-full mt-2 w-48 bg-[#1a1a1f] border border-white/10 rounded-xl shadow-2xl shadow-black/50 overflow-hidden z-50"
-                >
-                  <button
-                    onClick={() => { onSave(); setShowActions(false); }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-white/80 hover:bg-white/5 hover:text-white transition-colors text-sm"
-                  >
-                    <Save size={16} className="text-[#c9a962]" />
-                    Salvar
-                  </button>
-                  <button
-                    className="w-full flex items-center gap-3 px-4 py-3 text-white/80 hover:bg-white/5 hover:text-white transition-colors text-sm"
-                  >
-                    <Share2 size={16} />
-                    Compartilhar
-                  </button>
-                  <button
-                    className="w-full flex items-center gap-3 px-4 py-3 text-white/80 hover:bg-white/5 hover:text-white transition-colors text-sm"
-                  >
-                    <Download size={16} />
-                    Exportar
-                  </button>
-                  {onOpenCameraSettings && (
-                    <>
-                      <div className="border-t border-white/10" />
-                      <button
-                        onClick={() => { onOpenCameraSettings(); setShowActions(false); }}
-                        className="w-full flex items-center gap-3 px-4 py-3 text-white/80 hover:bg-white/5 hover:text-white transition-colors text-sm"
-                      >
-                        <Settings size={16} />
-                        Config. Câmera
-                      </button>
-                    </>
-                  )}
-                  <div className="border-t border-white/10" />
-                  <button
-                    onClick={() => { onViewModeChange(viewMode === '2d' ? '3d' : '2d'); setShowActions(false); }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-white/80 hover:bg-white/5 hover:text-white transition-colors text-sm"
-                  >
-                    {viewMode === '2d' ? <Box size={16} /> : <Grid3X3 size={16} />}
-                    Mudar para {viewMode === '2d' ? '3D' : '2D'}
-                  </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        )}
-
-        <UserMenu />
-      </div>
-    </header>
-  );
-};
-
-interface MainLayoutProps {
-  children: React.ReactNode;
-  sidebar: React.ReactNode;
-  isSidebarOpen: boolean;
-  onCloseSidebar: () => void;
-  isMobile: boolean;
-}
-
-const MainLayout: React.FC<MainLayoutProps> = ({
-  children,
-  sidebar,
-  isSidebarOpen,
-  onCloseSidebar,
-  isMobile,
-}) => {
-  return (
-    <div className="flex-1 flex overflow-hidden relative">
-      {/* Sidebar Desktop - Sempre visível */}
-      {!isMobile && (
-        <aside className="w-64 lg:w-72 flex-shrink-0 border-r border-white/10 bg-[#0a0a0f] overflow-y-auto">
-          {sidebar}
-        </aside>
-      )}
-
-      {/* Sidebar Mobile - Drawer */}
-      <AnimatePresence>
-        {isMobile && isSidebarOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={onCloseSidebar}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
-            />
-            
-            <motion.aside
-              initial={{ x: '-100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '-100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed left-0 top-14 sm:top-16 bottom-0 w-[280px] bg-[#0a0a0f] border-r border-white/10 z-50 overflow-y-auto"
-            >
-              {sidebar}
-            </motion.aside>
-          </>
-        )}
-      </AnimatePresence>
-
-      {/* Área Principal - Touch habilitado para gestos */}
-      <main className="flex-1 overflow-hidden bg-[#0a0a0f] touch-none">
-        {children}
-      </main>
-    </div>
-  );
-};
+// ============================================
+// COMPONENTE PRINCIPAL
+// ============================================
 
 const App: React.FC = () => {
-  const [currentView, setCurrentView] = useState<'welcome' | 'editor'>('welcome');
+  // Estados principais
+  const [currentView, setCurrentView] = useState<ViewMode>('2d');
+  const [currentTool, setCurrentTool] = useState<ToolType>('select');
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [rightPanelOpen, setRightPanelOpen] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  
+  // Modais
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [showTemplatesModal, setShowTemplatesModal] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
-  const [showCameraSettings, setShowCameraSettings] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
-
-  const { 
-    currentProject, 
-    viewMode, 
-    setViewMode, 
-    saveProject, 
-    createProject
-  } = useProjectStore();
-
-  const { initialize } = useUserStore();
-
-  // Detectar mobile com breakpoint preciso
+  const [showUserMenu, setShowUserMenu] = useState(false);
+  
+  // Projeto atual
+  const { currentProject, setCurrentProject } = useProjectStore();
+  
+  // Detectar mobile
   useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
+      setIsMobile(window.innerWidth < 1024);
+      if (window.innerWidth < 1024) {
+        setSidebarOpen(false);
+        setRightPanelOpen(false);
+      }
     };
     
     checkMobile();
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
-
-  useEffect(() => {
-    initialize();
-  }, [initialize]);
-
-  const handleCreateProject = useCallback(() => {
-    createProject('Novo Projeto', '');
-    setCurrentView('editor');
-    setIsSidebarOpen(false);
-  }, [createProject]);
-
-  const handleOpenProjects = useCallback(() => {
-    setShowProjectModal(true);
-  }, []);
-
-  const handleLoadProject = useCallback(() => {
-    setCurrentView('editor');
-    setShowProjectModal(false);
-    setIsSidebarOpen(false);
-  }, []);
-
-  const handleBackToWelcome = useCallback(() => {
-    setCurrentView('welcome');
-    setIsSidebarOpen(false);
-  }, []);
-
-  const handleSaveProject = useCallback(() => {
-    if (currentProject) {
-      saveProject();
+  
+  // Handlers
+  const handleNewProject = () => setShowProjectModal(true);
+  const handleOpenProject = () => setShowTemplatesModal(true);
+  const handleSubscription = () => setShowSubscriptionModal(true);
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen();
+      setIsFullscreen(true);
+    } else {
+      document.exitFullscreen();
+      setIsFullscreen(false);
     }
-  }, [currentProject, saveProject]);
+  };
+  
+  // Renderização condicional dos modais
+  const ProjectModalComponent = projectModal;
+  const TemplatesModalComponent = templatesModal;
+  const SubscriptionModalComponent = subscriptionModal;
+  const UserMenuComponent = userMenu;
+  const MobileToolbarComponent = mobileToolbar;
 
-  // TELA DE BOAS-VINDAS
-  if (currentView === 'welcome') {
-    return (
-      <div className="min-h-screen w-full bg-[#0a0a0f] overflow-x-hidden">
-        <WelcomeScreen
-          onCreateProject={handleCreateProject}
-          onOpenProjects={handleOpenProjects}
-          onExploreTemplates={() => setShowTemplatesModal(true)}
-          onSubscribePro={() => setShowSubscriptionModal(true)}
-        />
-        
-        <ProjectModal
-          isOpen={showProjectModal}
-          onClose={() => setShowProjectModal(false)}
-          onSelectProject={handleLoadProject}
-          onCreateProject={handleCreateProject}
-        />
-
-        <TemplatesModal
-          isOpen={showTemplatesModal}
-          onClose={() => setShowTemplatesModal(false)}
-          onSelectTemplate={() => {
-            handleCreateProject();
-            setShowTemplatesModal(false);
-          }}
-        />
-
-        <SubscriptionModal
-          isOpen={showSubscriptionModal}
-          onClose={() => setShowSubscriptionModal(false)}
-        />
-      </div>
-    );
-  }
-
-  // TELA DO EDITOR
   return (
-    <div className="h-screen w-screen flex flex-col bg-[#0a0a0f] overflow-hidden">
-      <EditorHeader
-        projectName={currentProject?.name || ''}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-        onSave={handleSaveProject}
-        onBack={handleBackToWelcome}
-        onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
-        isSidebarOpen={isSidebarOpen}
-        isMobile={isMobile}
-        onOpenCameraSettings={() => setShowCameraSettings(true)}
-      />
-
-      <MainLayout
-        sidebar={<Toolbar />}
-        isSidebarOpen={isSidebarOpen}
-        onCloseSidebar={() => setIsSidebarOpen(false)}
-        isMobile={isMobile}
-      >
-        <div className="h-full w-full relative touch-none">
-          {viewMode === '2d' ? <Canvas2D /> : <Canvas3D />}
-          
-          {isMobile && <MobileToolbar />}
-        </div>
-      </MainLayout>
-
-      <ProjectModal
-        isOpen={showProjectModal}
-        onClose={() => setShowProjectModal(false)}
-        onSelectProject={handleLoadProject}
-        onCreateProject={handleCreateProject}
-      />
-
-      <TemplatesModal
-        isOpen={showTemplatesModal}
-        onClose={() => setShowTemplatesModal(false)}
-        onSelectTemplate={() => {
-          handleCreateProject();
-          setShowTemplatesModal(false);
-        }}
-      />
-
-      <SubscriptionModal
-        isOpen={showSubscriptionModal}
-        onClose={() => setShowSubscriptionModal(false)}
-      />
-
-      {/* Modal de Configurações da Câmera */}
-      <AnimatePresence>
-        {showCameraSettings && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-            onClick={() => setShowCameraSettings(false)}
+    <div className="h-screen w-screen bg-slate-950 text-slate-100 overflow-hidden flex flex-col">
+      {/* ============================================
+          HEADER PREMIUM
+      ============================================ */}
+      <header className="h-16 bg-slate-900/95 backdrop-blur-xl border-b border-slate-800 flex items-center justify-between px-4 lg:px-6 shrink-0 z-50">
+        {/* Logo e Brand */}
+        <div className="flex items-center gap-3">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="p-2 rounded-xl bg-slate-800/50 hover:bg-slate-700/50 transition-colors lg:hidden"
           >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              onClick={(e) => e.stopPropagation()}
-              className="bg-[#1a1a1f] border border-white/10 rounded-2xl p-6 w-full max-w-md mx-4"
+            {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
+          </motion.button>
+          
+          <div className="flex items-center gap-2">
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20">
+              <Layers size={20} className="text-white" />
+            </div>
+            <div className="hidden sm:block">
+              <h1 className="font-bold text-lg leading-tight">CasaPro</h1>
+              <p className="text-xs text-slate-400">5.0 Premium</p>
+            </div>
+          </div>
+        </div>
+        
+        {/* Centro - Nome do Projeto e View Toggle */}
+        <div className="flex items-center gap-4">
+          {currentProject && (
+            <div className="hidden md:flex items-center gap-2 px-4 py-2 bg-slate-800/50 rounded-xl border border-slate-700/50">
+              <FolderOpen size={16} className="text-indigo-400" />
+              <span className="text-sm font-medium truncate max-w-[200px]">
+                {currentProject.name}
+              </span>
+            </div>
+          )}
+          
+          {/* Toggle 2D/3D */}
+          <div className="flex items-center bg-slate-800/50 rounded-xl p-1 border border-slate-700/50">
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setCurrentView('2d')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                currentView === '2d'
+                  ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/25'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
             >
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-white font-semibold text-lg">Configurações da Câmera</h3>
-                <button 
-                  onClick={() => setShowCameraSettings(false)}
-                  className="p-2 hover:bg-white/10 rounded-lg text-white/60"
-                >
-                  <X size={20} />
+              <span className="flex items-center gap-2">
+                <Layers size={16} />
+                2D
+              </span>
+            </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => setCurrentView('3d')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                currentView === '3d'
+                  ? 'bg-indigo-500 text-white shadow-lg shadow-indigo-500/25'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                <Box size={16} />
+                3D
+              </span>
+            </motion.button>
+          </div>
+        </div>
+        
+        {/* Ações direitas */}
+        <div className="flex items-center gap-2">
+          {/* Fullscreen */}
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={toggleFullscreen}
+            className="hidden sm:flex p-2 rounded-xl bg-slate-800/50 hover:bg-slate-700/50 transition-colors"
+          >
+            {isFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+          </motion.button>
+          
+          {/* Premium */}
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={handleSubscription}
+            className="hidden md:flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/30 text-amber-400 hover:from-amber-500/30 hover:to-orange-500/30 transition-all"
+          >
+            <Crown size={16} />
+            <span className="text-sm font-medium">Premium</span>
+          </motion.button>
+          
+          {/* User Menu */}
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => setShowUserMenu(!showUserMenu)}
+            className="p-2 rounded-xl bg-slate-800/50 hover:bg-slate-700/50 transition-colors relative"
+          >
+            <User size={20} />
+            {showUserMenu && (
+              <div className="absolute top-full right-0 mt-2 w-48 bg-slate-900 rounded-xl border border-slate-700 shadow-2xl py-2 z-50">
+                <button className="w-full px-4 py-2 text-left text-sm hover:bg-slate-800 flex items-center gap-2">
+                  <Settings size={16} />
+                  Configurações
+                </button>
+                <button className="w-full px-4 py-2 text-left text-sm hover:bg-slate-800 flex items-center gap-2 text-red-400">
+                  <LogOut size={16} />
+                  Sair
                 </button>
               </div>
-              <p className="text-white/60 text-sm">
-                Ajustes de câmera serão implementados aqui.
-              </p>
-            </motion.div>
-          </motion.div>
+            )}
+          </motion.button>
+        </div>
+      </header>
+
+      {/* ============================================
+          ÁREA PRINCIPAL
+      ============================================ */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Sidebar Esquerda */}
+        <AnimatePresence>
+          {sidebarOpen && (
+            <motion.aside
+              initial={{ x: -280, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: -280, opacity: 0 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="w-[280px] bg-slate-900/50 backdrop-blur-xl border-r border-slate-800 flex flex-col shrink-0 z-40"
+            >
+              {/* Toolbar de Ferramentas */}
+              <div className="p-4 border-b border-slate-800">
+                <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-3">
+                  Ferramentas
+                </h3>
+                <Toolbar 
+                  currentTool={currentTool}
+                  onToolChange={setCurrentTool}
+                />
+              </div>
+              
+              {/* Painel de Camadas */}
+              <div className="flex-1 overflow-hidden">
+                <LayersPanel />
+              </div>
+              
+              {/* Ações de Projeto */}
+              <div className="p-4 border-t border-slate-800 space-y-2">
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleNewProject}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-indigo-500/20 border border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/30 transition-all"
+                >
+                  <Plus size={18} />
+                  <span className="font-medium">Novo Projeto</span>
+                </motion.button>
+                
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={handleOpenProject}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-slate-800/50 border border-slate-700/50 hover:bg-slate-800 transition-all"
+                >
+                  <LayoutTemplate size={18} />
+                  <span className="font-medium">Templates</span>
+                </motion.button>
+              </div>
+            </motion.aside>
+          )}
+        </AnimatePresence>
+
+        {/* Área do Canvas */}
+        <main className="flex-1 relative bg-slate-950">
+          <AnimatePresence mode="wait">
+            {currentView === '2d' ? (
+              <motion.div
+                key="2d"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="absolute inset-0"
+              >
+                <Canvas2D 
+                  currentTool={currentTool}
+                  isMobile={isMobile}
+                />
+              </motion.div>
+            ) : (
+              <motion.div
+                key="3d"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="absolute inset-0"
+              >
+                <Canvas3D />
+              </motion.div>
+            )}
+          </AnimatePresence>
+          
+          {/* Mobile Toolbar */}
+          {isMobile && <MobileToolbarComponent />}
+        </main>
+
+        {/* Painel Direito - Propriedades */}
+        <AnimatePresence>
+          {rightPanelOpen && (
+            <motion.aside
+              initial={{ x: 320, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: 320, opacity: 0 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="w-[320px] bg-slate-900/50 backdrop-blur-xl border-l border-slate-800 flex flex-col shrink-0 z-40"
+            >
+              <PropertiesPanel />
+            </motion.aside>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* ============================================
+          MODAIS
+      ============================================ */}
+      <AnimatePresence>
+        {showProjectModal && (
+          <ProjectModalComponent 
+            onClose={() => setShowProjectModal(false)}
+            onCreateProject={(name: string) => {
+              setCurrentProject({ id: Date.now().toString(), name, lastModified: new Date() });
+              setShowProjectModal(false);
+            }}
+          />
+        )}
+        
+        {showTemplatesModal && (
+          <TemplatesModalComponent 
+            onClose={() => setShowTemplatesModal(false)}
+            onSelectTemplate={(template: any) => {
+              console.log('Template selecionado:', template);
+              setShowTemplatesModal(false);
+            }}
+          />
+        )}
+        
+        {showSubscriptionModal && (
+          <SubscriptionModalComponent 
+            onClose={() => setShowSubscriptionModal(false)}
+          />
         )}
       </AnimatePresence>
     </div>
