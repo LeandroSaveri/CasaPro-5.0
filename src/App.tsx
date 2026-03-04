@@ -1,15 +1,4 @@
-import EditorView from '@/features/editor/EditorView'
-import React, { useState, useEffect } from 'react';
-import { useProjectStore } from '@/store/projectStore';
-import { useUserStore } from '@/store/userStore';
-import WelcomeScreen from '@/components/welcome/WelcomeScreen';
-import Toolbar from '@/components/ui/Toolbar';
-import Canvas2D from '@/components/canvas/Canvas2D';
-import Canvas3D from '@/components/canvas/Canvas3D';
-import ProjectModal from '@/modals/ProjectModal'
-import TemplatesModal from '@/modals/TemplatesModal'
-import SubscriptionModal from '@/modals/SubscriptionModal'
-import EditorHeader from '@/features/editor/EditorHeader'
+
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<'welcome' | 'editor'>('welcome');
   const [showProjectModal, setShowProjectModal] = useState(false);
