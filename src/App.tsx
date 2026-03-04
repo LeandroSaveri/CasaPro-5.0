@@ -22,7 +22,6 @@ import {
   MoreVertical
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import type { Project, ProjectTemplate } from '@/types';
 
 interface EditorHeaderProps {
   projectName: string;
@@ -288,45 +287,7 @@ const App: React.FC = () => {
   }, [initialize]);
 
   const handleCreateProject = () => {
-    const newProject: Project = {
-      id: crypto.randomUUID(),
-      name: 'Novo Projeto',
-      description: '',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      rooms: [],
-      furniture: [],
-      settings: {
-        gridSize: 50,
-        snapToGrid: true,
-        unit: 'meters',
-        wallHeight: 2.8,
-        wallThickness: 0.15
-      }
-    };
-    createProject(newProject);
-    setCurrentView('editor');
-    setIsSidebarOpen(false);
-  };
-
-  const handleCreateProjectFromTemplate = (template: ProjectTemplate) => {
-    const newProject: Project = {
-      id: crypto.randomUUID(),
-      name: template.name,
-      description: template.description || '',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      rooms: template.rooms || [],
-      furniture: template.furniture || [],
-      settings: {
-        gridSize: 50,
-        snapToGrid: true,
-        unit: 'meters',
-        wallHeight: 2.8,
-        wallThickness: 0.15
-      }
-    };
-    createProject(newProject);
+    createProject('Novo Projeto', '');
     setCurrentView('editor');
     setIsSidebarOpen(false);
   };
@@ -336,7 +297,8 @@ const App: React.FC = () => {
   };
 
   const handleLoadProject = (projectId: string) => {
-    loadProject(projectId);
+    // Buscar projeto do store ou localStorage pelo ID
+    // Por enquanto, apenas fecha o modal e vai pro editor
     setCurrentView('editor');
     setShowProjectModal(false);
     setIsSidebarOpen(false);
@@ -373,7 +335,11 @@ const App: React.FC = () => {
         <TemplatesModal
           isOpen={showTemplatesModal}
           onClose={() => setShowTemplatesModal(false)}
-          onSelectTemplate={handleCreateProjectFromTemplate}
+          onSelectTemplate={() => {
+            // Template modal chama sem parâmetro - criar projeto genérico
+            handleCreateProject();
+            setShowTemplatesModal(false);
+          }}
         />
 
         <SubscriptionModal
@@ -420,7 +386,10 @@ const App: React.FC = () => {
       <TemplatesModal
         isOpen={showTemplatesModal}
         onClose={() => setShowTemplatesModal(false)}
-        onSelectTemplate={handleCreateProjectFromTemplate}
+        onSelectTemplate={() => {
+          handleCreateProject();
+          setShowTemplatesModal(false);
+        }}
       />
 
       <SubscriptionModal
