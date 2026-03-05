@@ -159,7 +159,6 @@ function calculateVelocity(
   deltaTime: number
 ): Vector2 {
   if (deltaTime <= 0) return { x: 0, y: 0 }
-
   return {
     x: (to.x - from.x) / deltaTime,
     y: (to.y - from.y) / deltaTime,
@@ -182,7 +181,6 @@ function applyMomentum(
   deltaTime: number
 ): Vector2 {
   const factor = Math.pow(decay, deltaTime / 16)
-
   return {
     x: velocity.x * factor,
     y: velocity.y * factor,
@@ -198,7 +196,6 @@ function detectGestureType(
   config: GestureConfig
 ): GestureType {
   const count = touches.length
-
   if (count === 0) return 'none'
   if (count === 1) {
     if (state.tapCount === 1) return 'tap'
@@ -212,7 +209,6 @@ function detectGestureType(
     }
     return 'pinch'
   }
-
   return 'none'
 }
 
@@ -272,13 +268,24 @@ export function updateTouches(
   // Processa gesto com dois ou mais dedos
   const a = touches[0].position
   const b = touches[1].position
-
   const dist = distance(a, b)
   const center = midpoint(a, b)
   const currentAngle = angle(a, b)
 
   // Inicializa gesto
   if (state.startDistance === null || state.startCenter === null) {
+    const newState: GestureState = {
+      ...state,
+      touches,
+      startDistance: dist,
+      startCenter: center,
+      startAngle: currentAngle,
+      lastCenter: center,
+      lastTimestamp: now,
+      metrics,
+      isActive: true,
+    }
+
     return {
       type: 'pinch',
       zoom: 1,
@@ -415,7 +422,7 @@ export function checkLongPress(
 /**
  * Limpa estado de gesto
  */
-export function resetGesture(): GestureState {
+export function resetGesture(_state: GestureState): GestureState {
   return createGestureState()
 }
 
@@ -483,9 +490,9 @@ export function detectSwipe(
  * Calcula bounding box de múltiplos toques
  * PREMIUM: Para gestos complexos com 3+ dedos
  */
-export function getTouchesBounds(touches: TouchPoint[]): { 
-  center: Vector2; 
-  width: number; 
+export function getTouchesBounds(touches: TouchPoint[]): {
+  center: Vector2;
+  width: number;
   height: number;
   radius: number;
 } | null {
@@ -569,11 +576,11 @@ export function getSmoothedRotation(
   smoothing: number = 0.3
 ): number {
   if (state.startAngle === null || state.rotate === 0) return 0
-  
+
   // Normaliza ângulo para evitar saltos de 360°
   let delta = state.rotate
   while (delta > 180) delta -= 360
   while (delta < -180) delta += 360
-  
+
   return delta * smoothing
 }
