@@ -264,26 +264,27 @@ export function updateTouches(
     }
   }
 
-  // Processa gesto com dois ou mais dedos
-  const a = touches[0].position
-  const b = touches[1].position
-  const dist = distance(a, b)
-  const center = midpoint(a, b)
-  const currentAngle = angle(a, b)
+// Processa gesto com dois ou mais dedos
+const a = touches[0].position
+const b = touches[1].position
+const dist = distance(a, b)
+const center = midpoint(a, b)
+const currentAngle = angle(a, b)
 
-  // Inicializa gesto
-  if (state.startDistance === null || state.startCenter === null) {
-    const _newState: GestureState = {
-      ...state,
-      touches,
-      startDistance: dist,
-      startCenter: center,
-      startAngle: currentAngle,
-      lastCenter: center,
-      lastTimestamp: now,
-      metrics,
-      isActive: true,
-    }
+// Inicializa gesto
+if (state.startDistance === null || state.startCenter === null) {
+
+  return {
+    type: 'pinch',
+    zoom: 1,
+    pan: { x: 0, y: 0 },
+    rotate: 0,
+    center,
+    metrics,
+    isComplete: false,
+  }
+
+}
 
     return {
       type: 'pinch',
