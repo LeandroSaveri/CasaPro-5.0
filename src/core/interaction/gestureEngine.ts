@@ -583,7 +583,3 @@ export function getSmoothedRotation(
 
   return delta * smoothing
 }
-'''
-
-print("gestureEngine.ts corrigido com _newState e _state")
-print(f"Tamanho: {len(gesture_engine_content)} caracteres")
