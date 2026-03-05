@@ -1,7 +1,3 @@
-# 1. cameraEngine.ts - adicionar _ em parâmetros não utilizados
-# 2. gestureEngine.ts - verificar se há variáveis não utilizadas
-
-camera_engine_content = '''/**
  * FILE: cameraEngine.ts
  *
  * O que este arquivo faz:
