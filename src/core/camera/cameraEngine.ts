@@ -22,7 +22,7 @@
 
 import type { Vector2 } from '../project/projectTypes'
 
-export type CameraAnimationType = 'none' | 'ease' | 'spring' | 'linear'
+export type CameraAnimationType = 'none' | 'ease' | 'easeInOut' | 'spring' | 'linear'
 
 export interface CameraBounds {
   minX: number
@@ -168,7 +168,7 @@ export function applyZoom(
 
   // Zoom para o centro do cursor se fornecido
   let newPosition = state.position
-  if (center !== null && center !== undefined) {
+  if (center) {
     const worldBefore = screenToWorld(center, state)
     const updatedState = { ...state, zoom: newZoom }
     const worldAfter = screenToWorld(center, updatedState)
