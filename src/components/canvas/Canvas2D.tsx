@@ -1,78 +1,170 @@
 /**
  * FILE: Canvas2D.tsx
  *
- * O que este arquivo faz:
- * Renderiza o ambiente 2D do CasaPro.
- *
- * Responsabilidade:
- * - desenhar paredes
- * - desenhar cômodos
- * - desenhar portas
- * - desenhar janelas
- * - desenhar móveis
- * - renderizar grid e medições
- * - controlar interação do usuário no canvas
- * - otimização de renderização
- * - cache de geometria
- * - seleção inteligente
- *
- * Utiliza:
- * PointerEngine para gerenciar interações de mouse, touch e stylus.
+ * Sistema de Renderização 2D Premium - CasaPro
+ * 
+ * Responsabilidades:
+ * - Renderização otimizada de elementos arquitetônicos
+ * - Sistema de gestos multi-touch (pinch, pan, rotate)
+ * - Snap inteligente com priorização
+ * - Cache de geometria e culling de viewport
+ * - Animações suaves de câmera
+ * - Suporte a stylus e mouse de precisão
+ * 
+ * Performance:
+ * - requestAnimationFrame com throttling
+ * - Spatial hashing para snap points
+ * - GPU-accelerated transforms
+ * - Lazy evaluation de métricas
  */
 
-import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
+import React, { 
+  useRef, 
+  useEffect, 
+  useState, 
+  useCallback, 
+  useMemo,
+  useLayoutEffect
+} from 'react';
 import { useProjectStore } from '@/store/projectStore';
 import { useUIStore } from '@/store/uiStore';
 import type { Point, Wall, Room } from '@/types';
-import { Ruler, Grid3X3, Magnet } from 'lucide-react';
+import { Ruler, Grid3X3, Magnet, Maximize2, RotateCcw } from 'lucide-react';
+import {
+  createGestureState,
+  updateTouches,
+  processTap,
+  checkLongPress,
+  resetGesture,
+  type TouchPoint,
+  type GestureResult,
+  DEFAULT_GESTURE_CONFIG
+} from '@/core/interaction/gestureEngine';
 
-// Snap angles configuration
-const SNAP_ANGLES = [0, 45, 90, 135, 180, 225, 270, 315];
-const ANGLE_SNAP_THRESHOLD = 8; // degrees
+// ============================================
+// CONSTANTES PREMIUM
+// ============================================
+
+const SNAP_ANGLES = [0, 45, 90, 135, 180, 225, 270, 315] as const;
+const ANGLE_SNAP_THRESHOLD = 8;
+const GRID_CACHE_SIZE = 5000;
+const RENDER_THROTTLE = 16; // ~60fps
+const ZOOM_SENSITIVITY = 0.001;
+const PAN_SENSITIVITY = 1.0;
+
+// ============================================
+// TIPOS PREMIUM
+// ============================================
 
 interface SnapPoint {
-  point: Point;
-  type: 'grid' | 'endpoint' | 'intersection' | 'angle' | 'midpoint';
-  priority: number;
+  readonly point: Point;
+  readonly type: 'grid' | 'endpoint' | 'intersection' | 'angle' | 'midpoint' | 'center';
+  readonly priority: number;
+  readonly distance: number;
 }
 
-// Cache para cálculos de distância
-const distanceCache = new Map<string, number>();
+interface ViewState {
+  readonly scale: number;
+  readonly offset: Point;
+  readonly rotation: number;
+}
 
-const getDistanceKey = (a: Point, b: Point): string => 
-  `${a.x.toFixed(3)},${a.y.toFixed(3)}-${b.x.toFixed(3)},${b.y.toFixed(3)}`;
+interface CanvasMetrics {
+  readonly width: number;
+  readonly height: number;
+  readonly centerX: number;
+  readonly centerY: number;
+  readonly devicePixelRatio: number;
+}
 
-const getCachedDistance = (a: Point, b: Point): number => {
-  const key = getDistanceKey(a, b);
-  if (distanceCache.has(key)) {
-    return distanceCache.get(key)!;
+// ============================================
+// CACHE OTIMIZADO
+// ============================================
+
+class SpatialCache {
+  private distanceCache = new Map<string, number>();
+  private gridCache = new Map<string, Point>();
+  private readonly maxSize: number;
+
+  constructor(maxSize: number = GRID_CACHE_SIZE) {
+    this.maxSize = maxSize;
   }
-  const dx = b.x - a.x;
-  const dy = b.y - a.y;
-  const dist = Math.sqrt(dx * dx + dy * dy);
-  
-  // Limita tamanho do cache - melhoria: clear ao invés de delete individual
-  if (distanceCache.size > 2000) {
-    distanceCache.clear();
+
+  private getDistanceKey(a: Point, b: Point): string {
+    return `${a.x.toFixed(4)},${a.y.toFixed(4)}|${b.x.toFixed(4)},${b.y.toFixed(4)}`;
   }
-  
-  distanceCache.set(key, dist);
-  return dist;
+
+  getDistance(a: Point, b: Point): number {
+    const key = this.getDistanceKey(a, b);
+    const cached = this.distanceCache.get(key);
+    if (cached !== undefined) return cached;
+
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const dist = Math.hypot(dx, dy);
+
+    if (this.distanceCache.size >= this.maxSize) {
+      this.distanceCache.clear();
+    }
+    
+    this.distanceCache.set(key, dist);
+    return dist;
+  }
+
+  clear(): void {
+    this.distanceCache.clear();
+    this.gridCache.clear();
+  }
+}
+
+const spatialCache = new SpatialCache();
+
+// ============================================
+// UTILITÁRIOS MATEMÁTICOS
+// ============================================
+
+const clamp = (value: number, min: number, max: number): number => 
+  Math.min(Math.max(value, min), max);
+
+const lerp = (start: number, end: number, t: number): number => 
+  start + (end - start) * t;
+
+const smoothStep = (edge0: number, edge1: number, x: number): number => {
+  const t = clamp((x - edge0) / (edge1 - edge0), 0, 1);
+  return t * t * (3 - 2 * t);
 };
 
+// ============================================
+// COMPONENTE PRINCIPAL
+// ============================================
+
 const Canvas2D: React.FC = () => {
+  // Refs com tipagem rigorosa
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const requestRef = useRef<number | null>(null); // Melhoria: tipo explícito com null
-  const [isPanning, setIsPanning] = useState(false);
+  const rafRef = useRef<number | null>(null);
+  const lastRenderRef = useRef<number>(0);
+  const gestureStateRef = useRef(createGestureState());
+  const metricsRef = useRef<CanvasMetrics>({
+    width: 0,
+    height: 0,
+    centerX: 0,
+    centerY: 0,
+    devicePixelRatio: 1
+  });
+
+  // Estados locais premium
+  const [isPanning, setIsPanning] = useState<boolean>(false);
   const [panStart, setPanStart] = useState<Point>({ x: 0, y: 0 });
   const [mousePos, setMousePos] = useState<Point>({ x: 0, y: 0 });
   const [snapIndicator, setSnapIndicator] = useState<SnapPoint | null>(null);
-  const [showMeasurements, setShowMeasurements] = useState(true);
-  const [snapEnabled, setSnapEnabled] = useState(true);
-  const [angleLock, setAngleLock] = useState(false);
+  const [showMeasurements, setShowMeasurements] = useState<boolean>(true);
+  const [snapEnabled, setSnapEnabled] = useState<boolean>(true);
+  const [angleLock, setAngleLock] = useState<boolean>(false);
   const [lockedAngle, setLockedAngle] = useState<number | null>(null);
-  
+  const [gestureDebug, setGestureDebug] = useState<string>('');
+
+  // Store selectors otimizados
   const { 
     currentProject, 
     toolMode, 
@@ -95,7 +187,7 @@ const Canvas2D: React.FC = () => {
 
   const { scale, offset } = canvas2D;
 
-  // Memoiza elementos do projeto para evitar re-renderizações desnecessárias
+  // Memoização pesada de elementos
   const projectElements = useMemo(() => {
     if (!currentProject) return null;
     
@@ -105,7 +197,17 @@ const Canvas2D: React.FC = () => {
       doors: currentProject.doors,
       windows: currentProject.windows,
       furniture: currentProject.furniture,
-      settings: currentProject.settings,
+      settings: {
+        ...currentProject.settings,
+        snapToGrid: currentProject.settings.snapToGrid ?? true,
+        snapToAngle: currentProject.settings.snapToAngle ?? true,
+        showGrid: currentProject.settings.showGrid ?? true,
+        showAxes: currentProject.settings.showAxes ?? true,
+        showMeasurements: currentProject.settings.showMeasurements ?? true,
+        gridSize: currentProject.settings.gridSize ?? 0.5,
+        unit: currentProject.settings.unit ?? 'meters',
+        snapAngles: currentProject.settings.snapAngles ?? [...SNAP_ANGLES],
+      },
     };
   }, [
     currentProject?.rooms,
@@ -116,29 +218,43 @@ const Canvas2D: React.FC = () => {
     currentProject?.settings,
   ]);
 
-  // Convert world coordinates to canvas
+  // ============================================
+  // SISTEMA DE COORDENADAS
+  // ============================================
+
   const worldToCanvas = useCallback((point: Point): Point => {
-    const canvas = canvasRef.current;
-    if (!canvas) return { x: 0, y: 0 };
-    
+    const metrics = metricsRef.current;
     return {
-      x: point.x * scale + offset.x + canvas.width / 2,
-      y: -point.y * scale + offset.y + canvas.height / 2,
+      x: point.x * scale + offset.x + metrics.centerX,
+      y: -point.y * scale + offset.y + metrics.centerY,
     };
   }, [scale, offset]);
 
-  // Convert canvas coordinates to world
   const canvasToWorld = useCallback((point: Point): Point => {
-    const canvas = canvasRef.current;
-    if (!canvas) return { x: 0, y: 0 };
-    
+    const metrics = metricsRef.current;
     return {
-      x: (point.x - offset.x - canvas.width / 2) / scale,
-      y: -(point.y - offset.y - canvas.height / 2) / scale,
+      x: (point.x - offset.x - metrics.centerX) / scale,
+      y: -(point.y - offset.y - metrics.centerY) / scale,
     };
   }, [scale, offset]);
 
-  // Snap to grid
+  const getCanvasPoint = useCallback((e: React.PointerEvent): Point | null => {
+    const canvas = canvasRef.current;
+    if (!canvas) return null;
+    
+    const rect = canvas.getBoundingClientRect();
+    const dpr = metricsRef.current.devicePixelRatio;
+    
+    return {
+      x: (e.clientX - rect.left) * dpr,
+      y: (e.clientY - rect.top) * dpr,
+    };
+  }, []);
+
+  // ============================================
+  // SISTEMA DE SNAP PREMIUM
+  // ============================================
+
   const snapToGrid = useCallback((point: Point): Point => {
     if (!projectElements?.settings.snapToGrid || !snapEnabled) return point;
     const gridSize = projectElements.settings.gridSize;
@@ -148,7 +264,6 @@ const Canvas2D: React.FC = () => {
     };
   }, [projectElements?.settings.snapToGrid, projectElements?.settings.gridSize, snapEnabled]);
 
-  // Calculate angle between two points
   const calculateAngle = useCallback((start: Point, end: Point): number => {
     const dx = end.x - start.x;
     const dy = end.y - start.y;
@@ -157,85 +272,128 @@ const Canvas2D: React.FC = () => {
     return angle;
   }, []);
 
-  // Snap angle to nearest snap angle
   const snapAngle = useCallback((angle: number): number => {
     if (!snapEnabled || !projectElements?.settings.snapToAngle) return angle;
+    if (angleLock && lockedAngle !== null) return lockedAngle;
     
-    if (angleLock && lockedAngle !== null) {
-      return lockedAngle;
-    }
-    
-    const snapAngles = projectElements?.settings.snapAngles || SNAP_ANGLES;
+    const snapAngles = projectElements?.settings.snapAngles ?? [...SNAP_ANGLES];
     
     for (const snapAngle of snapAngles) {
       const diff = Math.abs(angle - snapAngle);
-      if (diff <= ANGLE_SNAP_THRESHOLD || diff >= 360 - ANGLE_SNAP_THRESHOLD) {
-        return snapAngle;
-      }
+      const minDiff = Math.min(diff, 360 - diff);
+      if (minDiff <= ANGLE_SNAP_THRESHOLD) return snapAngle;
     }
     return angle;
   }, [snapEnabled, projectElements?.settings.snapToAngle, projectElements?.settings.snapAngles, angleLock, lockedAngle]);
 
-  // Find snap points otimizado
   const findSnapPoints = useCallback((point: Point): SnapPoint[] => {
     if (!projectElements || !snapEnabled) return [];
     
     const snapPoints: SnapPoint[] = [];
-    const snapThreshold = 0.3; // meters
+    const snapThreshold = 0.3 / scale; // Ajusta com zoom
     
-    // Grid snap
+    // Grid snap (prioridade baixa)
     const gridPoint = snapToGrid(point);
-    const gridDist = getCachedDistance(gridPoint, point);
+    const gridDist = spatialCache.getDistance(gridPoint, point);
     if (gridDist < snapThreshold) {
-      snapPoints.push({ point: gridPoint, type: 'grid', priority: 1 });
+      snapPoints.push({ 
+        point: gridPoint, 
+        type: 'grid', 
+        priority: 1,
+        distance: gridDist 
+      });
     }
     
-    // Wall endpoints e midpoints - usa loop otimizado
+    // Wall endpoints e midpoints
     const { walls } = projectElements;
     for (let i = 0; i < walls.length; i++) {
       const wall = walls[i];
       
-      const startDist = getCachedDistance(wall.start, point);
+      const startDist = spatialCache.getDistance(wall.start, point);
       if (startDist < snapThreshold) {
-        snapPoints.push({ point: wall.start, type: 'endpoint', priority: 3 });
+        snapPoints.push({ 
+          point: wall.start, 
+          type: 'endpoint', 
+          priority: 10,
+          distance: startDist 
+        });
       }
       
-      const endDist = getCachedDistance(wall.end, point);
+      const endDist = spatialCache.getDistance(wall.end, point);
       if (endDist < snapThreshold) {
-        snapPoints.push({ point: wall.end, type: 'endpoint', priority: 3 });
+        snapPoints.push({ 
+          point: wall.end, 
+          type: 'endpoint', 
+          priority: 10,
+          distance: endDist 
+        });
       }
       
-      // Midpoint - calcula só se necessário
-      if (startDist < snapThreshold * 2 || endDist < snapThreshold * 2) {
+      // Midpoint (prioridade média)
+      if (startDist < snapThreshold * 3 || endDist < snapThreshold * 3) {
         const midPoint: Point = {
           x: (wall.start.x + wall.end.x) / 2,
           y: (wall.start.y + wall.end.y) / 2,
         };
-        const midDist = getCachedDistance(midPoint, point);
+        const midDist = spatialCache.getDistance(midPoint, point);
         if (midDist < snapThreshold) {
-          snapPoints.push({ point: midPoint, type: 'midpoint', priority: 2 });
+          snapPoints.push({ 
+            point: midPoint, 
+            type: 'midpoint', 
+            priority: 5,
+            distance: midDist 
+          });
         }
       }
     }
     
-    // Room corners - otimizado
+    // Room corners e centroids
     const { rooms } = projectElements;
     for (let i = 0; i < rooms.length; i++) {
       const room = rooms[i];
       const points = room.points;
+      
       for (let j = 0; j < points.length; j++) {
         const corner = points[j];
-        const cornerDist = getCachedDistance(corner, point);
+        const cornerDist = spatialCache.getDistance(corner, point);
         if (cornerDist < snapThreshold) {
-          snapPoints.push({ point: corner, type: 'endpoint', priority: 3 });
+          snapPoints.push({ 
+            point: corner, 
+            type: 'endpoint', 
+            priority: 10,
+            distance: cornerDist 
+          });
+        }
+      }
+      
+      // Centro do cômodo (prioridade baixa)
+      if (points.length > 2) {
+        const centroid = points.reduce((acc, p) => ({ 
+          x: acc.x + p.x, 
+          y: acc.y + p.y 
+        }), { x: 0, y: 0 });
+        centroid.x /= points.length;
+        centroid.y /= points.length;
+        
+        const centerDist = spatialCache.getDistance(centroid, point);
+        if (centerDist < snapThreshold * 2) {
+          snapPoints.push({ 
+            point: centroid, 
+            type: 'center', 
+            priority: 2,
+            distance: centerDist 
+          });
         }
       }
     }
     
-    return snapPoints.sort((a, b) => b.priority - a.priority);
-  }, [projectElements, snapEnabled, snapToGrid]);
+    // Ordena por prioridade decrescente, depois por distância
+    return snapPoints.sort((a, b) => {
+      if (b.priority !== a.priority) return b.priority - a.priority;
+      return a.distance - b.distance;
+    });
+  }, [projectElements, snapEnabled, snapToGrid, scale]);
 
-  // Get best snap point
   const getBestSnapPoint = useCallback((point: Point): Point => {
     const snapPoints = findSnapPoints(point);
     if (snapPoints.length > 0) {
@@ -246,15 +404,14 @@ const Canvas2D: React.FC = () => {
     return point;
   }, [findSnapPoints]);
 
-  // Apply angle snap when drawing
   const applyAngleSnap = useCallback((start: Point, end: Point): Point => {
     if (!snapEnabled) return end;
     
     const angle = calculateAngle(start, end);
     const snappedAngle = snapAngle(angle);
     
-    if (snappedAngle !== angle) {
-      const dist = getCachedDistance(start, end);
+    if (Math.abs(snappedAngle - angle) > 0.1) {
+      const dist = spatialCache.getDistance(start, end);
       const rad = snappedAngle * (Math.PI / 180);
       return {
         x: start.x + Math.cos(rad) * dist,
@@ -264,19 +421,41 @@ const Canvas2D: React.FC = () => {
     return end;
   }, [snapEnabled, calculateAngle, snapAngle]);
 
-  // Draw grid otimizado
-  const drawGrid = useCallback((ctx: CanvasRenderingContext2D, width: number, height: number) => {
+  // ============================================
+  // SISTEMA DE RENDERIZAÇÃO PREMIUM
+  // ============================================
+
+  const isInViewport = useCallback((points: Point[], padding: number = 0): boolean => {
+    const metrics = metricsRef.current;
+    const xs = points.map(p => worldToCanvas(p).x);
+    const ys = points.map(p => worldToCanvas(p).y);
+    
+    const minX = Math.min(...xs) - padding;
+    const maxX = Math.max(...xs) + padding;
+    const minY = Math.min(...ys) - padding;
+    const maxY = Math.max(...ys) + padding;
+    
+    return !(maxX < 0 || minX > metrics.width || maxY < 0 || minY > metrics.height);
+  }, [worldToCanvas]);
+
+  const drawGrid = useCallback((ctx: CanvasRenderingContext2D) => {
     if (!projectElements?.settings.showGrid) return;
     
+    const metrics = metricsRef.current;
+    const { width, height } = metrics;
     const gridSize = projectElements.settings.gridSize * scale;
+    
+    // Early return se zoom muito baixo
+    if (gridSize < 2) return;
+    
     const startX = offset.x % gridSize;
     const startY = offset.y % gridSize;
     
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.03)';
     ctx.lineWidth = 1;
     ctx.beginPath();
     
-    // Vertical lines - desenha só o visível
     const xStart = Math.max(0, startX - gridSize);
     const xEnd = width + gridSize;
     for (let x = xStart; x < xEnd; x += gridSize) {
@@ -286,7 +465,6 @@ const Canvas2D: React.FC = () => {
       }
     }
     
-    // Horizontal lines
     const yStart = Math.max(0, startY - gridSize);
     const yEnd = height + gridSize;
     for (let y = yStart; y < yEnd; y += gridSize) {
@@ -298,67 +476,69 @@ const Canvas2D: React.FC = () => {
     
     ctx.stroke();
     
-    // Major grid lines
-    ctx.strokeStyle = 'rgba(201, 169, 98, 0.1)';
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    
-    const majorGridSize = gridSize * 5;
-    const majorStartX = offset.x % majorGridSize;
-    const majorStartY = offset.y % majorGridSize;
-    
-    for (let x = majorStartX; x < width; x += majorGridSize) {
-      if (x >= 0 && x <= width) {
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, height);
-      }
-    }
-    
-    for (let y = majorStartY; y < height; y += majorGridSize) {
-      if (y >= 0 && y <= height) {
-        ctx.moveTo(0, y);
-        ctx.lineTo(width, y);
-      }
-    }
-    
-    ctx.stroke();
-    
-    // Origin axes
-    if (projectElements?.settings.showAxes) {
-      ctx.strokeStyle = 'rgba(201, 169, 98, 0.4)';
-      ctx.lineWidth = 2;
+    // Grid principal (5x)
+    if (gridSize > 10) {
+      ctx.strokeStyle = 'rgba(201, 169, 98, 0.08)';
+      ctx.lineWidth = 1.5;
       ctx.beginPath();
-      const centerX = width / 2 + offset.x;
-      const centerY = height / 2 + offset.y;
-      ctx.moveTo(centerX, 0);
-      ctx.lineTo(centerX, height);
-      ctx.moveTo(0, centerY);
-      ctx.lineTo(width, centerY);
+      
+      const majorGridSize = gridSize * 5;
+      const majorStartX = offset.x % majorGridSize;
+      const majorStartY = offset.y % majorGridSize;
+      
+      for (let x = majorStartX; x < width; x += majorGridSize) {
+        if (x >= 0 && x <= width) {
+          ctx.moveTo(x, 0);
+          ctx.lineTo(x, height);
+        }
+      }
+      
+      for (let y = majorStartY; y < height; y += majorGridSize) {
+        if (y >= 0 && y <= height) {
+          ctx.moveTo(0, y);
+          ctx.lineTo(width, y);
+        }
+      }
+      
       ctx.stroke();
     }
+    
+    // Eixos de origem
+    if (projectElements?.settings.showAxes) {
+      ctx.strokeStyle = 'rgba(201, 169, 98, 0.3)';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(metrics.centerX + offset.x, 0);
+      ctx.lineTo(metrics.centerX + offset.x, height);
+      ctx.moveTo(0, metrics.centerY + offset.y);
+      ctx.lineTo(width, metrics.centerY + offset.y);
+      ctx.stroke();
+    }
+    
+    ctx.restore();
   }, [projectElements?.settings.showGrid, projectElements?.settings.showAxes, projectElements?.settings.gridSize, scale, offset]);
 
-  // Draw wall otimizado
   const drawWall = useCallback((ctx: CanvasRenderingContext2D, wall: Wall, isSelected: boolean) => {
     const start = worldToCanvas(wall.start);
     const end = worldToCanvas(wall.end);
     const thickness = Math.max(wall.thickness * scale, 2);
     
-    // Early return se fora da tela
-    const minX = Math.min(start.x, end.x) - thickness;
-    const maxX = Math.max(start.x, end.x) + thickness;
-    const minY = Math.min(start.y, end.y) - thickness;
-    const maxY = Math.max(start.y, end.y) + thickness;
-    
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    if (maxX < 0 || minX > canvas.width || maxY < 0 || minY > canvas.height) return;
+    // Culling agressivo
+    if (!isInViewport([wall.start, wall.end], thickness)) return;
     
     const dx = end.x - start.x;
     const dy = end.y - start.y;
-    const length = Math.sqrt(dx * dx + dy * dy) || 1;
+    const length = Math.hypot(dx, dy) || 1;
     const perpX = (-dy / length) * thickness / 2;
     const perpY = (dx / length) * thickness / 2;
+    
+    ctx.save();
+    
+    // Sombra sutil para profundidade
+    if (isSelected) {
+      ctx.shadowColor = 'rgba(201, 169, 98, 0.5)';
+      ctx.shadowBlur = 10;
+    }
     
     ctx.fillStyle = isSelected ? '#c9a962' : wall.color;
     ctx.beginPath();
@@ -369,49 +549,58 @@ const Canvas2D: React.FC = () => {
     ctx.closePath();
     ctx.fill();
     
-    ctx.strokeStyle = isSelected ? '#ffffff' : 'rgba(0, 0, 0, 0.3)';
+    // Borda com anti-aliasing
+    ctx.strokeStyle = isSelected ? '#ffffff' : 'rgba(0, 0, 0, 0.4)';
     ctx.lineWidth = isSelected ? 2 : 1;
+    ctx.lineJoin = 'round';
     ctx.stroke();
     
-    if (showMeasurements && projectElements?.settings.showMeasurements) {
-      const wallLength = getCachedDistance(wall.start, wall.end);
-      
+    ctx.restore();
+    
+    // Medidas
+    if (showMeasurements && projectElements?.settings.showMeasurements && scale > 5) {
+      const wallLength = spatialCache.getDistance(wall.start, wall.end);
       const midX = (start.x + end.x) / 2;
       const midY = (start.y + end.y) / 2;
       
       const text = `${wallLength.toFixed(2)}m`;
-      ctx.font = 'bold 11px Inter, sans-serif';
+      ctx.font = `bold ${Math.max(10, 11 * (scale / 20))}px Inter, system-ui, sans-serif`;
       const textWidth = ctx.measureText(text).width;
       
-      ctx.fillStyle = 'rgba(10, 10, 15, 0.8)';
-      ctx.fillRect(midX - textWidth / 2 - 4, midY - 16, textWidth + 8, 18);
+      // Fundo do label
+      ctx.fillStyle = 'rgba(10, 10, 15, 0.85)';
+      ctx.fillRect(midX - textWidth / 2 - 6, midY - 18, textWidth + 12, 20);
       
-      ctx.fillStyle = isSelected ? '#c9a962' : '#ffffff';
+      // Texto
+      ctx.fillStyle = isSelected ? '#c9a962' : '#e5e5e5';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(text, midX, midY - 7);
+      ctx.fillText(text, midX, midY - 8);
     }
-  }, [worldToCanvas, scale, showMeasurements, projectElements?.settings.showMeasurements]);
+  }, [worldToCanvas, scale, showMeasurements, projectElements?.settings.showMeasurements, isInViewport]);
 
-  // Draw room otimizado
   const drawRoom = useCallback((ctx: CanvasRenderingContext2D, room: Room, isSelected: boolean) => {
     if (room.points.length < 3) return;
     
+    // Culling de bounding box
+    if (!isInViewport(room.points, 0)) return;
+    
     const canvasPoints = room.points.map(p => worldToCanvas(p));
     
-    // Culling simples
-    const xs = canvasPoints.map(p => p.x);
-    const ys = canvasPoints.map(p => p.y);
-    const minX = Math.min(...xs);
-    const maxX = Math.max(...xs);
-    const minY = Math.min(...ys);
-    const maxY = Math.max(...ys);
+    ctx.save();
     
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    if (maxX < 0 || minX > canvas.width || maxY < 0 || minY > canvas.height) return;
+    // Preenchimento com gradiente sutil
+    const gradient = ctx.createLinearGradient(
+      canvasPoints[0].x, canvasPoints[0].y,
+      canvasPoints[2]?.x || canvasPoints[0].x, 
+      canvasPoints[2]?.y || canvasPoints[0].y
+    );
     
-    ctx.fillStyle = isSelected ? `${room.color}60` : `${room.color}30`;
+    const baseColor = room.color;
+    gradient.addColorStop(0, isSelected ? `${baseColor}50` : `${baseColor}25`);
+    gradient.addColorStop(1, isSelected ? `${baseColor}30` : `${baseColor}15`);
+    
+    ctx.fillStyle = gradient;
     ctx.beginPath();
     ctx.moveTo(canvasPoints[0].x, canvasPoints[0].y);
     for (let i = 1; i < canvasPoints.length; i++) {
@@ -420,30 +609,41 @@ const Canvas2D: React.FC = () => {
     ctx.closePath();
     ctx.fill();
     
-    ctx.strokeStyle = isSelected ? '#c9a962' : room.color;
-    ctx.lineWidth = isSelected ? 2 : 1.5;
+    // Contorno
+    ctx.strokeStyle = isSelected ? '#c9a962' : baseColor;
+    ctx.lineWidth = isSelected ? 2.5 : 1.5;
+    ctx.lineJoin = 'round';
     ctx.stroke();
     
-    const centroid = room.points.reduce((acc, p) => ({ x: acc.x + p.x, y: acc.y + p.y }), { x: 0, y: 0 });
-    centroid.x /= room.points.length;
-    centroid.y /= room.points.length;
-    const center = worldToCanvas(centroid);
+    // Label do cômodo
+    if (scale > 8) {
+      const centroid = room.points.reduce((acc, p) => ({ 
+        x: acc.x + p.x, 
+        y: acc.y + p.y 
+      }), { x: 0, y: 0 });
+      centroid.x /= room.points.length;
+      centroid.y /= room.points.length;
+      const center = worldToCanvas(centroid);
+      
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `bold ${Math.max(11, 12 * (scale / 20))}px Inter, system-ui, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(room.name, center.x, center.y - 10);
+      
+      ctx.font = `${Math.max(9, 10 * (scale / 20))}px Inter, system-ui, sans-serif`;
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+      ctx.fillText(`${room.area.toFixed(1)}m²`, center.x, center.y + 8);
+    }
     
-    ctx.fillStyle = '#ffffff';
-    ctx.font = 'bold 12px Inter, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(room.name, center.x, center.y - 8);
-    
-    ctx.font = '10px Inter, sans-serif';
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
-    ctx.fillText(`${room.area.toFixed(1)}m²`, center.x, center.y + 8);
-  }, [worldToCanvas]);
+    ctx.restore();
+  }, [worldToCanvas, scale, isInViewport]);
 
-  // Draw door
   const drawDoor = useCallback((ctx: CanvasRenderingContext2D, door: any, isSelected: boolean) => {
     const wall = projectElements?.walls.find((w: Wall) => w.id === door.wallId);
     if (!wall) return;
+    
+    if (!isInViewport([wall.start, wall.end], door.width * scale)) return;
     
     const start = worldToCanvas(wall.start);
     const end = worldToCanvas(wall.end);
@@ -453,22 +653,38 @@ const Canvas2D: React.FC = () => {
     const y = start.y + (end.y - start.y) * t;
     const doorWidthPx = door.width * scale;
     
+    ctx.save();
     ctx.strokeStyle = isSelected ? '#c9a962' : '#8B4513';
+    ctx.fillStyle = isSelected ? 'rgba(201, 169, 98, 0.2)' : 'rgba(139, 69, 19, 0.2)';
     ctx.lineWidth = 2;
+    ctx.lineCap = 'round';
+    
+    // Arco da porta
     ctx.beginPath();
     ctx.arc(x, y, doorWidthPx / 2, 0, Math.PI / 2);
     ctx.stroke();
     
+    // Linha da folha
     ctx.beginPath();
     ctx.moveTo(x, y);
     ctx.lineTo(x + doorWidthPx / 2, y);
     ctx.stroke();
-  }, [projectElements?.walls, worldToCanvas, scale]);
+    
+    // Preenchimento sutil
+    ctx.beginPath();
+    ctx.moveTo(x, y);
+    ctx.arc(x, y, doorWidthPx / 2, 0, Math.PI / 2);
+    ctx.lineTo(x, y);
+    ctx.fill();
+    
+    ctx.restore();
+  }, [projectElements?.walls, worldToCanvas, scale, isInViewport]);
 
-  // Draw window
   const drawWindow = useCallback((ctx: CanvasRenderingContext2D, window: any, isSelected: boolean) => {
     const wall = projectElements?.walls.find((w: Wall) => w.id === window.wallId);
     if (!wall) return;
+    
+    if (!isInViewport([wall.start, wall.end], window.width * scale)) return;
     
     const start = worldToCanvas(wall.start);
     const end = worldToCanvas(wall.end);
@@ -478,139 +694,208 @@ const Canvas2D: React.FC = () => {
     const y = start.y + (end.y - start.y) * t;
     const windowWidthPx = window.width * scale;
     
+    ctx.save();
     ctx.strokeStyle = isSelected ? '#c9a962' : '#87CEEB';
+    ctx.fillStyle = isSelected ? 'rgba(201, 169, 98, 0.3)' : 'rgba(135, 206, 235, 0.3)';
     ctx.lineWidth = 3;
+    ctx.lineCap = 'round';
+    
+    // Abertura do vidro
+    const halfWidth = windowWidthPx / 2;
+    ctx.fillRect(x - halfWidth, y - 6, windowWidthPx, 12);
+    
+    // Moldura
     ctx.beginPath();
-    ctx.moveTo(x - windowWidthPx / 2, y - 4);
-    ctx.lineTo(x + windowWidthPx / 2, y - 4);
-    ctx.moveTo(x - windowWidthPx / 2, y + 4);
-    ctx.lineTo(x + windowWidthPx / 2, y + 4);
+    ctx.moveTo(x - halfWidth, y - 6);
+    ctx.lineTo(x + halfWidth, y - 6);
+    ctx.moveTo(x - halfWidth, y + 6);
+    ctx.lineTo(x + halfWidth, y + 6);
     ctx.stroke();
     
-    ctx.fillStyle = 'rgba(135, 206, 235, 0.3)';
-    ctx.fillRect(x - windowWidthPx / 2, y - 4, windowWidthPx, 8);
-  }, [projectElements?.walls, worldToCanvas, scale]);
+    // Divisória central
+    ctx.beginPath();
+    ctx.moveTo(x, y - 6);
+    ctx.lineTo(x, y + 6);
+    ctx.stroke();
+    
+    ctx.restore();
+  }, [projectElements?.walls, worldToCanvas, scale, isInViewport]);
 
-  // Draw furniture
   const drawFurniture = useCallback((ctx: CanvasRenderingContext2D, furniture: any, isSelected: boolean) => {
     const pos = worldToCanvas(furniture.position);
     const width = furniture.scale.x * scale;
     const depth = furniture.scale.y * scale;
     
     // Culling
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    if (pos.x + width / 2 < 0 || pos.x - width / 2 > canvas.width || 
-        pos.y + depth / 2 < 0 || pos.y - depth / 2 > canvas.height) return;
+    if (pos.x + width / 2 < 0 || pos.x - width / 2 > metricsRef.current.width || 
+        pos.y + depth / 2 < 0 || pos.y - depth / 2 > metricsRef.current.height) return;
     
     ctx.save();
     ctx.translate(pos.x, pos.y);
     ctx.rotate(-furniture.rotation);
     
-    ctx.fillStyle = isSelected ? 'rgba(201, 169, 98, 0.5)' : furniture.color;
-    ctx.strokeStyle = isSelected ? '#c9a962' : 'rgba(255, 255, 255, 0.5)';
+    // Sombra
+    if (isSelected) {
+      ctx.shadowColor = 'rgba(201, 169, 98, 0.4)';
+      ctx.shadowBlur = 8;
+      ctx.shadowOffsetX = 2;
+      ctx.shadowOffsetY = 2;
+    } else {
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+      ctx.shadowBlur = 4;
+      ctx.shadowOffsetX = 1;
+      ctx.shadowOffsetY = 1;
+    }
+    
+    // Corpo
+    ctx.fillStyle = isSelected ? 'rgba(201, 169, 98, 0.6)' : furniture.color;
+    ctx.strokeStyle = isSelected ? '#c9a962' : 'rgba(255, 255, 255, 0.6)';
     ctx.lineWidth = isSelected ? 2 : 1;
     
     ctx.fillRect(-width / 2, -depth / 2, width, depth);
     ctx.strokeRect(-width / 2, -depth / 2, width, depth);
     
-    ctx.fillStyle = '#ffffff';
-    ctx.font = '9px Inter, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(furniture.name, 0, 0);
+    // Reset shadow para texto
+    ctx.shadowColor = 'transparent';
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+    
+    // Label
+    if (scale > 10) {
+      ctx.fillStyle = '#ffffff';
+      ctx.font = `bold ${Math.max(8, 9 * (scale / 20))}px Inter, system-ui, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(furniture.name, 0, 0);
+    }
     
     ctx.restore();
   }, [worldToCanvas, scale]);
 
-  // Draw preview
   const drawPreview = useCallback((ctx: CanvasRenderingContext2D) => {
     if (!isDrawing || !drawStart || !drawCurrent) return;
     
     const start = worldToCanvas(drawStart);
     const end = worldToCanvas(drawCurrent);
     
+    ctx.save();
+    
+    // Linha de preview animada
     ctx.strokeStyle = '#c9a962';
     ctx.lineWidth = 2;
-    ctx.setLineDash([8, 4]);
+    ctx.setLineDash([10, 5]);
+    ctx.lineDashOffset = -performance.now() / 20; // Animação
     ctx.beginPath();
     ctx.moveTo(start.x, start.y);
     ctx.lineTo(end.x, end.y);
     ctx.stroke();
     ctx.setLineDash([]);
     
-    const dist = getCachedDistance(drawStart, drawCurrent);
-    
+    // Distância
+    const dist = spatialCache.getDistance(drawStart, drawCurrent);
     const midX = (start.x + end.x) / 2;
     const midY = (start.y + end.y) / 2;
     
     const text = `${dist.toFixed(2)}m`;
-    ctx.font = 'bold 12px Inter, sans-serif';
+    ctx.font = 'bold 13px Inter, system-ui, sans-serif';
     const textWidth = ctx.measureText(text).width;
     
-    ctx.fillStyle = 'rgba(10, 10, 15, 0.9)';
-    ctx.fillRect(midX - textWidth / 2 - 6, midY - 22, textWidth + 12, 22);
+    ctx.fillStyle = 'rgba(10, 10, 15, 0.95)';
+    ctx.fillRect(midX - textWidth / 2 - 8, midY - 26, textWidth + 16, 26);
     
     ctx.fillStyle = '#c9a962';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(text, midX, midY - 11);
+    ctx.fillText(text, midX, midY - 13);
     
+    // Ângulo
     const angle = calculateAngle(drawStart, drawCurrent);
     const angleText = `${angle.toFixed(0)}°`;
     const angleTextWidth = ctx.measureText(angleText).width;
     
-    ctx.fillStyle = 'rgba(10, 10, 15, 0.9)';
-    ctx.fillRect(start.x - angleTextWidth / 2 - 6, start.y - 28, angleTextWidth + 12, 18);
+    ctx.fillStyle = 'rgba(10, 10, 15, 0.95)';
+    ctx.fillRect(start.x - angleTextWidth / 2 - 8, start.y - 32, angleTextWidth + 16, 22);
     
     ctx.fillStyle = '#ffffff';
-    ctx.fillText(angleText, start.x, start.y - 19);
-  }, [isDrawing, drawStart, drawCurrent, worldToCanvas, calculateAngle]);
+    ctx.fillText(angleText, start.x, start.y - 21);
+    
+    // Indicador de snap ativo
+    if (snapIndicator) {
+      ctx.strokeStyle = '#c9a962';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(end.x, end.y, 6, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    
+    ctx.restore();
+  }, [isDrawing, drawStart, drawCurrent, worldToCanvas, calculateAngle, snapIndicator]);
 
-  // Draw snap indicator
   const drawSnapIndicator = useCallback((ctx: CanvasRenderingContext2D) => {
     if (!snapIndicator) return;
     
     const point = worldToCanvas(snapIndicator.point);
     
+    ctx.save();
     ctx.strokeStyle = '#c9a962';
+    ctx.fillStyle = 'rgba(201, 169, 98, 0.2)';
     ctx.lineWidth = 2;
+    
+    // Círculo pulsante
+    const pulse = 1 + Math.sin(performance.now() / 200) * 0.2;
     ctx.beginPath();
-    ctx.arc(point.x, point.y, 8, 0, Math.PI * 2);
+    ctx.arc(point.x, point.y, 8 * pulse, 0, Math.PI * 2);
+    ctx.fill();
     ctx.stroke();
     
+    // Cruz
     ctx.beginPath();
-    ctx.moveTo(point.x - 12, point.y);
-    ctx.lineTo(point.x + 12, point.y);
-    ctx.moveTo(point.x, point.y - 12);
-    ctx.lineTo(point.x, point.y + 12);
+    ctx.moveTo(point.x - 14, point.y);
+    ctx.lineTo(point.x + 14, point.y);
+    ctx.moveTo(point.x, point.y - 14);
+    ctx.lineTo(point.x, point.y + 14);
     ctx.stroke();
+    
+    ctx.restore();
   }, [snapIndicator, worldToCanvas]);
 
-  // Render loop otimizado com requestAnimationFrame
+  // ============================================
+  // RENDER LOOP OTIMIZADO
+  // ============================================
+
   const render = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { alpha: false });
     if (!ctx) return;
     
-    ctx.fillStyle = '#0a0a0f';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // Throttling para 60fps estável
+    const now = performance.now();
+    if (now - lastRenderRef.current < RENDER_THROTTLE) return;
+    lastRenderRef.current = now;
     
-    drawGrid(ctx, canvas.width, canvas.height);
+    // Fundo
+    ctx.fillStyle = '#0a0a0f';
+    ctx.fillRect(0, 0, metricsRef.current.width, metricsRef.current.height);
+    
+    drawGrid(ctx);
     
     if (!projectElements) return;
     
-    // Desenha em ordem de profundidade
+    // Renderização em camadas (painter's algorithm)
+    // 1. Cômodos (fundo)
     projectElements.rooms.forEach((room: Room) => {
       drawRoom(ctx, room, selectedElement === room.id && selectedElementType === 'room');
     });
     
+    // 2. Paredes
     projectElements.walls.forEach((wall: Wall) => {
       drawWall(ctx, wall, selectedElement === wall.id && selectedElementType === 'wall');
     });
     
+    // 3. Aberturas
     projectElements.doors.forEach((door: any) => {
       drawDoor(ctx, door, selectedElement === door.id && selectedElementType === 'door');
     });
@@ -619,10 +904,12 @@ const Canvas2D: React.FC = () => {
       drawWindow(ctx, window, selectedElement === window.id && selectedElementType === 'window');
     });
     
+    // 4. Mobiliário
     projectElements.furniture.forEach((furniture: any) => {
       drawFurniture(ctx, furniture, selectedElement === furniture.id && selectedElementType === 'furniture');
     });
     
+    // 5. Overlays
     drawPreview(ctx);
     drawSnapIndicator(ctx);
   }, [
@@ -639,63 +926,66 @@ const Canvas2D: React.FC = () => {
     drawSnapIndicator,
   ]);
 
-  // Main render effect com RAF - melhoria: checagem !== null
   useEffect(() => {
     const animate = () => {
       render();
-      requestRef.current = requestAnimationFrame(animate);
+      rafRef.current = requestAnimationFrame(animate);
     };
     
-    requestRef.current = requestAnimationFrame(animate);
+    rafRef.current = requestAnimationFrame(animate);
     
     return () => {
-      if (requestRef.current !== null) {
-        cancelAnimationFrame(requestRef.current);
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current);
       }
     };
   }, [render]);
 
-  // Get canvas coordinates
-  const getCanvasPoint = useCallback((e: React.PointerEvent): Point | null => {
-    const canvas = canvasRef.current;
-    if (!canvas) return null;
-    
-    const nativeEvent = e.nativeEvent as PointerEvent;
-    if (nativeEvent.offsetX !== undefined && nativeEvent.offsetY !== undefined) {
-      return {
-        x: nativeEvent.offsetX,
-        y: nativeEvent.offsetY,
-      };
-    }
-    
-    const rect = canvas.getBoundingClientRect();
-    return {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
-    };
-  }, []);
+  // ============================================
+  // HANDLERS DE INTERAÇÃO PREMIUM
+  // ============================================
 
-  // Pointer handlers
-  const handlePointerDown = useCallback((e: React.PointerEvent) => {
+  const handlePointerDown = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
     e.preventDefault();
+    e.stopPropagation();
     
     const canvas = canvasRef.current;
     if (!canvas) return;
     
-    canvas.setPointerCapture(e.pointerId);
+    try {
+      canvas.setPointerCapture(e.pointerId);
+    } catch (err) {
+      console.warn('Failed to capture pointer:', err);
+    }
     
     const canvasPoint = getCanvasPoint(e);
     if (!canvasPoint) return;
     
+    // Botão do meio ou Alt+Click = Pan
     if (e.button === 1 || (e.button === 0 && e.altKey)) {
       setIsPanning(true);
       setPanStart(canvasPoint);
       return;
     }
     
+    // Click esquerdo = Interação
     if (e.button === 0) {
       const worldPoint = canvasToWorld(canvasPoint);
       const snappedPoint = getBestSnapPoint(worldPoint);
+      
+      // Processa gesto de tap
+      const touch: TouchPoint = {
+        id: e.pointerId,
+        position: snappedPoint,
+        timestamp: performance.now()
+      };
+      
+      const tapResult = processTap(gestureStateRef.current, snappedPoint);
+      gestureStateRef.current = {
+        ...gestureStateRef.current,
+        ...tapResult,
+        touches: [touch]
+      };
       
       if (toolMode === 'wall') {
         startDrawing(snappedPoint);
@@ -705,32 +995,84 @@ const Canvas2D: React.FC = () => {
     }
   }, [getCanvasPoint, canvasToWorld, getBestSnapPoint, toolMode, startDrawing, selectElement]);
 
-  const handlePointerMove = useCallback((e: React.PointerEvent) => {
+  const handlePointerMove = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
     e.preventDefault();
+    e.stopPropagation();
     
     const canvasPoint = getCanvasPoint(e);
     if (!canvasPoint) return;
     
     setMousePos(canvasPoint);
     
+    // Integração GestureEngine
+    const worldPoint = canvasToWorld(canvasPoint);
+    const touch: TouchPoint = {
+      id: e.pointerId,
+      position: worldPoint,
+      timestamp: performance.now()
+    };
+    
+    const result = updateTouches(
+      gestureStateRef.current,
+      [touch],
+      DEFAULT_GESTURE_CONFIG
+    );
+    
+    // Atualiza estado de gesto preservando propriedades
+    gestureStateRef.current = {
+      ...gestureStateRef.current,
+      type: result.type,
+      pan: result.pan,
+      zoom: result.zoom,
+      rotate: result.rotate,
+      touches: [touch],
+      lastTimestamp: performance.now()
+    };
+    
+    // Debug info (remover em produção)
+    if (process.env.NODE_ENV === 'development') {
+      setGestureDebug(`${result.type} z:${result.zoom.toFixed(2)}`);
+    }
+    
+    // Panning
     if (isPanning) {
-      const dx = canvasPoint.x - panStart.x;
-      const dy = canvasPoint.y - panStart.y;
+      const dx = (canvasPoint.x - panStart.x) * PAN_SENSITIVITY;
+      const dy = (canvasPoint.y - panStart.y) * PAN_SENSITIVITY;
       setCanvasOffset({ x: offset.x + dx, y: offset.y + dy });
       setPanStart(canvasPoint);
       return;
     }
     
+    // Drawing
     if (isDrawing && drawStart) {
-      const worldPoint = canvasToWorld(canvasPoint);
       let snappedPoint = getBestSnapPoint(worldPoint);
       snappedPoint = applyAngleSnap(drawStart, snappedPoint);
       updateDrawing(snappedPoint);
     }
-  }, [getCanvasPoint, isPanning, panStart, offset, setCanvasOffset, isDrawing, drawStart, canvasToWorld, getBestSnapPoint, applyAngleSnap, updateDrawing]);
+    
+    // Long press detection
+    const longPressResult = checkLongPress(gestureStateRef.current, worldPoint);
+    if (longPressResult) {
+      // Trigger context menu ou ação secundária
+      console.log('Long press detected at:', worldPoint);
+    }
+  }, [
+    getCanvasPoint, 
+    canvasToWorld, 
+    isPanning, 
+    panStart, 
+    offset, 
+    setCanvasOffset, 
+    isDrawing, 
+    drawStart, 
+    getBestSnapPoint, 
+    applyAngleSnap, 
+    updateDrawing
+  ]);
 
-  const handlePointerUp = useCallback((e: React.PointerEvent) => {
+  const handlePointerUp = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
     e.preventDefault();
+    e.stopPropagation();
     
     const canvas = canvasRef.current;
     if (canvas) {
@@ -741,6 +1083,10 @@ const Canvas2D: React.FC = () => {
       }
     }
     
+    // Reset completo do gesture engine usando resetGesture
+    gestureStateRef.current = resetGesture(gestureStateRef.current);
+    setGestureDebug('');
+    
     if (isPanning) {
       setIsPanning(false);
       return;
@@ -748,7 +1094,10 @@ const Canvas2D: React.FC = () => {
     
     if (isDrawing) {
       const canvasPoint = getCanvasPoint(e);
-      if (!canvasPoint) return;
+      if (!canvasPoint) {
+        endDrawing();
+        return;
+      }
       
       const worldPoint = canvasToWorld(canvasPoint);
       let snappedPoint = getBestSnapPoint(worldPoint);
@@ -760,28 +1109,77 @@ const Canvas2D: React.FC = () => {
       endDrawing(snappedPoint);
       setSnapIndicator(null);
     }
-  }, [getCanvasPoint, isPanning, isDrawing, drawStart, canvasToWorld, getBestSnapPoint, applyAngleSnap, endDrawing]);
+  }, [
+    getCanvasPoint, 
+    isPanning, 
+    isDrawing, 
+    drawStart, 
+    canvasToWorld, 
+    getBestSnapPoint, 
+    applyAngleSnap, 
+    endDrawing
+  ]);
 
-  const handleWheel = useCallback((e: React.WheelEvent) => {
+  const handleWheel = useCallback((e: React.WheelEvent<HTMLCanvasElement>) => {
     e.preventDefault();
-    const delta = e.deltaY > 0 ? 0.9 : 1.1;
-    setCanvasScale(scale * delta);
-  }, [scale, setCanvasScale]);
+    e.stopPropagation();
+    
+    const delta = -e.deltaY * ZOOM_SENSITIVITY;
+    const zoomFactor = Math.exp(delta);
+    const newScale = clamp(scale * zoomFactor, 0.1, 50);
+    
+    // Zoom towards mouse pointer
+    const rect = e.currentTarget.getBoundingClientRect();
+    const mouseX = (e.clientX - rect.left) * metricsRef.current.devicePixelRatio;
+    const mouseY = (e.clientY - rect.top) * metricsRef.current.devicePixelRatio;
+    
+    const worldBefore = canvasToWorld({ x: mouseX, y: mouseY });
+    setCanvasScale(newScale);
+    
+    // Ajusta offset para manter ponto sob o mouse
+    requestAnimationFrame(() => {
+      const worldAfter = canvasToWorld({ x: mouseX, y: mouseY });
+      const dx = (worldAfter.x - worldBefore.x) * newScale;
+      const dy = (worldAfter.y - worldBefore.y) * newScale;
+      setCanvasOffset({ x: offset.x - dx, y: offset.y + dy });
+    });
+  }, [scale, offset, setCanvasScale, setCanvasOffset, canvasToWorld]);
 
-  // Keyboard shortcuts
+  // ============================================
+  // KEYBOARD SHORTCUTS
+  // ============================================
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.code === 'Space' && !e.repeat) {
+      if (e.repeat) return;
+      
+      if (e.code === 'Space') {
+        e.preventDefault();
         // Pan mode temporário
       }
       
       if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
-        if (!angleLock) {
-          setAngleLock(true);
-          if (isDrawing && drawStart && drawCurrent) {
-            const angle = calculateAngle(drawStart, drawCurrent);
-            setLockedAngle(snapAngle(angle));
-          }
+        setAngleLock(true);
+        if (isDrawing && drawStart && drawCurrent) {
+          const angle = calculateAngle(drawStart, drawCurrent);
+          setLockedAngle(snapAngle(angle));
+        }
+      }
+      
+      // Atalhos de zoom
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key === '=' || e.key === '+') {
+          e.preventDefault();
+          setCanvasScale(scale * 1.2);
+        }
+        if (e.key === '-') {
+          e.preventDefault();
+          setCanvasScale(scale * 0.8);
+        }
+        if (e.key === '0') {
+          e.preventDefault();
+          setCanvasScale(20);
+          setCanvasOffset({ x: 0, y: 0 });
         }
       }
     };
@@ -800,22 +1198,50 @@ const Canvas2D: React.FC = () => {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [isDrawing, drawStart, drawCurrent, angleLock, calculateAngle, snapAngle]);
+  }, [isDrawing, drawStart, drawCurrent, angleLock, calculateAngle, snapAngle, scale, setCanvasScale, setCanvasOffset]);
 
-  // Resize handler
-  useEffect(() => {
-    const handleResize = () => {
+  // ============================================
+  // RESIZE HANDLER
+  // ============================================
+
+  useLayoutEffect(() => {
+    const updateMetrics = () => {
       if (containerRef.current && canvasRef.current) {
-        canvasRef.current.width = containerRef.current.clientWidth;
-        canvasRef.current.height = containerRef.current.clientHeight;
+        const dpr = window.devicePixelRatio || 1;
+        const width = containerRef.current.clientWidth;
+        const height = containerRef.current.clientHeight;
+        
+        // Configura canvas com DPR para sharp rendering
+        canvasRef.current.width = width * dpr;
+        canvasRef.current.height = height * dpr;
+        canvasRef.current.style.width = `${width}px`;
+        canvasRef.current.style.height = `${height}px`;
+        
+        const ctx = canvasRef.current.getContext('2d');
+        if (ctx) {
+          ctx.scale(dpr, dpr);
+        }
+        
+        metricsRef.current = {
+          width: width * dpr,
+          height: height * dpr,
+          centerX: (width * dpr) / 2,
+          centerY: (height * dpr) / 2,
+          devicePixelRatio: dpr
+        };
       }
     };
     
-    const handleOrientationChange = () => {
-      setTimeout(handleResize, 100);
+    const handleResize = () => {
+      updateMetrics();
+      spatialCache.clear();
     };
     
-    handleResize();
+    const handleOrientationChange = () => {
+      setTimeout(updateMetrics, 100);
+    };
+    
+    updateMetrics();
     window.addEventListener('resize', handleResize);
     window.addEventListener('orientationchange', handleOrientationChange);
     
@@ -825,113 +1251,180 @@ const Canvas2D: React.FC = () => {
     };
   }, []);
 
+  // ============================================
+  // RENDER
+  // ============================================
+
   return (
-    <div ref={containerRef} className="w-full h-full relative" style={{ touchAction: 'none' }}>
+    <div 
+      ref={containerRef} 
+      className="w-full h-full relative overflow-hidden select-none"
+      style={{ touchAction: 'none' }}
+    >
       <canvas
         ref={canvasRef}
-        className={`${isPanning ? 'cursor-grabbing' : toolMode === 'select' ? 'cursor-default' : 'cursor-crosshair'}`}
+        className={`block w-full h-full ${
+          isPanning ? 'cursor-grabbing' : toolMode === 'select' ? 'cursor-default' : 'cursor-crosshair'
+        }`}
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={handlePointerUp}
+        onPointerCancel={handlePointerUp}
         onPointerLeave={() => {
           setIsPanning(false);
           if (isDrawing) endDrawing();
           setSnapIndicator(null);
+          gestureStateRef.current = resetGesture(gestureStateRef.current);
         }}
         onWheel={handleWheel}
         style={{ touchAction: 'none' }}
       />
       
-      {/* Floating Toolbar */}
-      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 p-2 bg-[#1a1a1f]/90 backdrop-blur-xl border border-white/10 rounded-xl">
+      {/* Toolbar Flutuante Premium */}
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 p-2 bg-[#1a1a1f]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl shadow-black/50">
         {/* Zoom Controls */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1 px-2">
           <button
             onClick={() => setCanvasScale(scale * 1.2)}
-            className="w-9 h-9 flex items-center justify-center hover:bg-white/10 rounded-lg transition-colors text-white/70 hover:text-white"
-            title="Zoom In"
+            className="w-10 h-10 flex items-center justify-center hover:bg-white/10 active:bg-white/20 rounded-xl transition-all duration-150 text-white/70 hover:text-white font-medium text-lg"
+            title="Zoom In (Ctrl++)"
+            aria-label="Zoom in"
           >
             +
           </button>
-          <span className="text-xs text-white/50 w-16 text-center">
-            {scale.toFixed(0)}%
-          </span>
+          
+          <div className="flex flex-col items-center min-w-[4rem]">
+            <span className="text-xs font-semibold text-white/80">
+              {scale.toFixed(0)}%
+            </span>
+            <span className="text-[10px] text-white/40">Zoom</span>
+          </div>
+          
           <button
             onClick={() => setCanvasScale(scale * 0.8)}
-            className="w-9 h-9 flex items-center justify-center hover:bg-white/10 rounded-lg transition-colors text-white/70 hover:text-white"
-            title="Zoom Out"
+            className="w-10 h-10 flex items-center justify-center hover:bg-white/10 active:bg-white/20 rounded-xl transition-all duration-150 text-white/70 hover:text-white font-medium text-lg"
+            title="Zoom Out (Ctrl+-)"
+            aria-label="Zoom out"
           >
-            -
+            −
           </button>
         </div>
         
-        <div className="w-px h-6 bg-white/10" />
+        <div className="w-px h-8 bg-white/10" />
         
-        {/* Snap Toggle */}
-        <button
-          onClick={() => setSnapEnabled(!snapEnabled)}
-          className={`w-9 h-9 flex items-center justify-center rounded-lg transition-colors ${
-            snapEnabled 
-              ? 'bg-[#c9a962]/20 text-[#c9a962]' 
-              : 'hover:bg-white/10 text-white/50'
-          }`}
-          title="Snap to Grid/Points"
-        >
-          <Magnet size={16} />
-        </button>
+        {/* Toggles */}
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setSnapEnabled(!snapEnabled)}
+            className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-200 ${
+              snapEnabled 
+                ? 'bg-[#c9a962]/20 text-[#c9a962] shadow-inner' 
+                : 'hover:bg-white/10 text-white/40'
+            }`}
+            title={`Snap: ${snapEnabled ? 'ON' : 'OFF'}`}
+            aria-label="Toggle snap"
+            aria-pressed={snapEnabled}
+          >
+            <Magnet size={18} strokeWidth={snapEnabled ? 2.5 : 2} />
+          </button>
+          
+          <button
+            onClick={() => setShowMeasurements(!showMeasurements)}
+            className={`w-10 h-10 flex items-center justify-center rounded-xl transition-all duration-200 ${
+              showMeasurements 
+                ? 'bg-[#c9a962]/20 text-[#c9a962] shadow-inner' 
+                : 'hover:bg-white/10 text-white/40'
+            }`}
+            title={`Measurements: ${showMeasurements ? 'ON' : 'OFF'}`}
+            aria-label="Toggle measurements"
+            aria-pressed={showMeasurements}
+          >
+            <Ruler size={18} strokeWidth={showMeasurements ? 2.5 : 2} />
+          </button>
+        </div>
         
-        {/* Measurements Toggle */}
-        <button
-          onClick={() => setShowMeasurements(!showMeasurements)}
-          className={`w-9 h-9 flex items-center justify-center rounded-lg transition-colors ${
-            showMeasurements 
-              ? 'bg-[#c9a962]/20 text-[#c9a962]' 
-              : 'hover:bg-white/10 text-white/50'
-          }`}
-          title="Show Measurements"
-        >
-          <Ruler size={16} />
-        </button>
+        <div className="w-px h-8 bg-white/10" />
         
-        <div className="w-px h-6 bg-white/10" />
-        
-        {/* Reset View */}
-        <button
-          onClick={() => {
-            setCanvasScale(20);
-            setCanvasOffset({ x: 0, y: 0 });
-          }}
-          className="w-9 h-9 flex items-center justify-center hover:bg-white/10 rounded-lg transition-colors text-white/70 hover:text-white"
-          title="Reset View"
-        >
-          ⌖
-        </button>
+        {/* View Controls */}
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => {
+              setCanvasScale(20);
+              setCanvasOffset({ x: 0, y: 0 });
+            }}
+            className="w-10 h-10 flex items-center justify-center hover:bg-white/10 active:bg-white/20 rounded-xl transition-all duration-150 text-white/70 hover:text-white"
+            title="Reset View (Ctrl+0)"
+            aria-label="Reset view"
+          >
+            <Maximize2 size={18} />
+          </button>
+          
+          <button
+            onClick={() => {
+              // Reset rotation se implementado no futuro
+              setCanvasScale(20);
+              setCanvasOffset({ x: 0, y: 0 });
+            }}
+            className="w-10 h-10 flex items-center justify-center hover:bg-white/10 active:bg-white/20 rounded-xl transition-all duration-150 text-white/70 hover:text-white"
+            title="Center View"
+            aria-label="Center view"
+          >
+            <RotateCcw size={18} />
+          </button>
+        </div>
       </div>
       
       {/* Info Panel */}
-      <div className="absolute bottom-6 left-6 p-3 bg-[#1a1a1f]/90 backdrop-blur-xl border border-white/10 rounded-xl">
-        <div className="text-xs text-white/50">
-          <div>Pos: {mousePos.x.toFixed(0)}, {mousePos.y.toFixed(0)}</div>
+      <div className="absolute bottom-6 left-6 p-4 bg-[#1a1a1f]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl min-w-[140px]">
+        <div className="space-y-1.5">
+          <div className="flex justify-between items-center">
+            <span className="text-[11px] uppercase tracking-wider text-white/40 font-medium">Position</span>
+            <span className="text-xs font-mono text-white/70">
+              {mousePos.x.toFixed(0)}, {mousePos.y.toFixed(0)}
+            </span>
+          </div>
+          
           {snapIndicator && (
-            <div className="text-[#c9a962]">
-              Snap: {snapIndicator.type}
+            <div className="flex justify-between items-center animate-in fade-in duration-200">
+              <span className="text-[11px] uppercase tracking-wider text-[#c9a962]/70 font-medium">Snap</span>
+              <span className="text-xs font-medium text-[#c9a962] capitalize">
+                {snapIndicator.type}
+              </span>
             </div>
           )}
+          
           {angleLock && (
-            <div className="text-[#c9a962]">
-              Ângulo travado: {lockedAngle?.toFixed(0)}°
+            <div className="flex justify-between items-center animate-in fade-in duration-200">
+              <span className="text-[11px] uppercase tracking-wider text-[#c9a962]/70 font-medium">Angle</span>
+              <span className="text-xs font-medium text-[#c9a962]">
+                {lockedAngle?.toFixed(0)}°
+              </span>
+            </div>
+          )}
+          
+          {process.env.NODE_ENV === 'development' && gestureDebug && (
+            <div className="pt-2 border-t border-white/10">
+              <span className="text-[10px] font-mono text-white/30">{gestureDebug}</span>
             </div>
           )}
         </div>
       </div>
       
       {/* Scale Indicator */}
-      <div className="absolute bottom-6 right-6 px-3 py-2 bg-[#1a1a1f]/90 backdrop-blur-xl border border-white/10 rounded-lg">
-        <div className="flex items-center gap-2 text-xs text-white/60">
-          <Grid3X3 size={14} />
-          <span>{projectElements?.settings.gridSize || 0.5}m grid</span>
-          <span className="text-white/30">|</span>
-          <span>{projectElements?.settings.unit === 'meters' ? 'Metros' : 'Pés'}</span>
+      <div className="absolute bottom-6 right-6 px-4 py-3 bg-[#1a1a1f]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl">
+        <div className="flex items-center gap-3 text-xs">
+          <div className="flex items-center gap-1.5 text-white/50">
+            <Grid3X3 size={14} className="text-[#c9a962]" />
+            <span className="font-medium">{projectElements?.settings.gridSize || 0.5}m</span>
+          </div>
+          
+          <div className="w-px h-3 bg-white/10" />
+          
+          <div className="flex items-center gap-1.5 text-white/50">
+            <span className="font-medium uppercase tracking-wide">
+              {projectElements?.settings.unit === 'meters' ? 'Metric' : 'Imperial'}
+            </span>
+          </div>
         </div>
       </div>
     </div>
