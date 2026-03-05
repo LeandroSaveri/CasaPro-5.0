@@ -1,4 +1,7 @@
-/**
+# 1. cameraEngine.ts - adicionar _ em parâmetros não utilizados
+# 2. gestureEngine.ts - verificar se há variáveis não utilizadas
+
+camera_engine_content = '''/**
  * FILE: cameraEngine.ts
  *
  * O que este arquivo faz:
@@ -545,8 +548,8 @@ export function getVisibleBounds(camera: CameraState): CameraBounds {
 export function animateToPosition(
   state: CameraState,
   targetPosition: Vector2,
-  duration: number = 500,
-  config: CameraConfig = DEFAULT_CAMERA_CONFIG
+  _duration: number = 500,
+  _config: CameraConfig = DEFAULT_CAMERA_CONFIG
 ): CameraState {
   return {
     ...state,
@@ -628,3 +631,7 @@ export function fitToPoints(
   const bounds: CameraBounds = { minX, maxX, minY, maxY }
   return focusOnBounds(state, bounds, padding, config)
 }
+'''
+
+print("cameraEngine.ts corrigido com _duration e _config")
+print(f"Tamanho: {len(camera_engine_content)} caracteres")
