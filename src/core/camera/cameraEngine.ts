@@ -624,11 +624,7 @@ export function fitToPoints(
     minY = Math.min(minY, p.y)
     maxY = Math.max(maxY, p.y)
   }
-  
+
   const bounds: CameraBounds = { minX, maxX, minY, maxY }
   return focusOnBounds(state, bounds, padding, config)
 }
-'''
-
-print("cameraEngine.ts corrigido com _duration e _config")
-print(f"Tamanho: {len(camera_engine_content)} caracteres")
