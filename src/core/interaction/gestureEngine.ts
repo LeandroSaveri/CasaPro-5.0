@@ -1,8 +1,8 @@
+/**
  * FILE: gestureEngine.ts
  *
  * O que este arquivo faz:
  * Sistema de gestos do CasaPro.
- *
  * Responsabilidade:
  * - pinch zoom (dois dedos)
  * - pan com dois dedos
