@@ -135,14 +135,6 @@ const spatialCache = new SpatialCache();
 const clamp = (value: number, min: number, max: number): number => 
   Math.min(Math.max(value, min), max);
 
-const pointInRect = (point: Point, rect: { minX: number; minY: number; maxX: number; maxY: number }): boolean => {
-  return point.x >= rect.minX && point.x <= rect.maxX && point.y >= rect.minY && point.y <= rect.maxY;
-};
-
-const rectIntersect = (a: { minX: number; minY: number; maxX: number; maxY: number }, b: { minX: number; minY: number; maxX: number; maxY: number }): boolean => {
-  return !(a.maxX < b.minX || a.minX > b.maxX || a.maxY < b.minY || a.minY > b.maxY);
-};
-
 // ============================================
 // COMPONENTE PRINCIPAL
 // ============================================
@@ -187,7 +179,6 @@ const Canvas2D: React.FC = () => {
   
   // Estados para drag de objetos
   const [isDraggingElement, setIsDraggingElement] = useState<boolean>(false);
-  const [dragOffset, setDragOffset] = useState<Point>({ x: 0, y: 0 });
   const [draggedElement, setDraggedElement] = useState<string | null>(null);
 
   // Store selectors otimizados
@@ -1264,18 +1255,6 @@ const Canvas2D: React.FC = () => {
         if (hit) {
           selectElement(hit.id, hit.type);
           setDraggedElement(hit.id);
-          setDragOffset({
-            x: worldPoint.x - (hit.type === 'furniture' ? 
-              projectElements?.furniture.find((f: any) => f.id === hit.id)?.position.x || 0 :
-              hit.type === 'room' ?
-              projectElements?.rooms.find((r: Room) => r.id === hit.id)?.points[0]?.x || 0 :
-              0),
-            y: worldPoint.y - (hit.type === 'furniture' ? 
-              projectElements?.furniture.find((f: any) => f.id === hit.id)?.position.y || 0 :
-              hit.type === 'room' ?
-              projectElements?.rooms.find((r: Room) => r.id === hit.id)?.points[0]?.y || 0 :
-              0)
-          });
           setIsDraggingElement(true);
           setCursor('move');
         } else {
