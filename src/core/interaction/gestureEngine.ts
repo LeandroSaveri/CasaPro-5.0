@@ -244,17 +244,8 @@ export function updateTouches(
 
   // Caso sem toques suficientes
   if (touches.length < 2) {
-    const _newState: GestureState = {
-      ...state,
-      touches,
-      type: detectGestureType(state, touches, config),
-      lastTimestamp: now,
-      metrics,
-      isActive: touches.length > 0,
-    }
-
     return {
-      type: _newState.type,
+      type: detectGestureType(state, touches, config),
       zoom: 1,
       pan: touches.length === 1 ? velocity : { x: 0, y: 0 },
       rotate: 0,
@@ -286,17 +277,6 @@ if (state.startDistance === null || state.startCenter === null) {
 
 }
 
-    return {
-      type: 'pinch',
-      zoom: 1,
-      pan: { x: 0, y: 0 },
-      rotate: 0,
-      center,
-      metrics,
-      isComplete: false,
-    }
-  }
-
   // Calcula transformações
   let zoomFactor = dist / state.startDistance
   zoomFactor = clamp(zoomFactor, config.minZoom, config.maxZoom)
@@ -321,7 +301,7 @@ if (state.startDistance === null || state.startCenter === null) {
     }
   }
 
-  const _newState: GestureState = {
+  const newState: GestureState = {
     ...state,
     touches,
     type: detectGestureType(state, touches, config),
@@ -335,7 +315,7 @@ if (state.startDistance === null || state.startCenter === null) {
   }
 
   return {
-    type: _newState.type,
+    type: newState.type,
     zoom: zoomFactor,
     pan: finalPan,
     rotate: rotateDelta,
@@ -372,7 +352,7 @@ export function processTap(
     }
   }
 
-  const _newState: GestureState = {
+  const newState: GestureState = {
     ...state,
     tapCount: 1,
     tapStartTime: now,
@@ -385,7 +365,7 @@ export function processTap(
     pan: { x: 0, y: 0 },
     rotate: 0,
     center: position,
-    metrics: _newState.metrics,
+    metrics: newState.metrics,
     isComplete: false,
   }
 }
