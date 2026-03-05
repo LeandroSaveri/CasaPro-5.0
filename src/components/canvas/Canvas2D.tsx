@@ -158,7 +158,6 @@ const Canvas2D: React.FC = () => {
   // Estados locais premium
   const [isPanning, setIsPanning] = useState<boolean>(false);
   const [panStart, setPanStart] = useState<Point>({ x: 0, y: 0 });
-  const [mousePos, setMousePos] = useState<Point>({ x: 0, y: 0 });
   const [worldMousePos, setWorldMousePos] = useState<Point>({ x: 0, y: 0 });
   const [snapIndicator, setSnapIndicator] = useState<SnapPoint | null>(null);
   const [showMeasurements, setShowMeasurements] = useState<boolean>(true);
@@ -1275,8 +1274,6 @@ const Canvas2D: React.FC = () => {
     
     const canvasPoint = getCanvasPoint(e);
     if (!canvasPoint) return;
-    
-    setMousePos(canvasPoint);
     
     const worldPoint = canvasToWorld(canvasPoint);
     setWorldMousePos(worldPoint);
