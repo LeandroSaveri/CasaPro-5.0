@@ -1,4 +1,3 @@
-/**
  * FILE: gestureEngine.ts
  *
  * O que este arquivo faz:
@@ -245,7 +244,7 @@ export function updateTouches(
 
   // Caso sem toques suficientes
   if (touches.length < 2) {
-    const newState: GestureState = {
+    const _newState: GestureState = {
       ...state,
       touches,
       type: detectGestureType(state, touches, config),
@@ -255,7 +254,7 @@ export function updateTouches(
     }
 
     return {
-      type: newState.type,
+      type: _newState.type,
       zoom: 1,
       pan: touches.length === 1 ? velocity : { x: 0, y: 0 },
       rotate: 0,
@@ -274,7 +273,7 @@ export function updateTouches(
 
   // Inicializa gesto
   if (state.startDistance === null || state.startCenter === null) {
-    const newState: GestureState = {
+    const _newState: GestureState = {
       ...state,
       touches,
       startDistance: dist,
@@ -321,7 +320,7 @@ export function updateTouches(
     }
   }
 
-  const newState: GestureState = {
+  const _newState: GestureState = {
     ...state,
     touches,
     type: detectGestureType(state, touches, config),
@@ -335,7 +334,7 @@ export function updateTouches(
   }
 
   return {
-    type: newState.type,
+    type: _newState.type,
     zoom: zoomFactor,
     pan: finalPan,
     rotate: rotateDelta,
@@ -372,7 +371,7 @@ export function processTap(
     }
   }
 
-  const newState: GestureState = {
+  const _newState: GestureState = {
     ...state,
     tapCount: 1,
     tapStartTime: now,
@@ -385,7 +384,7 @@ export function processTap(
     pan: { x: 0, y: 0 },
     rotate: 0,
     center: position,
-    metrics: newState.metrics,
+    metrics: _newState.metrics,
     isComplete: false,
   }
 }
@@ -584,3 +583,7 @@ export function getSmoothedRotation(
 
   return delta * smoothing
 }
+'''
+
+print("gestureEngine.ts corrigido com _newState e _state")
+print(f"Tamanho: {len(gesture_engine_content)} caracteres")
