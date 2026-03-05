@@ -1,3 +1,4 @@
+/**
  * FILE: cameraEngine.ts
  *
  * O que este arquivo faz:
