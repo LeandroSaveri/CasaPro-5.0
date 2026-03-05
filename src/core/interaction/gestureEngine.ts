@@ -193,7 +193,7 @@ function applyMomentum(
  * Detecta tipo de gesto baseado nos toques
  */
 function detectGestureType(
-  _state: GestureState, // CORREÇÃO: prefixo _ para variável não utilizada
+  state: GestureState,
   touches: TouchPoint[],
   config: GestureConfig
 ): GestureType {
@@ -201,13 +201,13 @@ function detectGestureType(
 
   if (count === 0) return 'none'
   if (count === 1) {
-    if (_state.tapCount === 1) return 'tap'
+    if (state.tapCount === 1) return 'tap'
     return 'pan'
   }
   if (count >= 2) {
-    if (config.enableRotation && _state.startAngle !== null) {
+    if (config.enableRotation && state.startAngle !== null) {
       const currentAngle = angle(touches[0].position, touches[1].position)
-      const angleDiff = Math.abs(currentAngle - _state.startAngle)
+      const angleDiff = Math.abs(currentAngle - state.startAngle)
       if (angleDiff > config.rotateThreshold) return 'rotate'
     }
     return 'pinch'
@@ -249,7 +249,7 @@ export function updateTouches(
 
   // Caso sem toques suficientes
   if (touches.length < 2) {
-    const _newState: GestureState = { // CORREÇÃO: prefixo _ para variável não utilizada
+    const newState: GestureState = {
       ...state,
       touches,
       type: detectGestureType(state, touches, config),
@@ -259,7 +259,7 @@ export function updateTouches(
     }
 
     return {
-      type: _newState.type,
+      type: newState.type,
       zoom: 1,
       pan: touches.length === 1 ? velocity : { x: 0, y: 0 },
       rotate: 0,
@@ -279,18 +279,6 @@ export function updateTouches(
 
   // Inicializa gesto
   if (state.startDistance === null || state.startCenter === null) {
-    const _newState: GestureState = { // CORREÇÃO: prefixo _ para variável não utilizada
-      ...state,
-      touches,
-      startDistance: dist,
-      startCenter: center,
-      startAngle: currentAngle,
-      lastCenter: center,
-      lastTimestamp: now,
-      metrics,
-      isActive: true,
-    }
-
     return {
       type: 'pinch',
       zoom: 1,
@@ -326,7 +314,7 @@ export function updateTouches(
     }
   }
 
-  const _newState: GestureState = { // CORREÇÃO: prefixo _ para variável não utilizada
+  const newState: GestureState = {
     ...state,
     touches,
     type: detectGestureType(state, touches, config),
@@ -340,7 +328,7 @@ export function updateTouches(
   }
 
   return {
-    type: _newState.type,
+    type: newState.type,
     zoom: zoomFactor,
     pan: finalPan,
     rotate: rotateDelta,
@@ -366,12 +354,6 @@ export function processTap(
     state.tapStartTime &&
     now - state.tapStartTime < config.doubleTapDelay
   ) {
-    const _newState: GestureState = { // CORREÇÃO: prefixo _ para variável não utilizada
-      ...createGestureState(),
-      tapCount: 0,
-      tapStartTime: null,
-    }
-
     return {
       type: 'doubleTap',
       zoom: 1,
@@ -383,7 +365,7 @@ export function processTap(
     }
   }
 
-  const _newState: GestureState = { // CORREÇÃO: prefixo _ para variável não utilizada
+  const newState: GestureState = {
     ...state,
     tapCount: 1,
     tapStartTime: now,
@@ -396,7 +378,7 @@ export function processTap(
     pan: { x: 0, y: 0 },
     rotate: 0,
     center: position,
-    metrics: _newState.metrics,
+    metrics: newState.metrics,
     isComplete: false,
   }
 }
@@ -433,7 +415,7 @@ export function checkLongPress(
 /**
  * Limpa estado de gesto
  */
-export function resetGesture(_state: GestureState): GestureState { // CORREÇÃO: prefixo _ para parâmetro não utilizado
+export function resetGesture(): GestureState {
   return createGestureState()
 }
 
