@@ -37,7 +37,6 @@ import {
   checkLongPress,
   resetGesture,
   type TouchPoint,
-  type GestureResult,
   DEFAULT_GESTURE_CONFIG
 } from '@/core/interaction/gestureEngine';
 
@@ -61,12 +60,6 @@ interface SnapPoint {
   readonly type: 'grid' | 'endpoint' | 'intersection' | 'angle' | 'midpoint' | 'center';
   readonly priority: number;
   readonly distance: number;
-}
-
-interface ViewState {
-  readonly scale: number;
-  readonly offset: Point;
-  readonly rotation: number;
 }
 
 interface CanvasMetrics {
@@ -125,14 +118,6 @@ const spatialCache = new SpatialCache();
 
 const clamp = (value: number, min: number, max: number): number => 
   Math.min(Math.max(value, min), max);
-
-const lerp = (start: number, end: number, t: number): number => 
-  start + (end - start) * t;
-
-const smoothStep = (edge0: number, edge1: number, x: number): number => {
-  const t = clamp((x - edge0) / (edge1 - edge0), 0, 1);
-  return t * t * (3 - 2 * t);
-};
 
 // ============================================
 // COMPONENTE PRINCIPAL
@@ -1030,7 +1015,7 @@ const Canvas2D: React.FC = () => {
     };
     
     // Debug info (remover em produção)
-    if (process.env.NODE_ENV === 'development') {
+    if (import.meta.env.DEV) {
       setGestureDebug(`${result.type} z:${result.zoom.toFixed(2)}`);
     }
     
@@ -1402,7 +1387,7 @@ const Canvas2D: React.FC = () => {
             </div>
           )}
           
-          {process.env.NODE_ENV === 'development' && gestureDebug && (
+          {import.meta.env.DEV && gestureDebug && (
             <div className="pt-2 border-t border-white/10">
               <span className="text-[10px] font-mono text-white/30">{gestureDebug}</span>
             </div>
