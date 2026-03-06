@@ -16,8 +16,6 @@ import type {
 
 import { HIT_TEST_THRESHOLD } from '../types/canvasTypes'
 
-const HIT_TEST_THRESHOLD = 0.25
-
 export interface HitTestConfig {
   threshold?: number
 }
