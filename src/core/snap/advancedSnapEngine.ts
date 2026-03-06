@@ -131,6 +131,44 @@ function perpendicularProjection(
   }
 }
 
+/* ---------- NOVA FUNÇÃO DE SNAP ANGULAR ---------- */
+
+function calculateAngleSnap(
+  point: Vector2,
+  reference: Vector2,
+  angles: number[]
+): Vector2 | null {
+
+  const dx = point.x - reference.x
+  const dy = point.y - reference.y
+
+  const angle = Math.atan2(dy, dx)
+  const dist = Math.sqrt(dx * dx + dy * dy)
+
+  let bestAngle: number | null = null
+  let smallestDiff = Infinity
+
+  for (const a of angles) {
+
+    const rad = a * Math.PI / 180
+    const diff = Math.abs(angle - rad)
+
+    if (diff < smallestDiff) {
+      smallestDiff = diff
+      bestAngle = rad
+    }
+  }
+
+  if (bestAngle === null) return null
+
+  return {
+    x: reference.x + Math.cos(bestAngle) * dist,
+    y: reference.y + Math.sin(bestAngle) * dist
+  }
+}
+
+/* ---------- WALL SNAP ---------- */
+
 export function getWallSnapCandidates(
   point: Vector2,
   walls: Wall[],
@@ -144,7 +182,6 @@ export function getWallSnapCandidates(
 
   for (const wall of walls) {
 
-    // 🔧 Otimização de performance (ignora paredes muito distantes)
     const wallCenter = midpoint(wall.start, wall.end)
     const wallDist = distance(point, wallCenter)
     if (wallDist > config.snapRadius * 4) continue
@@ -233,6 +270,8 @@ export function getWallSnapCandidates(
   return candidates
 }
 
+/* ---------- INTERSECTION SNAP ---------- */
+
 export function getIntersectionCandidates(
   point: Vector2,
   walls: Wall[],
@@ -281,6 +320,8 @@ export function getIntersectionCandidates(
   return candidates
 }
 
+/* ---------- GRID SNAP ---------- */
+
 export function snapToGrid(
   point: Vector2,
   config: SnapConfig = DEFAULT_CONFIG
@@ -303,6 +344,8 @@ export function snapToGrid(
     priority: 60
   }
 }
+
+/* ---------- SNAP RESOLVER ---------- */
 
 export function resolveSnap(
   point: Vector2,
@@ -328,6 +371,30 @@ export function resolveSnap(
 
     ...getIntersectionCandidates(point, walls, config)
   ]
+
+  /* ---------- ANGLE SNAP ---------- */
+
+  if (config.enableAngle && _referencePoints.length > 0) {
+
+    for (const ref of _referencePoints) {
+
+      const snapped = calculateAngleSnap(
+        point,
+        ref,
+        config.angleSnapDegrees
+      )
+
+      if (snapped) {
+
+        candidates.push({
+          position: snapped,
+          type: 'angle',
+          distance: distance(point, snapped),
+          priority: 50
+        })
+      }
+    }
+  }
 
   if (config.enableGrid) {
     candidates.push(snapToGrid(point, config))
