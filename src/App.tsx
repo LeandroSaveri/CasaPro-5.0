@@ -1,300 +1,33 @@
+/**
+ * FILE: App.tsx
+ *
+ * O que este arquivo faz:
+ * Arquivo principal do aplicativo CasaPro.
+ *
+ * Responsabilidade:
+ * Decidir qual tela mostrar:
+ * - WelcomeView (tela inicial)
+ * - EditorView (editor completo do projeto)
+ */
+
 import React, { useState, useEffect } from 'react';
+
+import EditorView from '@/features/editor/EditorView';
+import WelcomeView from '@/features/welcome/WelcomeView';
+
 import { useProjectStore } from '@/store/projectStore';
 import { useUserStore } from '@/store/userStore';
-import WelcomeScreen from '@/components/welcome/WelcomeScreen';
-import Toolbar from '@/components/ui/Toolbar';
-import Canvas2D from '@/components/canvas/Canvas2D';
-import Canvas3D from '@/components/canvas/Canvas3D';
-import ProjectModal from '@/components/modals/ProjectModal';
-import TemplatesModal from '@/components/modals/TemplatesModal';
-import SubscriptionModal from '@/components/modals/SubscriptionModal';
-import UserMenu from '@/components/ui/UserMenu';
-import { 
-  Menu, 
-  X, 
-  ChevronLeft, 
-  Grid3X3, 
-  Box, 
-  Save, 
-  Share2, 
-  Download,
-  MoreVertical,
-  Settings
-} from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-
-interface EditorHeaderProps {
-  projectName: string;
-  viewMode: '2d' | '3d';
-  onViewModeChange: (mode: '2d' | '3d') => void;
-  onSave: () => void;
-  onBack: () => void;
-  onToggleSidebar: () => void;
-  isSidebarOpen: boolean;
-  isMobile: boolean;
-  onOpenSettings?: () => void;
-}
-
-const EditorHeader: React.FC<EditorHeaderProps> = ({
-  projectName,
-  viewMode,
-  onViewModeChange,
-  onSave,
-  onBack,
-  onToggleSidebar,
-  isSidebarOpen,
-  isMobile,
-  onOpenSettings
-}) => {
-  const [showActions, setShowActions] = useState(false);
-
-  return (
-    <header className="h-14 sm:h-16 bg-[#0a0a0f]/95 backdrop-blur-xl border-b border-white/10 flex items-center justify-between px-3 sm:px-4 sticky top-0 z-50">
-      {/* Left Section */}
-      <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
-        {isMobile && (
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            onClick={onToggleSidebar}
-            className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/80 hover:bg-white/10 hover:text-white transition-all flex-shrink-0"
-          >
-            {isSidebarOpen ? <X size={18} className="sm:w-5 sm:h-5" /> : <Menu size={18} className="sm:w-5 sm:h-5" />}
-          </motion.button>
-        )}
-
-        <motion.button
-          whileTap={{ scale: 0.95 }}
-          onClick={onBack}
-          className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/80 hover:bg-white/10 hover:text-white transition-all flex-shrink-0"
-          title="Voltar para Home"
-        >
-          <ChevronLeft size={18} className="sm:w-5 sm:h-5" />
-        </motion.button>
-
-        <div className="flex items-center gap-2 min-w-0 ml-1">
-          <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-gradient-to-br from-[#c9a962] to-[#b8984f] flex items-center justify-center flex-shrink-0">
-            <Grid3X3 size={14} className="text-[#0a0a0f] sm:w-4 sm:h-4" />
-          </div>
-          <h1 className="text-white font-semibold truncate max-w-[100px] sm:max-w-[150px] md:max-w-xs text-sm sm:text-base">
-            {projectName || 'Novo Projeto'}
-          </h1>
-        </div>
-      </div>
-
-      {/* Center - View Mode Toggle (Desktop) / Settings (Mobile) */}
-      <div className="flex items-center justify-center">
-        {!isMobile ? (
-          <div className="flex items-center gap-1 p-1 bg-white/5 rounded-xl border border-white/10">
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={() => onViewModeChange('2d')}
-              className={`
-                flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-all
-                ${viewMode === '2d' 
-                  ? 'bg-[#c9a962] text-[#0a0a0f] shadow-lg shadow-[#c9a962]/30' 
-                  : 'text-white/60 hover:text-white hover:bg-white/5'
-                }
-              `}
-            >
-              <Grid3X3 size={16} />
-              <span className="hidden sm:inline">2D</span>
-            </motion.button>
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={() => onViewModeChange('3d')}
-              className={`
-                flex items-center gap-2 px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-all
-                ${viewMode === '3d' 
-                  ? 'bg-[#c9a962] text-[#0a0a0f] shadow-lg shadow-[#c9a962]/30' 
-                  : 'text-white/60 hover:text-white hover:bg-white/5'
-                }
-              `}
-            >
-              <Box size={16} />
-              <span className="hidden sm:inline">3D</span>
-            </motion.button>
-          </div>
-        ) : (
-          <motion.button
-            whileTap={{ scale: 0.95 }}
-            onClick={onOpenSettings}
-            className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/80 hover:bg-white/10 hover:text-white transition-all"
-          >
-            <Settings size={18} />
-          </motion.button>
-        )}
-      </div>
-
-      {/* Right Section */}
-      <div className="flex items-center gap-2 flex-shrink-0">
-        {!isMobile && (
-          <>
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={onSave}
-              className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl bg-[#c9a962]/10 border border-[#c9a962]/30 text-[#c9a962] hover:bg-[#c9a962]/20 transition-all text-sm font-medium"
-            >
-              <Save size={16} />
-              <span className="hidden lg:inline">Salvar</span>
-            </motion.button>
-            
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 hover:text-white transition-all text-sm font-medium"
-            >
-              <Share2 size={16} />
-              <span className="hidden lg:inline">Compartilhar</span>
-            </motion.button>
-
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              className="flex items-center gap-2 px-3 sm:px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 hover:text-white transition-all text-sm font-medium"
-            >
-              <Download size={16} />
-              <span className="hidden lg:inline">Exportar</span>
-            </motion.button>
-          </>
-        )}
-
-        {isMobile && (
-          <div className="relative">
-            <motion.button
-              whileTap={{ scale: 0.95 }}
-              onClick={() => setShowActions(!showActions)}
-              className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/80 hover:bg-white/10 hover:text-white transition-all"
-            >
-              <MoreVertical size={18} />
-            </motion.button>
-
-            <AnimatePresence>
-              {showActions && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                  className="absolute right-0 top-full mt-2 w-44 bg-[#1a1a1f] border border-white/10 rounded-xl shadow-2xl shadow-black/50 overflow-hidden z-50"
-                >
-                  <button
-                    onClick={() => { onSave(); setShowActions(false); }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-white/80 hover:bg-white/5 hover:text-white transition-colors text-sm"
-                  >
-                    <Save size={16} className="text-[#c9a962]" />
-                    Salvar
-                  </button>
-                  <button
-                    className="w-full flex items-center gap-3 px-4 py-3 text-white/80 hover:bg-white/5 hover:text-white transition-colors text-sm"
-                  >
-                    <Share2 size={16} />
-                    Compartilhar
-                  </button>
-                  <button
-                    className="w-full flex items-center gap-3 px-4 py-3 text-white/80 hover:bg-white/5 hover:text-white transition-colors text-sm"
-                  >
-                    <Download size={16} />
-                    Exportar
-                  </button>
-                  <div className="border-t border-white/10" />
-                  <button
-                    onClick={() => { onViewModeChange(viewMode === '2d' ? '3d' : '2d'); setShowActions(false); }}
-                    className="w-full flex items-center gap-3 px-4 py-3 text-white/80 hover:bg-white/5 hover:text-white transition-colors text-sm"
-                  >
-                    {viewMode === '2d' ? <Box size={16} /> : <Grid3X3 size={16} />}
-                    {viewMode === '2d' ? 'Ver 3D' : 'Ver 2D'}
-                  </button>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-        )}
-
-        <UserMenu />
-      </div>
-    </header>
-  );
-};
-
-interface MainLayoutProps {
-  children: React.ReactNode;
-  sidebar: React.ReactNode;
-  isSidebarOpen: boolean;
-  onCloseSidebar: () => void;
-  isMobile: boolean;
-}
-
-const MainLayout: React.FC<MainLayoutProps> = ({
-  children,
-  sidebar,
-  isSidebarOpen,
-  onCloseSidebar,
-  isMobile,
-}) => {
-  return (
-    <div className="flex-1 flex overflow-hidden relative">
-      {!isMobile && (
-        <aside className="w-64 lg:w-72 flex-shrink-0 border-r border-white/10 bg-[#0a0a0f]">
-          {sidebar}
-        </aside>
-      )}
-
-      <AnimatePresence>
-        {isMobile && isSidebarOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={onCloseSidebar}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40"
-            />
-            
-            <motion.aside
-              initial={{ x: '-100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '-100%' }}
-              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed left-0 top-14 sm:top-16 bottom-0 w-72 bg-[#0a0a0f] border-r border-white/10 z-50 overflow-y-auto"
-            >
-              {sidebar}
-            </motion.aside>
-          </>
-        )}
-      </AnimatePresence>
-
-      <main className="flex-1 overflow-hidden bg-[#0a0a0f] relative">
-        {children}
-      </main>
-    </div>
-  );
-};
 
 const App: React.FC = () => {
+
   const [currentView, setCurrentView] = useState<'welcome' | 'editor'>('welcome');
+
   const [showProjectModal, setShowProjectModal] = useState(false);
   const [showTemplatesModal, setShowTemplatesModal] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
-  const [showSettingsModal, setShowSettingsModal] = useState(false);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
 
-  const { 
-    currentProject, 
-    viewMode, 
-    setViewMode, 
-    saveProject, 
-    createProject
-  } = useProjectStore();
-
+  const { createProject } = useProjectStore();
   const { initialize } = useUserStore();
-
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
-    
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
-  }, []);
 
   useEffect(() => {
     initialize();
@@ -303,15 +36,6 @@ const App: React.FC = () => {
   const handleCreateProject = () => {
     createProject('Novo Projeto', '');
     setCurrentView('editor');
-    setIsSidebarOpen(false);
-  };
-
-  const handleEnterEditor = () => {
-    if (!currentProject) {
-      createProject('Novo Projeto', '');
-    }
-    setCurrentView('editor');
-    setIsSidebarOpen(false);
   };
 
   const handleOpenProjects = () => {
@@ -321,102 +45,25 @@ const App: React.FC = () => {
   const handleLoadProject = () => {
     setCurrentView('editor');
     setShowProjectModal(false);
-    setIsSidebarOpen(false);
-  };
-
-  const handleBackToWelcome = () => {
-    setCurrentView('welcome');
-    setIsSidebarOpen(false);
-  };
-
-  const handleSaveProject = () => {
-    if (currentProject) {
-      saveProject();
-    }
   };
 
   if (currentView === 'welcome') {
     return (
-      <>
-        <WelcomeScreen
-          onCreateProject={handleCreateProject}
-          onOpenProjects={handleOpenProjects}
-          onExploreTemplates={() => setShowTemplatesModal(true)}
-          onSubscribePro={() => setShowSubscriptionModal(true)}
-          onEnterEditor={handleEnterEditor}
-        />
-        
-        <ProjectModal
-          isOpen={showProjectModal}
-          onClose={() => setShowProjectModal(false)}
-          onSelectProject={handleLoadProject}
-          onCreateProject={handleCreateProject}
-        />
-
-        <TemplatesModal
-          isOpen={showTemplatesModal}
-          onClose={() => setShowTemplatesModal(false)}
-          onSelectTemplate={() => {
-            handleCreateProject();
-            setShowTemplatesModal(false);
-          }}
-        />
-
-        <SubscriptionModal
-          isOpen={showSubscriptionModal}
-          onClose={() => setShowSubscriptionModal(false)}
-        />
-      </>
+      <WelcomeView
+        handleCreateProject={handleCreateProject}
+        handleOpenProjects={handleOpenProjects}
+        handleLoadProject={handleLoadProject}
+        showProjectModal={showProjectModal}
+        setShowProjectModal={setShowProjectModal}
+        showTemplatesModal={showTemplatesModal}
+        setShowTemplatesModal={setShowTemplatesModal}
+        showSubscriptionModal={showSubscriptionModal}
+        setShowSubscriptionModal={setShowSubscriptionModal}
+      />
     );
   }
 
-  return (
-    <div className="h-screen w-screen flex flex-col bg-[#0a0a0f] overflow-hidden">
-      <EditorHeader
-        projectName={currentProject?.name || ''}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-        onSave={handleSaveProject}
-        onBack={handleBackToWelcome}
-        onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
-        isSidebarOpen={isSidebarOpen}
-        isMobile={isMobile}
-        onOpenSettings={() => setShowSettingsModal(true)}
-      />
-
-      <MainLayout
-        sidebar={<Toolbar />}
-        isSidebarOpen={isSidebarOpen}
-        onCloseSidebar={() => setIsSidebarOpen(false)}
-        isMobile={isMobile}
-      >
-        <div className="h-full w-full relative">
-          {viewMode === '2d' ? <Canvas2D /> : <Canvas3D />}
-        </div>
-      </MainLayout>
-
-      <ProjectModal
-        isOpen={showProjectModal}
-        onClose={() => setShowProjectModal(false)}
-        onSelectProject={handleLoadProject}
-        onCreateProject={handleCreateProject}
-      />
-
-      <TemplatesModal
-        isOpen={showTemplatesModal}
-        onClose={() => setShowTemplatesModal(false)}
-        onSelectTemplate={() => {
-          handleCreateProject();
-          setShowTemplatesModal(false);
-        }}
-      />
-
-      <SubscriptionModal
-        isOpen={showSubscriptionModal}
-        onClose={() => setShowSubscriptionModal(false)}
-      />
-    </div>
-  );
+  return <EditorView />;
 };
 
 export default App;
