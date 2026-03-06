@@ -149,3 +149,62 @@ export function rectCenter(rect: Rect): Vector2 {
     y: rect.y + rect.height / 2
   };
 }
+/**
+ * ============================================
+ * FUNÇÕES AVANÇADAS EXTRAÍDAS DO CANVAS PREMIUM
+ * ============================================
+ */
+
+/**
+ * Calcula interseção entre dois segmentos de linha
+ */
+export function getLineIntersection(
+  p1: Vector2,
+  p2: Vector2,
+  p3: Vector2,
+  p4: Vector2
+): Vector2 | null {
+
+  const denom =
+    (p1.x - p2.x) * (p3.y - p4.y) -
+    (p1.y - p2.y) * (p3.x - p4.x)
+
+  if (Math.abs(denom) < 1e-10) return null
+
+  const t =
+    ((p1.x - p3.x) * (p3.y - p4.y) -
+      (p1.y - p3.y) * (p3.x - p4.x)) / denom
+
+  const u =
+    -((p1.x - p2.x) * (p1.y - p3.y) -
+      (p1.y - p2.y) * (p1.x - p3.x)) / denom
+
+  if (t >= 0 && t <= 1 && u >= 0 && u <= 1) {
+    return {
+      x: p1.x + t * (p2.x - p1.x),
+      y: p1.y + t * (p2.y - p1.y)
+    }
+  }
+
+  return null
+}
+
+/**
+ * Calcula área de um polígono usando Shoelace Formula
+ */
+export function calculatePolygonArea(points: Vector2[]): number {
+
+  if (points.length < 3) return 0
+
+  let area = 0
+
+  for (let i = 0; i < points.length; i++) {
+
+    const j = (i + 1) % points.length
+
+    area += points[i].x * points[j].y
+    area -= points[j].x * points[i].y
+  }
+
+  return Math.abs(area) / 2
+}
