@@ -28,7 +28,6 @@ class SpatialCache {
   getDistance(a: Point, b: Point): number {
 
     const key = this.getDistanceKey(a, b)
-
     const cached = this.distanceCache.get(key)
 
     if (cached !== undefined) {
@@ -75,7 +74,13 @@ class SpatialCache {
 
     for (const key of this.distanceCache.keys()) {
 
-      if (key.includes(point.x.toFixed(4)) || key.includes(point.y.toFixed(4))) {
+      const [a] = key.split('|')
+      const [ax, ay] = a.split(',').map(Number)
+
+      const dx = ax - point.x
+      const dy = ay - point.y
+
+      if (Math.hypot(dx, dy) <= radius) {
         keysToDelete.push(key)
       }
 
