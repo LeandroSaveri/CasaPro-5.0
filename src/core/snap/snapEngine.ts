@@ -6,7 +6,7 @@
  */
 
 import type { Vector2 } from '../project/projectTypes'
-import { distance, angle, degToRad, projectPointOnLine } from '../geometry/geometryUtils'
+fix: remove unused angle import
 
 export interface SnapPoint {
   position: Vector2
