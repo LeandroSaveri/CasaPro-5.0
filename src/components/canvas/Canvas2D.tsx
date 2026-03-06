@@ -735,7 +735,11 @@ const Canvas2D: React.FC = () => {
       ctx.shadowBlur = isSelected ? 12 : 8;
     }
     
-    ctx.fillStyle = isSelected ? '#c9a962' : isHovered ? '#d4b87a' : wall.color;
+    ctx.fillStyle = isSelected
+  ? '#c9a962'
+  : isHovered
+  ? '#d4b87a'
+  : '#6b7280';
     ctx.beginPath();
     ctx.moveTo(start.x + perpX, start.y + perpY);
     ctx.lineTo(end.x + perpX, end.y + perpY);
