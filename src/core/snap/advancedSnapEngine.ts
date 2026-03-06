@@ -106,6 +106,7 @@ export function createSnapConfig(
     priorities: overrides?.priorities ?? DEFAULT_PRIORITIES
   }
 }
+
 function perpendicularProjection(
   point: Vector2,
   lineStart: Vector2,
@@ -130,7 +131,7 @@ function perpendicularProjection(
   }
 }
 
-function calculateAngleSnap(
+function _calculateAngleSnap(
   point: Vector2,
   reference: Vector2,
   angles: number[]
@@ -266,6 +267,7 @@ export function getWallSnapCandidates(
 
   return candidates
 }
+
 export function getIntersectionCandidates(
   point: Vector2,
   walls: Wall[],
@@ -341,7 +343,7 @@ export function resolveSnap(
   point: Vector2,
   walls: Wall[],
   config: SnapConfig = DEFAULT_CONFIG,
-  referencePoints: Vector2[] = []
+  _referencePoints: Vector2[] = []
 ): SnapResult {
 
   if (!config.enabled) {
