@@ -15,6 +15,12 @@
 import type { Vector2 } from '../project/projectTypes'
 import { distance, degToRad, projectPointOnLine } from '../geometry/geometryUtils'
 
+/**
+ * Cache simples de snapping (melhora performance)
+ */
+let lastSnapPoint: Vector2 | null = null
+let lastSnapResult: SnapResult | null = null
+
 export interface SnapPoint {
   position: Vector2
   type: 'grid' | 'vertex' | 'wall'
@@ -196,17 +202,37 @@ export function findBestSnap(
     preferGrid
   } = options
 
+  // 🔧 usa cache se o cursor quase não se moveu
+  if (lastSnapPoint && lastSnapResult) {
+
+    const dx = point.x - lastSnapPoint.x
+    const dy = point.y - lastSnapPoint.y
+
+    const moveDistSq = dx * dx + dy * dy
+
+    if (moveDistSq < 1) {
+      return lastSnapResult
+    }
+
+  }
+
   if (vertices && vertices.length > 0) {
 
     const vertexSnap =
       findVertexSnap(point, vertices, threshold)
 
     if (vertexSnap) {
-      return {
+
+      const result = {
         point: vertexSnap.position,
         snapped: true,
         source: vertexSnap
       }
+
+      lastSnapPoint = { ...point }
+      lastSnapResult = result
+
+      return result
     }
 
   }
@@ -217,11 +243,17 @@ export function findBestSnap(
       findWallSnap(point, walls, threshold)
 
     if (wallSnap) {
-      return {
+
+      const result = {
         point: wallSnap.position,
         snapped: true,
         source: wallSnap
       }
+
+      lastSnapPoint = { ...point }
+      lastSnapResult = result
+
+      return result
     }
 
   }
@@ -236,7 +268,7 @@ export function findBestSnap(
 
     if (dist < threshold) {
 
-      return {
+      const result = {
         point: gridPoint,
         snapped: true,
         source: {
@@ -246,11 +278,20 @@ export function findBestSnap(
         }
       }
 
+      lastSnapPoint = { ...point }
+      lastSnapResult = result
+
+      return result
     }
 
   }
 
-  return { point, snapped: false }
+  const result = { point, snapped: false }
+
+  lastSnapPoint = { ...point }
+  lastSnapResult = result
+
+  return result
 
 }
 
