@@ -5,9 +5,8 @@
  * Suporta grid, ângulos e snapping a elementos existentes.
  */
 
-import type { Vector2 } from '../geometry/geometryUtils'
-import { distance, angle, degToRad, projectPointOnLine } from '../geometry/geometryUtils'
-
+import type { Vector2 } from '../project/projectTypes'
+import { distance, degToRad, projectPointOnLine } from '../geometry/geometryUtils'
 export interface SnapPoint {
   position: Vector2
   type: 'grid' | 'vertex' | 'wall'
