@@ -144,6 +144,11 @@ export function getWallSnapCandidates(
 
   for (const wall of walls) {
 
+    // 🔧 Otimização de performance (ignora paredes muito distantes)
+    const wallCenter = midpoint(wall.start, wall.end)
+    const wallDist = distance(point, wallCenter)
+    if (wallDist > config.snapRadius * 4) continue
+
     const startDist = distance(point, wall.start)
     const endDist = distance(point, wall.end)
 
