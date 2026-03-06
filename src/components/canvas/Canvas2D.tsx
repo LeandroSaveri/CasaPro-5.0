@@ -735,26 +735,32 @@ const Canvas2D: React.FC = () => {
       ctx.shadowBlur = isSelected ? 12 : 8;
     }
     
-    ctx.fillStyle = isSelected
+   ctx.fillStyle = isSelected
   ? '#c9a962'
   : isHovered
   ? '#d4b87a'
   : '#6b7280';
-    ctx.beginPath();
-    ctx.moveTo(start.x + perpX, start.y + perpY);
-    ctx.lineTo(end.x + perpX, end.y + perpY);
-    ctx.lineTo(end.x - perpX, end.y - perpY);
-    ctx.lineTo(start.x - perpX, start.y - perpY);
-    ctx.closePath();
-    ctx.fill();
-    
-    // Borda com anti-aliasing
-    ctx.strokeStyle = isSelected ? '#ffffff' : isHovered ? '#c9a962' : 'rgba(0, 0, 0, 0.4)';
-    ctx.lineWidth = isSelected ? 2.5 : isHovered ? 2 : 1;
-    ctx.lineJoin = 'round';
-    ctx.stroke();
-    
-    ctx.restore();
+
+ctx.beginPath();
+ctx.moveTo(start.x + perpX, start.y + perpY);
+ctx.lineTo(end.x + perpX, end.y + perpY);
+ctx.lineTo(end.x - perpX, end.y - perpY);
+ctx.lineTo(start.x - perpX, start.y - perpY);
+ctx.closePath();
+ctx.fill();
+
+// Borda com anti-aliasing
+ctx.strokeStyle = isSelected
+  ? '#ffffff'
+  : isHovered
+  ? '#c9a962'
+  : '#9ca3af';
+
+ctx.lineWidth = isSelected ? 2.5 : isHovered ? 2 : 1;
+ctx.lineJoin = 'round';
+ctx.stroke();
+
+ctx.restore();
     
     // Medidas
     if (showMeasurements && projectElements?.settings.showMeasurements && scale > 5) {
