@@ -131,46 +131,6 @@ function perpendicularProjection(
   }
 }
 
-function _calculateAngleSnap(
-  point: Vector2,
-  reference: Vector2,
-  angles: number[]
-): Vector2 | null {
-
-  const dx = point.x - reference.x
-  const dy = point.y - reference.y
-
-  const currentAngle =
-    Math.atan2(dy, dx) * (180 / Math.PI)
-
-  const dist = Math.sqrt(dx * dx + dy * dy)
-
-  let bestAngle: number | null = null
-  let minDiff = Infinity
-
-  for (const angle of angles) {
-
-    let diff = Math.abs(currentAngle - angle)
-
-    if (diff > 180) diff = 360 - diff
-
-    if (diff < minDiff) {
-      minDiff = diff
-      bestAngle = angle
-    }
-  }
-
-  if (bestAngle === null || minDiff > 15)
-    return null
-
-  const rad = bestAngle * (Math.PI / 180)
-
-  return {
-    x: reference.x + Math.cos(rad) * dist,
-    y: reference.y + Math.sin(rad) * dist
-  }
-}
-
 export function getWallSnapCandidates(
   point: Vector2,
   walls: Wall[],
