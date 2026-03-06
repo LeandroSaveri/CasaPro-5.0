@@ -39,18 +39,24 @@ export interface Wall {
  * Snap para grid
  */
 export function snapToGrid(point: Vector2, gridSize: number): Vector2 {
+
   const invGrid = 1 / gridSize
 
   return {
     x: Math.round(point.x * invGrid) * gridSize,
     y: Math.round(point.y * invGrid) * gridSize
   }
+
 }
 
 /**
  * Snap angular
  */
-export function snapAngle(start: Vector2, end: Vector2, stepDeg = 45): Vector2 {
+export function snapAngle(
+  start: Vector2,
+  end: Vector2,
+  stepDeg = 45
+): Vector2 {
 
   const dx = end.x - start.x
   const dy = end.y - start.y
@@ -62,13 +68,16 @@ export function snapAngle(start: Vector2, end: Vector2, stepDeg = 45): Vector2 {
   const currentAngle = Math.atan2(dy, dx)
   const step = degToRad(stepDeg)
 
-  const snappedAngle = Math.round(currentAngle / step) * step
+  const snappedAngle =
+    Math.round(currentAngle / step) * step
 
   return {
     x: start.x + Math.cos(snappedAngle) * dist,
     y: start.y + Math.sin(snappedAngle) * dist
   }
+
 }
+
 /**
  * Snap para vértices existentes
  */
@@ -127,7 +136,20 @@ export function findWallSnap(
 
   for (const wall of walls) {
 
-    const projected = projectPointOnLine(point, wall.start, wall.end)
+    // 🔧 filtro de distância (melhora performance)
+    const centerX = (wall.start.x + wall.end.x) / 2
+    const centerY = (wall.start.y + wall.end.y) / 2
+
+    const dxCenter = point.x - centerX
+    const dyCenter = point.y - centerY
+
+    const centerDistSq =
+      dxCenter * dxCenter + dyCenter * dyCenter
+
+    if (centerDistSq > thresholdSq * 16) continue
+
+    const projected =
+      projectPointOnLine(point, wall.start, wall.end)
 
     const dx = point.x - projected.x
     const dy = point.y - projected.y
@@ -166,33 +188,51 @@ export function findBestSnap(
   }
 ): SnapResult {
 
-  const { vertices, walls, gridSize, threshold, preferGrid } = options
+  const {
+    vertices,
+    walls,
+    gridSize,
+    threshold,
+    preferGrid
+  } = options
 
   if (vertices && vertices.length > 0) {
 
-    const vertexSnap = findVertexSnap(point, vertices, threshold)
+    const vertexSnap =
+      findVertexSnap(point, vertices, threshold)
 
     if (vertexSnap) {
-      return { point: vertexSnap.position, snapped: true, source: vertexSnap }
+      return {
+        point: vertexSnap.position,
+        snapped: true,
+        source: vertexSnap
+      }
     }
 
   }
 
   if (walls && walls.length > 0) {
 
-    const wallSnap = findWallSnap(point, walls, threshold)
+    const wallSnap =
+      findWallSnap(point, walls, threshold)
 
     if (wallSnap) {
-      return { point: wallSnap.position, snapped: true, source: wallSnap }
+      return {
+        point: wallSnap.position,
+        snapped: true,
+        source: wallSnap
+      }
     }
 
   }
 
   if (gridSize && !preferGrid) {
 
-    const gridPoint = snapToGrid(point, gridSize)
+    const gridPoint =
+      snapToGrid(point, gridSize)
 
-    const dist = distance(point, gridPoint)
+    const dist =
+      distance(point, gridPoint)
 
     if (dist < threshold) {
 
@@ -211,6 +251,7 @@ export function findBestSnap(
   }
 
   return { point, snapped: false }
+
 }
 
 /**
