@@ -1,184 +1,151 @@
 /**
- * FILE: snapEngine.ts
+ * FILE: geometry.ts
  *
- * Sistema de snapping para precisão em desenho arquitetônico.
- * Suporta grid, ângulos e snapping a elementos existentes.
+ * Utilitários matemáticos para operações geométricas 2D.
+ * Usado em cálculos de canvas, snapping e transformações.
  */
 
-import type { Vector2 } from '../project/projectTypes'
-import { distance, degToRad, projectPointOnLine } from '../geometry/geometryUtils'
-export interface SnapPoint {
-  position: Vector2
-  type: 'grid' | 'vertex' | 'wall'
-  distance: number
-  /** ID opcional do elemento que gerou o snap (para highlight) */
-  sourceId?: string
-}
-
-export interface SnapResult {
-  point: Vector2
-  snapped: boolean
-  source?: SnapPoint
-}
-
-export interface Wall {
-  start: Vector2
-  end: Vector2
-  id?: string
+/**
+ * Representa um vetor/ponto 2D no espaço cartesiano
+ */
+export interface Vector2 {
+  readonly x: number;
+  readonly y: number;
 }
 
 /**
- * Snap para grid - versão otimizada com cache de divisão
+ * Representa um retângulo delimitador (bounding box)
  */
-export function snapToGrid(point: Vector2, gridSize: number): Vector2 {
-  const invGrid = 1 / gridSize // Evita divisão dupla
+export interface Rect {
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+}
+
+/**
+ * Distância euclidiana entre dois vetores/pontos
+ */
+export function distance(a: Vector2, b: Vector2): number {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  return Math.sqrt(dx * dx + dy * dy);
+}
+
+/**
+ * Distância ao quadrado (mais rápida quando não precisa da distância real)
+ */
+export function distanceSquared(a: Vector2, b: Vector2): number {
+  const dx = b.x - a.x;
+  const dy = b.y - a.y;
+  return dx * dx + dy * dy;
+}
+
+/**
+ * Ângulo em radianos entre dois vetores/pontos
+ */
+export function angle(a: Vector2, b: Vector2): number {
+  return Math.atan2(b.y - a.y, b.x - a.x);
+}
+
+/**
+ * Ponto médio entre dois vetores/pontos
+ */
+export function midpoint(a: Vector2, b: Vector2): Vector2 {
   return {
-    x: Math.round(point.x * invGrid) * gridSize,
-    y: Math.round(point.y * invGrid) * gridSize
-  }
+    x: (a.x + b.x) / 2,
+    y: (a.y + b.y) / 2
+  };
 }
 
 /**
- * Snap angular com múltiplos ângulos suportados (0°, 45°, 90°, etc)
+ * Interpolação linear entre dois vetores/pontos
  */
-export function snapAngle(start: Vector2, end: Vector2, stepDeg = 45): Vector2 {
-  const dx = end.x - start.x
-  const dy = end.y - start.y
-  const dist = Math.sqrt(dx * dx + dy * dy)
-  
-  if (dist === 0) return { ...end } // Evita NaN
-  
-  const currentAngle = Math.atan2(dy, dx)
-  const step = degToRad(stepDeg)
-  const snappedAngle = Math.round(currentAngle / step) * step
-
+export function lerp(a: Vector2, b: Vector2, t: number): Vector2 {
+  const clampedT = clamp(t, 0, 1);
   return {
-    x: start.x + Math.cos(snappedAngle) * dist,
-    y: start.y + Math.sin(snappedAngle) * dist
-  }
+    x: a.x + (b.x - a.x) * clampedT,
+    y: a.y + (b.y - a.y) * clampedT
+  };
 }
 
 /**
- * Snap para vértices existentes - versão otimizada com early exit
+ * Projeta um ponto em um segmento de linha
  */
-export function findVertexSnap(
-  point: Vector2,
-  vertices: Vector2[],
-  threshold: number,
-  options?: { sourceIds?: string[] }
-): SnapPoint | null {
+export function projectPointOnLine(point: Vector2, lineStart: Vector2, lineEnd: Vector2): Vector2 {
+  const dx = lineEnd.x - lineStart.x;
+  const dy = lineEnd.y - lineStart.y;
+  const lenSq = dx * dx + dy * dy;
   
-  const thresholdSq = threshold * threshold // Evita sqrt no loop
-  let bestDistSq = thresholdSq
-  let best: SnapPoint | null = null
-
-  for (let i = 0; i < vertices.length; i++) {
-    const v = vertices[i]
-    const dx = point.x - v.x
-    const dy = point.y - v.y
-    const distSq = dx * dx + dy * dy
-
-    if (distSq < bestDistSq) {
-      bestDistSq = distSq
-      best = {
-        position: v,
-        type: 'vertex',
-        distance: Math.sqrt(distSq),
-        sourceId: options?.sourceIds?.[i]
-      }
-    }
-  }
-
-  return best
-}
-
-/**
- * Snap para paredes (linhas) - versão otimizada
- */
-export function findWallSnap(
-  point: Vector2,
-  walls: Wall[],
-  threshold: number
-): SnapPoint | null {
-
-  const thresholdSq = threshold * threshold
-  let bestDistSq = thresholdSq
-  let best: SnapPoint | null = null
-
-  for (const wall of walls) {
-    const projected = projectPointOnLine(point, wall.start, wall.end)
-    const dx = point.x - projected.x
-    const dy = point.y - projected.y
-    const distSq = dx * dx + dy * dy
-
-    if (distSq < bestDistSq) {
-      bestDistSq = distSq
-      best = {
-        position: projected,
-        type: 'wall',
-        distance: Math.sqrt(distSq),
-        sourceId: wall.id
-      }
-    }
-  }
-
-  return best
-}
-
-/**
- * Snap combinado: tenta vértice → parede → grid
- * Retorna o melhor resultado priorizando precisão
- */
-export function findBestSnap(
-  point: Vector2,
-  options: {
-    vertices?: Vector2[]
-    walls?: Wall[]
-    gridSize?: number
-    threshold: number
-    preferGrid?: boolean
-  }
-): SnapResult {
+  if (lenSq === 0) return lineStart;
   
-  const { vertices, walls, gridSize, threshold, preferGrid } = options
-
-  // 1. Tentar vértice (mais preciso)
-  if (vertices && vertices.length > 0) {
-    const vertexSnap = findVertexSnap(point, vertices, threshold)
-    if (vertexSnap) {
-      return { point: vertexSnap.position, snapped: true, source: vertexSnap }
-    }
-  }
-
-  // 2. Tentar parede
-  if (walls && walls.length > 0) {
-    const wallSnap = findWallSnap(point, walls, threshold)
-    if (wallSnap) {
-      return { point: wallSnap.position, snapped: true, source: wallSnap }
-    }
-  }
-
-  // 3. Fallback para grid
-  if (gridSize && !preferGrid) {
-    const gridPoint = snapToGrid(point, gridSize)
-    const dist = distance(point, gridPoint)
-    if (dist < threshold) {
-      return {
-        point: gridPoint,
-        snapped: true,
-        source: { position: gridPoint, type: 'grid', distance: dist }
-      }
-    }
-  }
-
-  // Sem snap
-  return { point, snapped: false }
+  const t = Math.max(0, Math.min(1, ((point.x - lineStart.x) * dx + (point.y - lineStart.y) * dy) / lenSq));
+  
+  return {
+    x: lineStart.x + t * dx,
+    y: lineStart.y + t * dy
+  };
 }
 
 /**
- * Verifica se um ponto está próximo de um snap existente
- * Útil para evitar snaps redundantes
+ * Rotaciona um vetor/ponto em torno de um centro
  */
-export function isNearSnap(point: Vector2, snap: SnapPoint, tolerance: number): boolean {
-  return distance(point, snap.position) <= tolerance
+export function rotate(point: Vector2, center: Vector2, angleRad: number): Vector2 {
+  const cos = Math.cos(angleRad);
+  const sin = Math.sin(angleRad);
+  const dx = point.x - center.x;
+  const dy = point.y - center.y;
+  
+  return {
+    x: center.x + dx * cos - dy * sin,
+    y: center.y + dx * sin + dy * cos
+  };
+}
+
+/**
+ * Limita um valor dentro de um intervalo
+ */
+export function clamp(value: number, min: number, max: number): number {
+  return Math.max(min, Math.min(max, value));
+}
+
+/**
+ * Converte radianos para graus
+ */
+export function radToDeg(rad: number): number {
+  return rad * (180 / Math.PI);
+}
+
+/**
+ * Converte graus para radianos
+ */
+export function degToRad(deg: number): number {
+  return deg * (Math.PI / 180);
+}
+
+/**
+ * Compara dois vetores com tolerância para erro de ponto flutuante
+ */
+export function equals(a: Vector2, b: Vector2, epsilon: number = 1e-10): boolean {
+  return Math.abs(a.x - b.x) < epsilon && Math.abs(a.y - b.y) < epsilon;
+}
+
+/**
+ * Verifica se um ponto está dentro de um retângulo
+ */
+export function pointInRect(point: Vector2, rect: Rect): boolean {
+  return point.x >= rect.x && 
+         point.x <= rect.x + rect.width &&
+         point.y >= rect.y && 
+         point.y <= rect.y + rect.height;
+}
+
+/**
+ * Centro de um retângulo
+ */
+export function rectCenter(rect: Rect): Vector2 {
+  return {
+    x: rect.x + rect.width / 2,
+    y: rect.y + rect.height / 2
+  };
 }
