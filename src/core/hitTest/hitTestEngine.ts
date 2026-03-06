@@ -4,13 +4,11 @@
  * Motor de Hit Test e Seleção
  */
 
-import type { Point, Wall, Room, Door, Window, Furniture } from '@/types'
+import type { Point, Wall } from '@/types'
 import { spatialCache } from '../cache/spatialCache'
 
 import type {
   HitTestResult,
-  SelectionBox,
-  SelectedElement,
   CanvasProjectElements
 } from '../types/canvasTypes'
 
