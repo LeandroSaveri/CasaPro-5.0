@@ -7,10 +7,14 @@
 import type { Point, Wall, Room, Door, Window, Furniture } from '@/types'
 import { spatialCache } from '../cache/spatialCache'
 
-type HitTestResult = any
-type SelectionBox = any
-type SelectedElement = any
-type CanvasProjectElements = any
+import type {
+  HitTestResult,
+  SelectionBox,
+  SelectedElement,
+  CanvasProjectElements
+} from '../types/canvasTypes'
+
+import { HIT_TEST_THRESHOLD } from '../types/canvasTypes'
 
 const HIT_TEST_THRESHOLD = 0.25
 
