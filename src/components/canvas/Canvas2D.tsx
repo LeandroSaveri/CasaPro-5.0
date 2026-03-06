@@ -1342,13 +1342,34 @@ const Canvas2D: React.FC = () => {
       return;
     }
     
-    // Drag de elemento
-    if (isDraggingElement && draggedElement) {
-      // TODO: Implementar movimento real do elemento
-      // Por enquanto apenas atualiza o cursor
-      setCursor('move');
-      return;
-    }
+   if (isDraggingElement && draggedElement) {
+
+  const newPosition = worldPoint;
+
+  // mover furniture
+  const furniture = projectElements?.furniture.find(f => f.id === draggedElement);
+  if (furniture) {
+    furniture.position = {
+      x: newPosition.x,
+      y: newPosition.y
+    };
+  }
+
+  // mover portas
+  const door = projectElements?.doors.find(d => d.id === draggedElement);
+  if (door) {
+    door.position = newPosition.x;
+  }
+
+  // mover janelas
+  const window = projectElements?.windows.find(w => w.id === draggedElement);
+  if (window) {
+    window.position = newPosition.x;
+  }
+
+  setCursor('move');
+  return;
+}
     
     // Drawing
     if (isDrawing && drawStart) {
