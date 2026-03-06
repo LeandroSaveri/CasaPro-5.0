@@ -25,7 +25,6 @@ export interface SnapPoint {
   position: Vector2
   type: 'grid' | 'vertex' | 'wall'
   distance: number
-  /** ID opcional do elemento que gerou o snap (para highlight) */
   sourceId?: string
 }
 
@@ -142,7 +141,6 @@ export function findWallSnap(
 
   for (const wall of walls) {
 
-    // 🔧 filtro de distância (melhora performance)
     const centerX = (wall.start.x + wall.end.x) / 2
     const centerY = (wall.start.y + wall.end.y) / 2
 
@@ -202,7 +200,6 @@ export function findBestSnap(
     preferGrid
   } = options
 
-  // 🔧 usa cache se o cursor quase não se moveu
   if (lastSnapPoint && lastSnapResult) {
 
     const dx = point.x - lastSnapPoint.x
@@ -223,7 +220,7 @@ export function findBestSnap(
 
     if (vertexSnap) {
 
-      const result = {
+      const result: SnapResult = {
         point: vertexSnap.position,
         snapped: true,
         source: vertexSnap
@@ -244,7 +241,7 @@ export function findBestSnap(
 
     if (wallSnap) {
 
-      const result = {
+      const result: SnapResult = {
         point: wallSnap.position,
         snapped: true,
         source: wallSnap
@@ -268,7 +265,7 @@ export function findBestSnap(
 
     if (dist < threshold) {
 
-      const result = {
+      const result: SnapResult = {
         point: gridPoint,
         snapped: true,
         source: {
@@ -286,7 +283,10 @@ export function findBestSnap(
 
   }
 
-  const result = { point, snapped: false }
+  const result: SnapResult = {
+    point,
+    snapped: false
+  }
 
   lastSnapPoint = { ...point }
   lastSnapResult = result
