@@ -182,18 +182,20 @@ const Canvas2D: React.FC = () => {
 
   // Store selectors otimizados
   const { 
-    currentProject, 
-    toolMode, 
-    isDrawing, 
-    drawStart, 
-    drawCurrent,
-    selectedElement,
-    selectedElementType,
-    startDrawing,
-    updateDrawing,
-    endDrawing,
-    selectElement,
-  } = useProjectStore();
+    const { 
+  currentProject, 
+  toolMode, 
+  isDrawing, 
+  drawStart, 
+  drawCurrent,
+  selectedElement,
+  selectedElementType,
+  startDrawing,
+  updateDrawing,
+  endDrawing,
+  selectElement,
+  updateFurniture
+} = useProjectStore();
 
   const {
     canvas2D,
