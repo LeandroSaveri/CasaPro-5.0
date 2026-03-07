@@ -1602,6 +1602,7 @@ if (drawStart) {
     endDrawing,
     selectionBox,
     toolMode
+    wallEngine
   ]);
 
   const handleWheel = useCallback((e: React.WheelEvent<HTMLCanvasElement>) => {
