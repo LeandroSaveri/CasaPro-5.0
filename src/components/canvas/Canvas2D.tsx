@@ -1570,7 +1570,19 @@ if (isDrawing) {
   }
 
   // finaliza parede
-  endDrawing(snappedPoint);
+  // ============================================
+// CREATE WALL USING WALL ENGINE
+// ============================================
+
+if (drawStart) {
+
+  const newWall = wallEngine.createWall(drawStart, snappedPoint);
+
+  if (newWall) {
+    endDrawing(snappedPoint);
+  }
+
+}
 
   // limpa indicador de snap
   setSnapIndicator(null);
