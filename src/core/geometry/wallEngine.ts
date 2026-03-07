@@ -87,11 +87,19 @@ export class WallEngine {
     }
 
     return {
-      id: generateId(),
-      start,
-      end,
-      thickness: this.config.defaultThickness
-    };
+  id: generateId(),
+  start,
+  end,
+  thickness: this.config.defaultThickness,
+  height: 2.8,
+  color: "#444444",
+  material: "default",
+  layer: "structure",
+  metadata: {
+    length,
+    angle: Math.atan2(end.y - start.y, end.x - start.x)
+  }
+};
   }
 
   /**
