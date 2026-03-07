@@ -12,20 +12,17 @@ import React, {
 } from 'react';
 import { useProjectStore } from '@/store/projectStore';
 import { useUIStore } from '@/store/uiStore';
-import type { Point, Wall, Room } from '@/types';
-import { Ruler, Grid3X3, Magnet, Maximize2 } from 'lucide-react';
+import type { Point, Wall } from '@/types';
+import { Ruler, Magnet, Maximize2 } from 'lucide-react';
 import { pointerEngine } from '@/core/interaction/pointerEngine';
 
 // ============================================
 // CONSTANTES
 // ============================================
 
-const SNAP_ANGLES = [0, 45, 90, 135, 180, 225, 270, 315] as const;
-const ANGLE_SNAP_THRESHOLD = 8;
 const GRID_CACHE_SIZE = 5000;
 const RENDER_THROTTLE = 16;
 const ZOOM_SENSITIVITY = 0.001;
-const HIT_TEST_THRESHOLD = 0.15;
 
 // ============================================
 // TIPOS
