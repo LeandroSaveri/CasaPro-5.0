@@ -35,12 +35,10 @@ import type { Point, Wall, Room } from '@/types';
 import { Ruler, Grid3X3, Magnet, Maximize2, RotateCcw } from 'lucide-react';
 import {
   createGestureState,
-  updateTouches,
   processTap,
   checkLongPress,
   resetGesture,
-  type TouchPoint,
-  DEFAULT_GESTURE_CONFIG
+  type TouchPoint
 } from '@/core/interaction/gestureEngine';
 
 // ============================================
