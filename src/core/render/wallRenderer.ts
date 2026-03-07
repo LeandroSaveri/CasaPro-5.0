@@ -18,22 +18,23 @@ export interface RenderContext {
 }
 
 // ============================================
-// CONSTANTES VISUAIS
+// CONSTANTES VISUAIS - AJUSTADAS
 // ============================================
 
-const MIN_WALL_THICKNESS_PX = 4
+const MIN_WALL_THICKNESS_PX = 8  // AUMENTADO: De 4 para 8 (parede visível)
 const GLOW_INTENSITY_SELECTED = 12
 const GLOW_INTENSITY_HOVER = 8
 const GLOW_INTENSITY_HIGHLIGHT = 20
 const TEXT_BG_PADDING = 6
 const MEASUREMENT_SCALE_THRESHOLD = 5
+
 // ============================================
 // CORES PREMIUM
 // ============================================
 const COLORS = {
   selected: '#c9a962',           // Dourado premium
   hover: '#d4b87a',              // Dourado claro
-  highlight: 'rgba(201, 169, 98, 0.8)',  // Glow dourado
+  highlight: 'rgba(201, 169, 98, 0.8)',
   shadowSelected: 'rgba(201, 169, 98, 0.5)',
   shadowHover: 'rgba(201, 169, 98, 0.5)',
   shadowHighlight: 'rgba(201, 169, 98, 0.8)',
@@ -43,6 +44,9 @@ const COLORS = {
   textBg: 'rgba(10, 10, 15, 0.85)',
   textSelected: '#c9a962',
   textDefault: '#e5e5e5',
+  // NOVO: Cor padrão melhor para paredes
+  wallDefault: '#8B7355',        // Marrom madeira claro
+  wallDark: '#6b5b47',           // Marrom mais escuro para sombra
 } as const;
 
 // ============================================
@@ -73,15 +77,29 @@ const getPerpendicular = (dx: number, dy: number, thickness: number): { x: numbe
 
 /**
  * Desenha o corpo da parede (retângulo com espessura)
+ * MELHORIA: Adiciona gradiente sutil para profundidade
  */
 const drawWallBody = (
   ctx: CanvasRenderingContext2D,
   start: Point,
   end: Point,
   perp: { x: number; y: number },
-  color: string
+  color: string,
+  isSelected: boolean
 ): void => {
-  ctx.fillStyle = color;
+  // MELHORIA: Gradient sutil para parede ter "volume"
+  if (!isSelected) {
+    const gradient = ctx.createLinearGradient(
+      start.x - perp.x, start.y - perp.y,
+      start.x + perp.x, start.y + perp.y
+    );
+    gradient.addColorStop(0, color);
+    gradient.addColorStop(0.5, color);
+    gradient.addColorStop(1, COLORS.wallDark);
+    ctx.fillStyle = gradient;
+  } else {
+    ctx.fillStyle = color;
+  }
 
   ctx.beginPath();
   ctx.moveTo(start.x + perp.x, start.y + perp.y);
@@ -95,7 +113,6 @@ const drawWallBody = (
 
 /**
  * Desenha borda da parede
- * (usa o mesmo path já criado pelo drawWallBody)
  */
 const drawWallBorder = (
   ctx: CanvasRenderingContext2D,
@@ -110,6 +127,7 @@ const drawWallBorder = (
 
 /**
  * Desenha medida da parede
+ * MELHORIA: Posiciona melhor o texto para não sobrepor
  */
 const drawMeasurement = (
   ctx: CanvasRenderingContext2D,
@@ -120,8 +138,17 @@ const drawMeasurement = (
   isSelected: boolean
 ): void => {
   const wallLength = spatialCache.getDistance(wall.start, wall.end);
-  const midX = (start.x + end.x) / 2;
-  const midY = (start.y + end.y) / 2;
+  
+  // MELHORIA: Offset perpendicular para não sobrepor a parede
+  const dx = end.x - start.x;
+  const dy = end.y - start.y;
+  const length = Math.hypot(dx, dy) || 1;
+  const perpX = (-dy / length) * 15;  // Offset fixo em pixels
+  const perpY = (dx / length) * 15;
+  
+  const midX = (start.x + end.x) / 2 + perpX;
+  const midY = (start.y + end.y) / 2 + perpY;
+  
   const text = `${wallLength.toFixed(2)}m`;
 
   // Fonte responsiva ao zoom
@@ -131,7 +158,7 @@ const drawMeasurement = (
   // Background do texto
   const textWidth = ctx.measureText(text).width;
   const bgHeight = fontSize + 4;
-  const bgY = midY - bgHeight / 2 - 2;
+  const bgY = midY - bgHeight / 2;
 
   ctx.fillStyle = COLORS.textBg;
   ctx.fillRect(
@@ -165,18 +192,23 @@ const setupShadow = (
     ctx.shadowColor = COLORS.shadowHover;
     ctx.shadowBlur = GLOW_INTENSITY_HOVER;
   } else {
-    ctx.shadowColor = 'transparent';
-    ctx.shadowBlur = 0;
+    // MELHORIA: Sombra sutil mesmo em estado normal
+    ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
+    ctx.shadowBlur = 2;
+    ctx.shadowOffsetX = 1;
+    ctx.shadowOffsetY = 1;
   }
 };
 
 /**
  * Determina cor da parede baseada no estado
+ * MELHORIA: Cor padrão melhor se wall.color não definido
  */
 const getWallColor = (wall: Wall, options: WallRenderOptions): string => {
   if (options.isSelected) return COLORS.selected;
   if (options.isHovered) return COLORS.hover;
-  return wall.color;
+  // MELHORIA: Usa cor padrão melhor se não definida
+  return wall.color || COLORS.wallDefault;
 };
 
 /**
@@ -224,8 +256,9 @@ export const renderWall = (
   const start = worldToCanvas(wall.start);
   const end = worldToCanvas(wall.end);
 
-  // Calcula espessura em pixels (mínimo garantido)
-  const thickness = Math.max(wall.thickness * scale, MIN_WALL_THICKNESS_PX);
+  // MELHORIA: Usa thickness da parede ou padrão 0.15m (15cm)
+  const wallThickness = wall.thickness || 0.15;
+  const thickness = Math.max(wallThickness * scale, MIN_WALL_THICKNESS_PX);
 
   // Viewport culling - não renderiza se fora da tela
   if (!isInViewport([wall.start, wall.end], thickness)) {
@@ -247,7 +280,7 @@ export const renderWall = (
   const wallColor = getWallColor(wall, options);
 
   // Desenha corpo da parede
-  drawWallBody(ctx, start, end, perp, wallColor);
+  drawWallBody(ctx, start, end, perp, wallColor, options.isSelected);
 
   // Desenha borda
   const borderColor = getBorderColor(options);
@@ -257,6 +290,8 @@ export const renderWall = (
   // Restaura sombra antes de desenhar medidas (sem glow)
   ctx.shadowColor = 'transparent';
   ctx.shadowBlur = 0;
+  ctx.shadowOffsetX = 0;
+  ctx.shadowOffsetY = 0;
 
   // Desenha medidas se habilitado e zoom suficiente
   const shouldShowMeasurements = 
