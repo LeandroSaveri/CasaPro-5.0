@@ -62,6 +62,7 @@ const pointsEqual = (a: Point, b: Point, tolerance: number): boolean => {
 export class WallEngine {
 
   private config: Required<WallEngineConfig>;
+  private walls: Wall[] = [];
 
   constructor(config?: Partial<WallEngineConfig>) {
     this.config = {
