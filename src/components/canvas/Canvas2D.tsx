@@ -1213,6 +1213,7 @@ const render = useCallback(() => {
 // ============================================
 
 const handlePointerDown = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
+
   e.preventDefault();
   e.stopPropagation();
 
@@ -1241,7 +1242,7 @@ const handlePointerDown = useCallback((e: React.PointerEvent<HTMLCanvasElement>)
   }
 
   // ============================================
-  // LEFT CLICK INTERACTION
+  // LEFT CLICK ONLY
   // ============================================
 
   if (e.button !== 0) return;
@@ -1253,7 +1254,10 @@ const handlePointerDown = useCallback((e: React.PointerEvent<HTMLCanvasElement>)
     timestamp: performance.now()
   };
 
-  const tapResult = processTap(gestureStateRef.current, snappedPoint);
+  const tapResult = processTap(
+    gestureStateRef.current,
+    snappedPoint
+  );
 
   gestureStateRef.current = {
     ...gestureStateRef.current,
@@ -1267,13 +1271,14 @@ const handlePointerDown = useCallback((e: React.PointerEvent<HTMLCanvasElement>)
 
   if (toolMode === 'wall') {
 
-    // cancela qualquer seleção
     setIsDragSelecting(false);
     setSelectionBox(null);
     setSelectionStart(null);
 
     startDrawing(snappedPoint);
+
     setCursor('crosshair');
+
     return;
   }
 
@@ -1296,7 +1301,6 @@ const handlePointerDown = useCallback((e: React.PointerEvent<HTMLCanvasElement>)
 
     } else {
 
-      // iniciar seleção por caixa
       selectElement(null);
 
       setIsDragSelecting(true);
