@@ -1115,33 +1115,69 @@ ctx.restore();
   // RENDER LOOP OTIMIZADO
   // ============================================
 
-  const render = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    const ctx = canvas.getContext('2d', { alpha: false });
-    if (!ctx) return;
-    
-    // Throttling para 60fps estável
-    const now = performance.now();
-    if (now - lastRenderRef.current < RENDER_THROTTLE) return;
-    lastRenderRef.current = now;
-    
-    // Fundo
-    ctx.fillStyle = '#0a0a0f';
-    ctx.fillRect(0, 0, metricsRef.current.width, metricsRef.current.height);
-    
-    drawGrid(ctx);
-    
-    if (!projectElements) return;
-    
-    // Renderização em camadas (painter's algorithm)
-    // 1. Cômodos (fundo)
-    projectElements.rooms.forEach((room: Room) => {
-      const isSelected = selectedElement === room.id && selectedElementType === 'room';
-      const isHovered = hoveredElement === room.id && hoveredElementType === 'room';
-      drawRoom(ctx, room, isSelected, isHovered);
-    });
+const render = useCallback(() => {
+  const canvas = canvasRef.current;
+  if (!canvas) return;
+  
+  const ctx = canvas.getContext('2d', { alpha: false });
+  if (!ctx) return;
+  
+  // Throttling para 60fps estável
+  const now = performance.now();
+  if (now - lastRenderRef.current < RENDER_THROTTLE) return;
+  lastRenderRef.current = now;
+  
+  // Fundo
+  ctx.fillStyle = '#0a0a0f';
+  ctx.fillRect(0, 0, metricsRef.current.width, metricsRef.current.height);
+
+  // ================================
+  // GRID ENGINE NOVO
+  // ================================
+
+  const grid = generateGrid(cameraBounds, zoom);
+
+  for (const line of grid.vertical) {
+
+    ctx.beginPath();
+    ctx.moveTo(line.start.x, line.start.y);
+    ctx.lineTo(line.end.x, line.end.y);
+
+    ctx.globalAlpha = line.opacity;
+    ctx.strokeStyle = line.isMajor ? '#FFD166' : '#118AB2';
+
+    ctx.stroke();
+  }
+
+  for (const line of grid.horizontal) {
+
+    ctx.beginPath();
+    ctx.moveTo(line.start.x, line.start.y);
+    ctx.lineTo(line.end.x, line.end.y);
+
+    ctx.globalAlpha = line.opacity;
+    ctx.strokeStyle = line.isMajor ? '#FFD166' : '#118AB2';
+
+    ctx.stroke();
+  }
+
+  ctx.globalAlpha = 1;
+
+  // ================================
+  // GRID ANTIGO (mantido)
+  // ================================
+
+  drawGrid(ctx);
+  
+  if (!projectElements) return;
+  
+  // Renderização em camadas (painter's algorithm)
+  // 1. Cômodos (fundo)
+  projectElements.rooms.forEach((room: Room) => {
+    const isSelected = selectedElement === room.id && selectedElementType === 'room';
+    const isHovered = hoveredElement === room.id && hoveredElementType === 'room';
+    drawRoom(ctx, room, isSelected, isHovered);
+  });
     
     // 2. Paredes
     projectElements.walls.forEach((wall: Wall) => {
