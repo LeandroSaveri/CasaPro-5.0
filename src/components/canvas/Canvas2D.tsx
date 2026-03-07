@@ -181,7 +181,6 @@ const Canvas2D: React.FC = () => {
   const [draggedElement, setDraggedElement] = useState<string | null>(null);
 
   // Store selectors otimizados
-  const { 
     const { 
   currentProject, 
   toolMode, 
