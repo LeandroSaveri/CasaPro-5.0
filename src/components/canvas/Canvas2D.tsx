@@ -193,7 +193,6 @@ const Canvas2D: React.FC = () => {
   updateDrawing,
   endDrawing,
   selectElement,
-  updateFurniture,
 } = useProjectStore();
 
   const {
