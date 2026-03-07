@@ -139,6 +139,7 @@ const clamp = (value: number, min: number, max: number): number =>
 // ============================================
 
 const Canvas2D: React.FC = () => {
+  const wallEngine = useMemo(() => new WallEngine(), []);
   // Refs com tipagem rigorosa
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
