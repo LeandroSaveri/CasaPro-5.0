@@ -70,44 +70,75 @@ export class WallEngine {
     };
   }
 
-  // ============================================
-  // CRIAR PAREDE
-  // ============================================
+// ============================================
+// CRIAR PAREDE
+// ============================================
 
-  /**
-   * Cria uma parede entre dois pontos
-   * UX: retorna null se muito curta (evita paredes acidentais)
-   */
-  createWall(start: Point, end: Point): Wall | null {
-    const length = distance(start, end);
+/**
+ * Cria uma parede entre dois pontos
+ * UX: retorna null se muito curta (evita paredes acidentais)
+ */
+createWall(start: Point, end: Point): Wall | null {
 
-    // Validação: evita parede zero ou acidental
-    if (length < this.config.minWallLength) {
-      return null;
+  // ==========================================
+  // SNAP PARA PONTOS EXISTENTES
+  // ==========================================
+
+  const snapThreshold = 0.2;
+
+  for (const wall of this.walls ?? []) {
+
+    if (pointsEqual(wall.start, start, snapThreshold)) {
+      start = wall.start;
     }
 
-    return {
-  id: generateId(),
-  start,
-  end,
-  thickness: this.config.defaultThickness,
-  height: 2.8,
-  color: "#444444",
-  material: "default",
-  layer: "structure",
-  metadata: {
-    length,
-    angle: Math.atan2(end.y - start.y, end.x - start.x)
-  }
-};
+    if (pointsEqual(wall.end, start, snapThreshold)) {
+      start = wall.end;
+    }
+
+    if (pointsEqual(wall.start, end, snapThreshold)) {
+      end = wall.start;
+    }
+
+    if (pointsEqual(wall.end, end, snapThreshold)) {
+      end = wall.end;
+    }
+
   }
 
-  /**
-   * Cria parede a partir de um draft (UX melhorado para UI)
-   */
-  createWallFromDraft(draft: WallDraft): Wall | null {
-    return this.createWall(draft.start, draft.end);
+  // ==========================================
+  // CALCULA COMPRIMENTO
+  // ==========================================
+
+  const length = distance(start, end);
+
+  // Validação: evita parede zero ou acidental
+  if (length < this.config.minWallLength) {
+    return null;
   }
+
+  return {
+    id: generateId(),
+    start,
+    end,
+    thickness: this.config.defaultThickness,
+    height: 2.8,
+    color: "#444444",
+    material: "default",
+    layer: "structure",
+    metadata: {
+      length,
+      angle: Math.atan2(end.y - start.y, end.x - start.x)
+    }
+  };
+}
+
+/**
+ * Cria parede a partir de um draft (UX melhorado para UI)
+ */
+createWallFromDraft(draft: WallDraft): Wall | null {
+  return this.createWall(draft.start, draft.end);
+}
 
   // ============================================
   // CRIAR PAREDE CONTÍNUA (CHAIN)
@@ -239,4 +270,5 @@ export class WallEngine {
   getConfig(): Readonly<Required<WallEngineConfig>> {
     return Object.freeze({ ...this.config });
   }
+
 }
