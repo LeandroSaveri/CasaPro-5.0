@@ -1209,107 +1209,289 @@ const render = useCallback(() => {
     };
   }, [render]);
 
+// ============================================
+// HANDLERS DE INTERAÇÃO PREMIUM
+// ============================================
+
+const handlePointerDown = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
+  e.preventDefault();
+  e.stopPropagation();
+
+  const canvas = canvasRef.current;
+  if (!canvas) return;
+
+  try {
+    canvas.setPointerCapture(e.pointerId);
+  } catch {}
+
+  const canvasPoint = getCanvasPoint(e);
+  if (!canvasPoint) return;
+
+  const worldPoint = canvasToWorld(canvasPoint);
+  const snappedPoint = getBestSnapPoint(worldPoint);
+
   // ============================================
-  // HANDLERS DE INTERAÇÃO PREMIUM
+  // PAN MODE
   // ============================================
 
-  const handlePointerDown = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    try {
-      canvas.setPointerCapture(e.pointerId);
-    } catch (err) {
-      console.warn('Failed to capture pointer:', err);
-    }
-    
-    const canvasPoint = getCanvasPoint(e);
-    if (!canvasPoint) return;
-    
-    const worldPoint = canvasToWorld(canvasPoint);
-    
-    // Botão do meio ou Alt+Click = Pan
-    if (e.button === 1 || (e.button === 0 && e.altKey)) {
-      setIsPanning(true);
-      setPanStart(canvasPoint);
-      setCursor('grabbing');
-      return;
-    }
-    
-    // Click esquerdo = Interação
-    if (e.button === 0) {
-      const snappedPoint = getBestSnapPoint(worldPoint);
-      
-      // Processa gesto de tap
-      const touch: TouchPoint = {
-        id: e.pointerId,
-        position: snappedPoint,
-        timestamp: performance.now()
-      };
-      
-      const tapResult = processTap(gestureStateRef.current, snappedPoint);
-      gestureStateRef.current = {
-        ...gestureStateRef.current,
-        ...tapResult,
-        touches: [touch]
-      };
-      
-      if (toolMode === 'wall') {
-        startDrawing(snappedPoint);
-        setCursor('crosshair');
-      } else if (toolMode === 'select') {
-        // Hit test para seleção
-        const hit = hitTest(worldPoint);
-        
-        if (hit) {
-          selectElement(hit.id, hit.type);
-          setDraggedElement(hit.id);
-          setIsDraggingElement(true);
-          setCursor('move');
-        } else {
-          // Iniciar drag selection
-          selectElement(null);
-          setIsDragSelecting(true);
-          setSelectionStart(worldPoint);
-          setSelectionBox({ start: worldPoint, current: worldPoint });
-          setCursor('crosshair');
-        }
-      }
-    }
-  }, [getCanvasPoint, canvasToWorld, getBestSnapPoint, toolMode, startDrawing, selectElement, hitTest, projectElements]);
+  if (e.button === 1 || (e.button === 0 && e.altKey)) {
+    setIsPanning(true);
+    setPanStart(canvasPoint);
+    setCursor('grabbing');
+    return;
+  }
 
-  const handlePointerMove = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    const canvasPoint = getCanvasPoint(e);
-    if (!canvasPoint) return;
-    
-    const worldPoint = canvasToWorld(canvasPoint);
-    setWorldMousePos(worldPoint);
-    
-    // Throttle para hover detection
-    const now = performance.now();
-    if (now - hoverThrottleRef.current > HOVER_THROTTLE) {
-      hoverThrottleRef.current = now;
-      
-      // Hover detection no modo select
-      if (toolMode === 'select' && !isPanning && !isDrawing && !isDragSelecting && !isDraggingElement) {
-        const hit = hitTest(worldPoint);
-        if (hit) {
-          setHoveredElement(hit.id);
-          setHoveredElementType(hit.type);
-          setCursor('pointer');
-        } else {
-          setHoveredElement(null);
-          setHoveredElementType(null);
-          setCursor('default');
-        }
+  // ============================================
+  // LEFT CLICK INTERACTION
+  // ============================================
+
+  if (e.button !== 0) return;
+
+  // Gesture engine tap
+  const touch: TouchPoint = {
+    id: e.pointerId,
+    position: snappedPoint,
+    timestamp: performance.now()
+  };
+
+  const tapResult = processTap(gestureStateRef.current, snappedPoint);
+
+  gestureStateRef.current = {
+    ...gestureStateRef.current,
+    ...tapResult,
+    touches: [touch]
+  };
+
+  // ============================================
+  // WALL TOOL
+  // ============================================
+
+  if (toolMode === 'wall') {
+
+    // cancela qualquer seleção
+    setIsDragSelecting(false);
+    setSelectionBox(null);
+    setSelectionStart(null);
+
+    startDrawing(snappedPoint);
+    setCursor('crosshair');
+    return;
+  }
+
+  // ============================================
+  // SELECT TOOL
+  // ============================================
+
+  if (toolMode === 'select') {
+
+    const hit = hitTest(worldPoint);
+
+    if (hit) {
+
+      selectElement(hit.id, hit.type);
+
+      setDraggedElement(hit.id);
+      setIsDraggingElement(true);
+
+      setCursor('move');
+
+    } else {
+
+      // iniciar seleção por caixa
+      selectElement(null);
+
+      setIsDragSelecting(true);
+      setSelectionStart(worldPoint);
+
+      setSelectionBox({
+        start: worldPoint,
+        current: worldPoint
+      });
+
+      setCursor('crosshair');
+    }
+  }
+
+}, [
+  getCanvasPoint,
+  canvasToWorld,
+  getBestSnapPoint,
+  toolMode,
+  startDrawing,
+  selectElement,
+  hitTest
+]);
+
+// ============================================
+// POINTER MOVE
+// ============================================
+
+const handlePointerMove = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
+
+  e.preventDefault();
+  e.stopPropagation();
+
+  const canvasPoint = getCanvasPoint(e);
+  if (!canvasPoint) return;
+
+  const worldPoint = canvasToWorld(canvasPoint);
+
+  setWorldMousePos(worldPoint);
+
+  // ============================================
+  // HOVER DETECTION (THROTTLED)
+  // ============================================
+
+  const now = performance.now();
+
+  if (now - hoverThrottleRef.current > HOVER_THROTTLE) {
+
+    hoverThrottleRef.current = now;
+
+    if (
+      toolMode === 'select' &&
+      !isPanning &&
+      !isDrawing &&
+      !isDragSelecting &&
+      !isDraggingElement
+    ) {
+
+      const hit = hitTest(worldPoint);
+
+      if (hit) {
+
+        setHoveredElement(hit.id);
+        setHoveredElementType(hit.type);
+
+        setCursor('pointer');
+
+      } else {
+
+        setHoveredElement(null);
+        setHoveredElementType(null);
+
+        setCursor('default');
       }
     }
+  }
+
+  // ============================================
+  // PAN
+  // ============================================
+
+  if (isPanning) {
+
+    const dx = (canvasPoint.x - panStart.x) * PAN_SENSITIVITY;
+    const dy = (canvasPoint.y - panStart.y) * PAN_SENSITIVITY;
+
+    setCanvasOffset({
+      x: offset.x + dx,
+      y: offset.y + dy
+    });
+
+    setPanStart(canvasPoint);
+
+    return;
+  }
+
+  // ============================================
+  // DRAG SELECTION
+  // ============================================
+
+  if (isDragSelecting && selectionStart) {
+
+    setSelectionBox({
+      start: selectionStart,
+      current: worldPoint
+    });
+
+    return;
+  }
+
+  // ============================================
+  // DRAG ELEMENT
+  // ============================================
+
+  if (isDraggingElement && draggedElement) {
+
+    const newPosition = worldPoint;
+
+    const furniture = projectElements?.furniture.find(f => f.id === draggedElement);
+
+    if (furniture) {
+      furniture.position = {
+        x: newPosition.x,
+        y: newPosition.y
+      };
+    }
+
+    const door = projectElements?.doors.find(d => d.id === draggedElement);
+
+    if (door) {
+      door.position = newPosition.x;
+    }
+
+    const window = projectElements?.windows.find(w => w.id === draggedElement);
+
+    if (window) {
+      window.position = newPosition.x;
+    }
+
+    setCursor('move');
+
+    return;
+  }
+
+  // ============================================
+  // DRAWING WALL
+  // ============================================
+
+  if (isDrawing && drawStart) {
+
+    let snappedPoint = getBestSnapPoint(worldPoint);
+
+    snappedPoint = applyAngleSnap(drawStart, snappedPoint);
+
+    updateDrawing(snappedPoint);
+
+    setCursor('crosshair');
+
+    return;
+  }
+
+  // ============================================
+  // LONG PRESS DETECTION
+  // ============================================
+
+  const longPressResult = checkLongPress(
+    gestureStateRef.current,
+    worldPoint
+  );
+
+  if (longPressResult) {
+    console.log('Long press detected at:', worldPoint);
+  }
+
+}, [
+  getCanvasPoint,
+  canvasToWorld,
+  isPanning,
+  panStart,
+  offset,
+  setCanvasOffset,
+  isDrawing,
+  drawStart,
+  getBestSnapPoint,
+  applyAngleSnap,
+  updateDrawing,
+  toolMode,
+  isDragSelecting,
+  isDraggingElement,
+  draggedElement,
+  selectionStart,
+  hitTest,
+  projectElements
+]);
     
     // Integração GestureEngine
     const touch: TouchPoint = {
