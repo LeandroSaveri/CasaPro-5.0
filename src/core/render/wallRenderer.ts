@@ -119,49 +119,6 @@ const drawMeasurement = (
   scale: number,
   isSelected: boolean
 ): void => {
-
-  const wallLength = spatialCache.getDistance(wall.start, wall.end);
-
-  const midX = (start.x + end.x) / 2;
-  const midY = (start.y + end.y) / 2;
-
-  const text = `${wallLength.toFixed(2)}m`;
-
-  // Fonte adaptativa ao zoom
-  const fontSize = Math.max(10, 11 * (scale / 20));
-  ctx.font = `bold ${fontSize}px Inter, system-ui, sans-serif`;
-
-  const textWidth = ctx.measureText(text).width;
-
-  const bgHeight = fontSize + 4;
-  const bgY = midY - bgHeight / 2 - 2;
-
-  ctx.fillStyle = COLORS.textBg;
-
-  ctx.fillRect(
-    midX - textWidth / 2 - TEXT_BG_PADDING,
-    bgY,
-    textWidth + TEXT_BG_PADDING * 2,
-    bgHeight
-  );
-
-  ctx.fillStyle = isSelected ? COLORS.textSelected : COLORS.textDefault;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-
-  ctx.fillText(text, midX, bgY + bgHeight / 2);
-};
-/**
- * Desenha medida da parede
- */
-const drawMeasurement = (
-  ctx: CanvasRenderingContext2D,
-  start: Point,
-  end: Point,
-  wall: Wall,
-  scale: number,
-  isSelected: boolean
-): void => {
   const wallLength = spatialCache.getDistance(wall.start, wall.end);
   const midX = (start.x + end.x) / 2;
   const midY = (start.y + end.y) / 2;
