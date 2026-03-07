@@ -2,28 +2,31 @@
  * FILE: wallRenderer.ts
  *
  * Renderizador Premium de Paredes - CasaPro
- * Responsabilidades:
- * • Renderização otimizada de paredes com espessura variável
- * • Efeitos visuais (sombra, glow, seleção, hover)
- * • Medidas dinâmicas com background
- * • Viewport culling para performance
- * • Cores adaptativas por estado (selected/highlighted/hover)
  */
 
-import type { Point, Wall } from '@/types';
-import type { RenderContext } from './renderEngine';
-import { spatialCache } from '../spatialCache';
+import type { Point, Wall } from '@/types'
+import { spatialCache } from '../cache/spatialCache'
+
+// ============================================
+// CONTEXTO DE RENDERIZAÇÃO
+// (criamos aqui porque renderEngine está desativado)
+// ============================================
+
+export interface RenderContext {
+  scale: number
+  worldToCanvas: (p: Point) => Point
+}
 
 // ============================================
 // CONSTANTES VISUAIS
 // ============================================
-const MIN_WALL_THICKNESS_PX = 4;        // Espessura mínima em pixels
-const GLOW_INTENSITY_SELECTED = 12;     // Blur em px para selecionado
-const GLOW_INTENSITY_HOVER = 8;         // Blur em px para hover
-const GLOW_INTENSITY_HIGHLIGHT = 20;    // Blur em px para highlight
-const TEXT_BG_PADDING = 6;              // Padding do background do texto
-const MEASUREMENT_SCALE_THRESHOLD = 5;  // Zoom mínimo para mostrar medidas
 
+const MIN_WALL_THICKNESS_PX = 4
+const GLOW_INTENSITY_SELECTED = 12
+const GLOW_INTENSITY_HOVER = 8
+const GLOW_INTENSITY_HIGHLIGHT = 20
+const TEXT_BG_PADDING = 6
+const MEASUREMENT_SCALE_THRESHOLD = 5
 // ============================================
 // CORES PREMIUM
 // ============================================
