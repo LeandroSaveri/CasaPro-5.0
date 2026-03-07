@@ -1,359 +1,224 @@
 /**
  * FILE: wallRenderer.ts
  *
- * Renderizador Premium de Paredes - CasaPro
- */
-
-import type { Point, Wall } from '@/types'
-import { spatialCache } from '../cache/spatialCache'
-
-// ============================================
-// CONTEXTO DE RENDERIZAÇÃO
-// (criamos aqui porque renderEngine está desativado)
-// ============================================
-
-export interface RenderContext {
-  scale: number
-  worldToCanvas: (p: Point) => Point
-}
-
-// ============================================
-// CONSTANTES VISUAIS - AJUSTADAS
-// ============================================
-
-const MIN_WALL_THICKNESS_PX = 8  // AUMENTADO: De 4 para 8 (parede visível)
-const GLOW_INTENSITY_SELECTED = 12
-const GLOW_INTENSITY_HOVER = 8
-const GLOW_INTENSITY_HIGHLIGHT = 20
-const TEXT_BG_PADDING = 6
-const MEASUREMENT_SCALE_THRESHOLD = 5
-
-// ============================================
-// CORES PREMIUM
-// ============================================
-const COLORS = {
-  selected: '#c9a962',           // Dourado premium
-  hover: '#d4b87a',              // Dourado claro
-  highlight: 'rgba(201, 169, 98, 0.8)',
-  shadowSelected: 'rgba(201, 169, 98, 0.5)',
-  shadowHover: 'rgba(201, 169, 98, 0.5)',
-  shadowHighlight: 'rgba(201, 169, 98, 0.8)',
-  borderSelected: '#ffffff',
-  borderHover: '#c9a962',
-  borderDefault: 'rgba(0, 0, 0, 0.4)',
-  textBg: 'rgba(10, 10, 15, 0.85)',
-  textSelected: '#c9a962',
-  textDefault: '#e5e5e5',
-  // NOVO: Cor padrão melhor para paredes
-  wallDefault: '#8B7355',        // Marrom madeira claro
-  wallDark: '#6b5b47',           // Marrom mais escuro para sombra
-} as const;
-
-// ============================================
-// TIPOS
-// ============================================
-export interface WallRenderOptions {
-  isSelected: boolean;
-  isHovered: boolean;
-  isHighlighted: boolean;
-  showMeasurements: boolean;
-  settingsShowMeasurements: boolean;
-}
-
-// ============================================
-// FUNÇÕES AUXILIARES
-// ============================================
-
-/**
- * Calcula vetor perpendicular normalizado
- */
-const getPerpendicular = (dx: number, dy: number, thickness: number): { x: number; y: number } => {
-  const length = Math.hypot(dx, dy) || 1;
-  return {
-    x: (-dy / length) * thickness / 2,
-    y: (dx / length) * thickness / 2,
-  };
-};
-
-/**
- * Desenha o corpo da parede (retângulo com espessura)
- * MELHORIA: Adiciona gradiente sutil para profundidade
- */
-const drawWallBody = (
-  ctx: CanvasRenderingContext2D,
-  start: Point,
-  end: Point,
-  perp: { x: number; y: number },
-  color: string,
-  isSelected: boolean
-): void => {
-  // MELHORIA: Gradient sutil para parede ter "volume"
-  if (!isSelected) {
-    const gradient = ctx.createLinearGradient(
-      start.x - perp.x, start.y - perp.y,
-      start.x + perp.x, start.y + perp.y
-    );
-    gradient.addColorStop(0, color);
-    gradient.addColorStop(0.5, color);
-    gradient.addColorStop(1, COLORS.wallDark);
-    ctx.fillStyle = gradient;
-  } else {
-    ctx.fillStyle = color;
-  }
-
-  ctx.beginPath();
-  ctx.moveTo(start.x + perp.x, start.y + perp.y);
-  ctx.lineTo(end.x + perp.x, end.y + perp.y);
-  ctx.lineTo(end.x - perp.x, end.y - perp.y);
-  ctx.lineTo(start.x - perp.x, start.y - perp.y);
-  ctx.closePath();
-
-  ctx.fill();
-};
-
-/**
- * Desenha borda da parede
- */
-const drawWallBorder = (
-  ctx: CanvasRenderingContext2D,
-  color: string,
-  lineWidth: number
-): void => {
-  ctx.strokeStyle = color;
-  ctx.lineWidth = lineWidth;
-  ctx.lineJoin = 'round';
-  ctx.stroke();
-};
-
-/**
- * Desenha medida da parede
- * MELHORIA: Posiciona melhor o texto para não sobrepor
- */
-const drawMeasurement = (
-  ctx: CanvasRenderingContext2D,
-  start: Point,
-  end: Point,
-  wall: Wall,
-  scale: number,
-  isSelected: boolean
-): void => {
-  const wallLength = spatialCache.getDistance(wall.start, wall.end);
-  
-  // MELHORIA: Offset perpendicular para não sobrepor a parede
-  const dx = end.x - start.x;
-  const dy = end.y - start.y;
-  const length = Math.hypot(dx, dy) || 1;
-  const perpX = (-dy / length) * 15;  // Offset fixo em pixels
-  const perpY = (dx / length) * 15;
-  
-  const midX = (start.x + end.x) / 2 + perpX;
-  const midY = (start.y + end.y) / 2 + perpY;
-  
-  const text = `${wallLength.toFixed(2)}m`;
-
-  // Fonte responsiva ao zoom
-  const fontSize = Math.max(10, 11 * (scale / 20));
-  ctx.font = `bold ${fontSize}px Inter, system-ui, sans-serif`;
-
-  // Background do texto
-  const textWidth = ctx.measureText(text).width;
-  const bgHeight = fontSize + 4;
-  const bgY = midY - bgHeight / 2;
-
-  ctx.fillStyle = COLORS.textBg;
-  ctx.fillRect(
-    midX - textWidth / 2 - TEXT_BG_PADDING,
-    bgY,
-    textWidth + TEXT_BG_PADDING * 2,
-    bgHeight
-  );
-
-  // Texto
-  ctx.fillStyle = isSelected ? COLORS.textSelected : COLORS.textDefault;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(text, midX, bgY + bgHeight / 2);
-};
-
-/**
- * Configura sombra baseada no estado
- */
-const setupShadow = (
-  ctx: CanvasRenderingContext2D,
-  options: WallRenderOptions
-): void => {
-  if (options.isHighlighted) {
-    ctx.shadowColor = COLORS.shadowHighlight;
-    ctx.shadowBlur = GLOW_INTENSITY_HIGHLIGHT;
-  } else if (options.isSelected) {
-    ctx.shadowColor = COLORS.shadowSelected;
-    ctx.shadowBlur = GLOW_INTENSITY_SELECTED;
-  } else if (options.isHovered) {
-    ctx.shadowColor = COLORS.shadowHover;
-    ctx.shadowBlur = GLOW_INTENSITY_HOVER;
-  } else {
-    // MELHORIA: Sombra sutil mesmo em estado normal
-    ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
-    ctx.shadowBlur = 2;
-    ctx.shadowOffsetX = 1;
-    ctx.shadowOffsetY = 1;
-  }
-};
-
-/**
- * Determina cor da parede baseada no estado
- * MELHORIA: Cor padrão melhor se wall.color não definido
- */
-const getWallColor = (wall: Wall, options: WallRenderOptions): string => {
-  if (options.isSelected) return COLORS.selected;
-  if (options.isHovered) return COLORS.hover;
-  // MELHORIA: Usa cor padrão melhor se não definida
-  return wall.color || COLORS.wallDefault;
-};
-
-/**
- * Determina cor da borda baseada no estado
- */
-const getBorderColor = (options: WallRenderOptions): string => {
-  if (options.isSelected) return COLORS.borderSelected;
-  if (options.isHovered) return COLORS.borderHover;
-  return COLORS.borderDefault;
-};
-
-/**
- * Determina espessura da borda baseada no estado
- */
-const getBorderWidth = (options: WallRenderOptions): number => {
-  if (options.isSelected) return 2.5;
-  if (options.isHovered) return 2;
-  return 1;
-};
-
-// ============================================
-// FUNÇÃO PRINCIPAL
-// ============================================
-
-/**
- * Renderiza uma parede no canvas
+ * Renderizador de Paredes - CasaPro
  * 
- * @param ctx - Contexto 2D do canvas
- * @param wall - Dados da parede
- * @param context - Contexto de renderização (scale, offset, etc)
- * @param options - Opções visuais (selected, hover, etc)
- * @param isInViewport - Função de culling
- * @returns true se renderizou, false se fora do viewport
+ * Responsabilidades:
+ * - Renderização de paredes com espessura
+ * - Cálculo de geometria de parede (contorno, preenchimento)
+ * - Renderização de handles de seleção
+ * - Culling de viewport
  */
-export const renderWall = (
+
+import type { Wall, Point } from '@/types'
+
+interface RenderContext {
+  scale: number
+  worldToCanvas: (point: Point) => Point
+}
+
+interface WallRenderOptions {
+  isSelected: boolean
+  isHovered: boolean
+  isHighlighted: boolean
+  showMeasurements: boolean
+  settingsShowMeasurements: boolean
+}
+
+/**
+ * Calcula os pontos do contorno de uma parede com espessura
+ */
+function calculateWallOutline(wall: Wall): { outer: Point[]; inner: Point[] } {
+  const dx = wall.end.x - wall.start.x
+  const dy = wall.end.y - wall.start.y
+  const length = Math.hypot(dx, dy)
+  
+  if (length === 0) {
+    return { outer: [], inner: [] }
+  }
+  
+  // Vetor perpendicular normalizado
+  const perpX = (-dy / length) * (wall.thickness / 2)
+  const perpY = (dx / length) * (wall.thickness / 2)
+  
+  // Contorno externo
+  const outer = [
+    { x: wall.start.x + perpX, y: wall.start.y + perpY },
+    { x: wall.end.x + perpX, y: wall.end.y + perpY },
+    { x: wall.end.x - perpX, y: wall.end.y - perpY },
+    { x: wall.start.x - perpX, y: wall.start.y - perpY }
+  ]
+  
+  // Contorno interno (para paredes com espessura interna, se necessário)
+  const inner = [
+    { x: wall.start.x - perpX, y: wall.start.y - perpY },
+    { x: wall.end.x - perpX, y: wall.end.y - perpY },
+    { x: wall.end.x + perpX, y: wall.end.y + perpY },
+    { x: wall.start.x + perpX, y: wall.start.y + perpY }
+  ]
+  
+  return { outer, inner }
+}
+
+/**
+ * Verifica se a parede está visível no viewport
+ */
+function isWallInViewport(
+  wall: Wall, 
+  context: RenderContext, 
+  viewportCheck: (points: Point[], padding?: number) => boolean
+): boolean {
+  const outline = calculateWallOutline(wall)
+  const allPoints = [...outline.outer, wall.start, wall.end]
+  return viewportCheck(allPoints, 20)
+}
+
+/**
+ * Desenha uma parede no canvas
+ */
+export function renderWall(
   ctx: CanvasRenderingContext2D,
   wall: Wall,
   context: RenderContext,
   options: WallRenderOptions,
-  isInViewport: (points: Point[], padding?: number) => boolean
-): boolean => {
-  const { scale, worldToCanvas } = context;
-
-  // Converte coordenadas mundo -> canvas
-  const start = worldToCanvas(wall.start);
-  const end = worldToCanvas(wall.end);
-
-  // MELHORIA: Usa thickness da parede ou padrão 0.15m (15cm)
-  const wallThickness = wall.thickness || 0.15;
-  const thickness = Math.max(wallThickness * scale, MIN_WALL_THICKNESS_PX);
-
-  // Viewport culling - não renderiza se fora da tela
-  if (!isInViewport([wall.start, wall.end], thickness)) {
-    return false;
+  viewportCheck: (points: Point[], padding?: number) => boolean
+): void {
+  // Culling: não renderiza se não estiver no viewport
+  if (!isWallInViewport(wall, context, viewportCheck)) {
+    return
   }
-
-  // Vetor perpendicular para espessura
-  const dx = end.x - start.x;
-  const dy = end.y - start.y;
-  const perp = getPerpendicular(dx, dy, thickness);
-
-  // Salva estado do contexto
-  ctx.save();
-
-  // Configura sombra/glow
-  setupShadow(ctx, options);
-
-  // Cor baseada no estado
-  const wallColor = getWallColor(wall, options);
-
-  // Desenha corpo da parede
-  drawWallBody(ctx, start, end, perp, wallColor, options.isSelected);
-
-  // Desenha borda
-  const borderColor = getBorderColor(options);
-  const borderWidth = getBorderWidth(options);
-  drawWallBorder(ctx, borderColor, borderWidth);
-
-  // Restaura sombra antes de desenhar medidas (sem glow)
-  ctx.shadowColor = 'transparent';
-  ctx.shadowBlur = 0;
-  ctx.shadowOffsetX = 0;
-  ctx.shadowOffsetY = 0;
-
-  // Desenha medidas se habilitado e zoom suficiente
-  const shouldShowMeasurements = 
-    options.showMeasurements && 
-    options.settingsShowMeasurements && 
-    scale > MEASUREMENT_SCALE_THRESHOLD;
-
-  if (shouldShowMeasurements) {
-    drawMeasurement(ctx, start, end, wall, scale, options.isSelected);
+  
+  const { scale, worldToCanvas } = context
+  const { isSelected, isHovered, showMeasurements, settingsShowMeasurements } = options
+  
+  const outline = calculateWallOutline(wall)
+  
+  // Converte pontos para canvas
+  const canvasPoints = outline.outer.map(worldToCanvas)
+  
+  ctx.save()
+  
+  // === PREENCIMENTO DA PAREDE ===
+  ctx.beginPath()
+  ctx.moveTo(canvasPoints[0].x, canvasPoints[0].y)
+  for (let i = 1; i < canvasPoints.length; i++) {
+    ctx.lineTo(canvasPoints[i].x, canvasPoints[i].y)
   }
-
-  // Restaura estado do contexto
-  ctx.restore();
-
-  return true;
-};
-
-// ============================================
-// FUNÇÃO EM LOTE (BATCH)
-// ============================================
-
-/**
- * Renderiza múltiplas paredes otimizado
- * Útil quando há muitas paredes para renderizar
- */
-export const renderWalls = (
-  ctx: CanvasRenderingContext2D,
-  walls: Wall[],
-  context: RenderContext,
-  selectedIds: Set<string>,
-  hoveredId: string | null,
-  highlightedId: string | null,
-  showMeasurements: boolean,
-  settingsShowMeasurements: boolean,
-  isInViewport: (points: Point[], padding?: number) => boolean
-): { rendered: number; culled: number } => {
-  let rendered = 0;
-  let culled = 0;
-
-  for (const wall of walls) {
-    const options: WallRenderOptions = {
-      isSelected: selectedIds.has(wall.id),
-      isHovered: hoveredId === wall.id,
-      isHighlighted: highlightedId === wall.id,
-      showMeasurements,
-      settingsShowMeasurements,
-    };
-
-    const didRender = renderWall(ctx, wall, context, options, isInViewport);
+  ctx.closePath()
+  
+  // Cor de preenchimento base
+  let fillColor = '#2a2a35'
+  if (isSelected) {
+    fillColor = '#3a3a4a'
+  } else if (isHovered) {
+    fillColor = '#323240'
+  }
+  
+  ctx.fillStyle = fillColor
+  ctx.fill()
+  
+  // === BORDA DA PAREDE ===
+  let strokeColor = '#4a4a5a'
+  let lineWidth = 2
+  
+  if (isSelected) {
+    strokeColor = '#c9a962'
+    lineWidth = 3
+  } else if (isHovered) {
+    strokeColor = '#8a8a9a'
+    lineWidth = 2.5
+  }
+  
+  ctx.strokeStyle = strokeColor
+  ctx.lineWidth = lineWidth
+  ctx.lineJoin = 'round'
+  ctx.lineCap = 'round'
+  ctx.stroke()
+  
+  // === LINHA CENTRAL (eixo da parede) ===
+  const startCanvas = worldToCanvas(wall.start)
+  const endCanvas = worldToCanvas(wall.end)
+  
+  ctx.beginPath()
+  ctx.moveTo(startCanvas.x, startCanvas.y)
+  ctx.lineTo(endCanvas.x, endCanvas.y)
+  ctx.strokeStyle = isSelected ? '#c9a962' : 'rgba(255, 255, 255, 0.15)'
+  ctx.lineWidth = 1
+  ctx.setLineDash([4, 4])
+  ctx.stroke()
+  ctx.setLineDash([])
+  
+  // === PONTOS DE EXTREMIDADE ===
+  const endpointRadius = isSelected ? 5 : 4
+  
+  // Ponto inicial
+  ctx.beginPath()
+  ctx.arc(startCanvas.x, startCanvas.y, endpointRadius, 0, Math.PI * 2)
+  ctx.fillStyle = isSelected ? '#c9a962' : '#6a6a7a'
+  ctx.fill()
+  ctx.strokeStyle = '#1a1a1f'
+  ctx.lineWidth = 2
+  ctx.stroke()
+  
+  // Ponto final
+  ctx.beginPath()
+  ctx.arc(endCanvas.x, endCanvas.y, endpointRadius, 0, Math.PI * 2)
+  ctx.fillStyle = isSelected ? '#c9a962' : '#6a6a7a'
+  ctx.fill()
+  ctx.stroke()
+  
+  // === MEDIDAS ===
+  if (showMeasurements && settingsShowMeasurements) {
+    const length = Math.hypot(wall.end.x - wall.start.x, wall.end.y - wall.start.y)
+    const midX = (startCanvas.x + endCanvas.x) / 2
+    const midY = (startCanvas.y + endCanvas.y) / 2
     
-    if (didRender) {
-      rendered++;
-    } else {
-      culled++;
+    // Ângulo da parede para rotacionar o texto
+    const angle = Math.atan2(endCanvas.y - startCanvas.y, endCanvas.x - startCanvas.x)
+    
+    ctx.save()
+    ctx.translate(midX, midY)
+    
+    // Ajusta rotação para não ficar de cabeça pra baixo
+    let textAngle = angle
+    if (Math.abs(angle) > Math.PI / 2) {
+      textAngle += Math.PI
     }
+    ctx.rotate(textAngle)
+    
+    const text = `${length.toFixed(2)}m`
+    ctx.font = 'bold 11px Inter, system-ui, sans-serif'
+    const textWidth = ctx.measureText(text).width
+    
+    // Fundo da medida
+    ctx.fillStyle = 'rgba(10, 10, 15, 0.9)'
+    ctx.fillRect(-textWidth / 2 - 4, -10, textWidth + 8, 20)
+    
+    // Texto
+    ctx.fillStyle = isSelected ? '#c9a962' : '#ffffff'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+    ctx.fillText(text, 0, 0)
+    
+    ctx.restore()
   }
-
-  return { rendered, culled };
-};
-
-// ============================================
-// EXPORTAÇÕES
-// ============================================
-export { COLORS as WALL_COLORS };
-export { MIN_WALL_THICKNESS_PX, MEASUREMENT_SCALE_THRESHOLD };
+  
+  // === HANDLES DE SELEÇÃO (quando selecionada) ===
+  if (isSelected) {
+    const handleSize = 8
+    
+    // Handle central (mover)
+    const midCanvas = {
+      x: (startCanvas.x + endCanvas.x) / 2,
+      y: (startCanvas.y + endCanvas.y) / 2
+    }
+    
+    ctx.fillStyle = '#c9a962'
+    ctx.fillRect(midCanvas.x - handleSize / 2, midCanvas.y - handleSize / 2, handleSize, handleSize)
+    ctx.strokeStyle = '#1a1a1f'
+    ctx.lineWidth = 2
+    ctx.strokeRect(midCanvas.x - handleSize / 2, midCanvas.y - handleSize / 2, handleSize, handleSize)
+  }
+  
+  ctx.restore()
+}
