@@ -42,6 +42,7 @@ import {
   type TouchPoint,
   DEFAULT_GESTURE_CONFIG
 } from '@/core/interaction/gestureEngine';
+import { generateGrid } from '@/core/grid/gridEngine';
 
 // ============================================
 // CONSTANTES PREMIUM
