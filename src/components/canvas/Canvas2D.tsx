@@ -1573,14 +1573,21 @@ if (isDrawing) {
   // ============================================
 // CREATE WALL USING WALL ENGINE
 // ============================================
-
 if (drawStart) {
 
   const newWall = wallEngine.createWall(drawStart, snappedPoint);
 
-  if (newWall) {
+  if (newWall && currentProject) {
+
+    // adiciona parede ao projeto
+    currentProject.walls.push(newWall);
+
+    // finaliza desenho
     endDrawing(snappedPoint);
+
   }
+
+}
 
 }
 
