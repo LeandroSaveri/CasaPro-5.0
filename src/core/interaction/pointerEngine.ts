@@ -1,14 +1,7 @@
 /**
  * FILE: pointerEngine.ts
  *
- * O que este arquivo faz:
  * Sistema unificado de interação do CasaPro.
- *
- * Responsabilidade:
- * - mouse
- * - touch
- * - drag
- * - posição do ponteiro
  */
 
 import type { Vector2 } from '../project/projectTypes'
@@ -27,28 +20,20 @@ export function createPointerState(): PointerState {
   }
 }
 
-/**
- * Atualiza posição do ponteiro
- */
 export function updatePointerPosition(
   state: PointerState,
   position: Vector2
 ): PointerState {
-
   return {
     ...state,
     position
   }
 }
 
-/**
- * Evento pointer down
- */
 export function pointerDown(
   state: PointerState,
   position: Vector2
 ): PointerState {
-
   return {
     ...state,
     isDown: true,
@@ -57,16 +42,17 @@ export function pointerDown(
   }
 }
 
-/**
- * Evento pointer up
- */
-export function pointerUp(
-  state: PointerState
-): PointerState {
-
+export function pointerUp(state: PointerState): PointerState {
   return {
     ...state,
     isDown: false,
     startPosition: null
   }
+}
+
+export const pointerEngine = {
+  pointerDown,
+  pointerUp,
+  updatePointerPosition,
+  createPointerState
 }
