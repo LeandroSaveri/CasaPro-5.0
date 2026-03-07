@@ -1575,16 +1575,21 @@ if (isDrawing) {
 // ============================================
 if (drawStart) {
 
+  const dist = Math.hypot(
+    snappedPoint.x - drawStart.x,
+    snappedPoint.y - drawStart.y
+  );
+
+  if (dist < 0.05) return;
+
   const newWall = wallEngine.createWall(drawStart, snappedPoint);
 
   if (newWall && currentProject) {
 
-    // adiciona parede ao projeto
-    currentProject.walls.push(newWall);
+    currentProject.walls = [...currentProject.walls, newWall];
 
-    // finaliza desenho
     updateDrawing(snappedPoint);
-startDrawing(snappedPoint);
+    startDrawing(snappedPoint);
   }
 
 }
@@ -1607,7 +1612,9 @@ startDrawing(snappedPoint);
   endDrawing,
   selectionBox,
   toolMode,
-  wallEngine
+  wallEngine,
+  updateDrawing,
+  startDrawing
 ]);
 
   const handleWheel = useCallback((e: React.WheelEvent<HTMLCanvasElement>) => {
