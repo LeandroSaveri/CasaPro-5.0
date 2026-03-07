@@ -23,6 +23,7 @@ import { pointerEngine } from '@/core/interaction/pointerEngine';
 const GRID_CACHE_SIZE = 5000;
 const RENDER_THROTTLE = 16;
 const ZOOM_SENSITIVITY = 0.001;
+const HOVER_THRESHOLD = 8; // pixels
 
 // ============================================
 // TIPOS
@@ -82,6 +83,23 @@ class SpatialCache {
 const spatialCache = new SpatialCache();
 const clamp = (value: number, min: number, max: number): number => 
   Math.min(Math.max(value, min), max);
+
+// ============================================
+// UTILS
+// ============================================
+
+const pointToLineDistance = (point: Point, lineStart: Point, lineEnd: Point): number => {
+  const dx = lineEnd.x - lineStart.x;
+  const dy = lineEnd.y - lineStart.y;
+  const len = Math.hypot(dx, dy);
+  if (len === 0) return Math.hypot(point.x - lineStart.x, point.y - lineStart.y);
+  
+  const t = Math.max(0, Math.min(1, ((point.x - lineStart.x) * dx + (point.y - lineStart.y) * dy) / (len * len)));
+  const projX = lineStart.x + t * dx;
+  const projY = lineStart.y + t * dy;
+  
+  return Math.hypot(point.x - projX, point.y - projY);
+};
 
 // ============================================
 // COMPONENTE
@@ -399,13 +417,32 @@ const Canvas2D: React.FC = () => {
     const worldPoint = canvasToWorld(canvasPoint);
     setWorldMousePos(worldPoint);
 
+    // Hover detection no modo select
+    if (toolMode === 'select' && !isPanning && projectElements) {
+      let foundHover: string | null = null;
+      for (const wall of projectElements.walls) {
+        const start = worldToCanvas(wall.start);
+        const end = worldToCanvas(wall.end);
+        const dist = pointToLineDistance(canvasPoint, start, end);
+        if (dist < HOVER_THRESHOLD) {
+          foundHover = wall.id;
+          setCursor('pointer');
+          break;
+        }
+      }
+      if (!foundHover) {
+        setCursor('default');
+      }
+      setHoveredElement(foundHover);
+    }
+
     if (isPanning) {
       const dx = canvasPoint.x - panStart.x;
       const dy = canvasPoint.y - panStart.y;
       setCanvasOffset({ x: offset.x + dx, y: offset.y + dy });
       setPanStart(canvasPoint);
     }
-  }, [getCanvasPoint, canvasToWorld, isPanning, panStart, offset, setCanvasOffset]);
+  }, [getCanvasPoint, canvasToWorld, worldToCanvas, toolMode, isPanning, projectElements, offset, setCanvasOffset, panStart]);
 
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
     e.preventDefault();
@@ -510,6 +547,7 @@ const Canvas2D: React.FC = () => {
         onPointerLeave={() => {
           setIsPanning(false);
           setCursor('default');
+          setHoveredElement(null);
         }}
         onWheel={handleWheel}
       />
