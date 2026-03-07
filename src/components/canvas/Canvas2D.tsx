@@ -1133,38 +1133,6 @@ const render = useCallback(() => {
   ctx.fillRect(0, 0, metricsRef.current.width, metricsRef.current.height);
 
   // ================================
-  // GRID ENGINE NOVO
-  // ================================
-
-  const grid = generateGrid(cameraBounds, zoom);
-
-  for (const line of grid.vertical) {
-
-    ctx.beginPath();
-    ctx.moveTo(line.start.x, line.start.y);
-    ctx.lineTo(line.end.x, line.end.y);
-
-    ctx.globalAlpha = line.opacity;
-    ctx.strokeStyle = line.isMajor ? '#FFD166' : '#118AB2';
-
-    ctx.stroke();
-  }
-
-  for (const line of grid.horizontal) {
-
-    ctx.beginPath();
-    ctx.moveTo(line.start.x, line.start.y);
-    ctx.lineTo(line.end.x, line.end.y);
-
-    ctx.globalAlpha = line.opacity;
-    ctx.strokeStyle = line.isMajor ? '#FFD166' : '#118AB2';
-
-    ctx.stroke();
-  }
-
-  ctx.globalAlpha = 1;
-
-  // ================================
   // GRID ANTIGO (mantido)
   // ================================
 
