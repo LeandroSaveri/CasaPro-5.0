@@ -31,6 +31,7 @@ import React, {
 } from 'react';
 import { useProjectStore } from '@/store/projectStore';
 import { useUIStore } from '@/store/uiStore';
+import { WallEngine } from '@/core/geometry/wallEngine';
 import type { Point, Wall, Room } from '@/types';
 import { Ruler, Grid3X3, Magnet, Maximize2, RotateCcw } from 'lucide-react';
 import {
