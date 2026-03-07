@@ -1583,8 +1583,8 @@ if (drawStart) {
     currentProject.walls.push(newWall);
 
     // finaliza desenho
-    endDrawing(snappedPoint);
-
+    updateDrawing(snappedPoint);
+startDrawing(snappedPoint);
   }
 
 }
