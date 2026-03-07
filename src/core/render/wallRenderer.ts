@@ -93,12 +93,8 @@ const drawWallBody = (
 
 /**
  * Desenha borda da parede
- */
-const drawWallBorder = (
+ const drawWallBorder = (
   ctx: CanvasRenderingContext2D,
-  start: Point,
-  end: Point,
-  perp: { x: number; y: number },
   color: string,
   lineWidth: number
 ): void => {
@@ -107,7 +103,6 @@ const drawWallBorder = (
   ctx.lineJoin = 'round';
   ctx.stroke();
 };
-
 /**
  * Desenha medida da parede
  */
