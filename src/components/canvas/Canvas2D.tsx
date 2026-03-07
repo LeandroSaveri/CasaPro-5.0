@@ -149,6 +149,7 @@ const Canvas2D: React.FC = () => {
     centerY: 0,
     devicePixelRatio: 1
   });
+  const pointerState = useRef({ x: 0, y: 0, isDown: false });
 
   // Estados locais premium
   const [isPanning, setIsPanning] = useState<boolean>(false);
@@ -1200,208 +1201,6 @@ const render = useCallback(() => {
     };
   }, [render]);
 
-// ============================================
-// HANDLERS DE INTERAÇÃO PREMIUM
-// ============================================
-
-const handlePointerDown = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
-  e.preventDefault();
-  e.stopPropagation();
-
-  const canvas = canvasRef.current;
-  if (!canvas) return;
-
-  try {
-    canvas.setPointerCapture(e.pointerId);
-  } catch {}
-
-  const canvasPoint = getCanvasPoint(e);
-  if (!canvasPoint) return;
-
-  const worldPoint = canvasToWorld(canvasPoint);
-  const snappedPoint = getBestSnapPoint(worldPoint);
-
-  // ============================================
-  // PAN MODE
-  // ============================================
-
-  if (e.button === 1 || (e.button === 0 && e.altKey)) {
-    setIsPanning(true);
-    setCursor('grabbing');
-    return;
-  }
-
-  // ============================================
-  // LEFT CLICK INTERACTION
-  // ============================================
-
-  if (e.button !== 0) return;
-
-  // Gesture engine tap
-  const touch: TouchPoint = {
-    id: e.pointerId,
-    position: snappedPoint,
-    timestamp: performance.now()
-  };
-
-  const tapResult = processTap(gestureStateRef.current, snappedPoint);
-
-  gestureStateRef.current = {
-    ...gestureStateRef.current,
-    ...tapResult,
-    touches: [touch]
-  };
-
-  // ============================================
-  // WALL TOOL
-  // ============================================
-
-  if (toolMode === 'wall') {
-
-    // cancela qualquer seleção
-    setIsDragSelecting(false);
-    setSelectionBox(null);
-
-    startDrawing(snappedPoint);
-    setCursor('crosshair');
-    return;
-  }
-
-  // ============================================
-  // SELECT TOOL
-  // ============================================
-
-  if (toolMode === 'select') {
-
-    const hit = hitTest(worldPoint);
-
-    if (hit) {
-
-      selectElement(hit.id, hit.type);
-
-      setIsDraggingElement(true);
-
-      setCursor('move');
-
-    } else {
-
-      // iniciar seleção por caixa
-      selectElement(null);
-
-      setIsDragSelecting(true);
-
-      setSelectionBox({
-        start: worldPoint,
-        current: worldPoint
-      });
-
-      setCursor('crosshair');
-    }
-  }
-
-}, [
-  getCanvasPoint,
-  canvasToWorld,
-  getBestSnapPoint,
-  toolMode,
-  startDrawing,
-  selectElement,
-  hitTest
-]);
-    
-  const handlePointerUp = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    const canvas = canvasRef.current;
-    if (canvas) {
-      try {
-        canvas.releasePointerCapture(e.pointerId);
-      } catch {
-        // Ignore
-      }
-    }
-    
-    // Reset completo do gesture engine usando resetGesture
-    gestureStateRef.current = resetGesture(gestureStateRef.current);
-    setGestureDebug('');
-    
-    if (isPanning) {
-      setIsPanning(false);
-      setCursor(toolMode === 'select' ? 'default' : 'crosshair');
-      return;
-    }
-    
-    if (isDragSelecting) {
-      // Finalizar seleção por caixa
-      if (selectionBox) {
-        const minX = Math.min(selectionBox.start.x, selectionBox.current.x);
-        const maxX = Math.max(selectionBox.start.x, selectionBox.current.x);
-        const minY = Math.min(selectionBox.start.y, selectionBox.current.y);
-        const maxY = Math.max(selectionBox.start.y, selectionBox.current.y);
-        
-        const selectionRect = { minX, minY, maxX, maxY };
-        
-        // Selecionar elementos dentro do retângulo
-        // TODO: Implementar seleção múltipla
-        console.log('Selection box:', selectionRect);
-      }
-      
-      setIsDragSelecting(false);
-      setSelectionBox(null);
-      setCursor('default');
-      return;
-    }
-    
-    if (isDraggingElement) {
-      setIsDraggingElement(false);
-      setCursor('default');
-      return;
-    }
-    
-if (isDrawing) {
-
-  const canvasPoint = getCanvasPoint(e);
-
-  if (!canvasPoint) {
-    setCursor('crosshair');
-    return;
-  }
-
-  // converte canvas -> mundo
-  const worldPoint = canvasToWorld(canvasPoint);
-
-  // aplica snap inteligente
-  let snappedPoint = getBestSnapPoint(worldPoint);
-
-  // aplica snap de ângulo se houver ponto inicial
-  if (drawStart) {
-    snappedPoint = applyAngleSnap(drawStart, snappedPoint);
-  }
-
-  // finaliza parede
-  endDrawing(snappedPoint);
-
-  // limpa indicador de snap
-  setSnapIndicator(null);
-
-  setCursor('crosshair');
-}
-  }, [
-    getCanvasPoint, 
-    isPanning, 
-    isDrawing, 
-    isDragSelecting,
-    isDraggingElement,
-    drawStart, 
-    canvasToWorld, 
-    getBestSnapPoint, 
-    applyAngleSnap, 
-    endDrawing,
-    selectionBox,
-    toolMode
-  ]);
-
   const handleWheel = useCallback((e: React.WheelEvent<HTMLCanvasElement>) => {
     e.preventDefault();
     e.stopPropagation();
@@ -1558,10 +1357,18 @@ if (isDrawing) {
           touchAction: 'none',
           cursor: cursor
         }}
-        onPointerDown={handlePointerDown}
-        onPointerMove={pointerEngine.handlePointerMove}
-        onPointerUp={handlePointerUp}
-        onPointerCancel={handlePointerUp}
+        onPointerDown={(e) => {
+          pointerEngine.pointerDown(pointerState, { x: e.clientX, y: e.clientY })
+        }}
+        onPointerMove={(e) => {
+          pointerEngine.updatePointerPosition(pointerState, { x: e.clientX, y: e.clientY })
+        }}
+        onPointerUp={() => {
+          pointerEngine.pointerUp(pointerState)
+        }}
+        onPointerCancel={() => {
+          pointerEngine.pointerUp(pointerState)
+        }}
         onPointerLeave={() => {
           setIsPanning(false);
           setIsDragSelecting(false);
