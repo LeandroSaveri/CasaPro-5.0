@@ -1470,25 +1470,34 @@ const render = useCallback(() => {
       return;
     }
     
-    if (isDrawing) {
-      const canvasPoint = getCanvasPoint(e);
-      if (!canvasPoint) {
-        endDrawing();
-        setCursor('crosshair');
-        return;
-      }
-      
-      const worldPoint = canvasToWorld(canvasPoint);
-      let snappedPoint = getBestSnapPoint(worldPoint);
-      
-      if (drawStart) {
-        snappedPoint = applyAngleSnap(drawStart, snappedPoint);
-      }
-      
-      endDrawing(snappedPoint);
-      setSnapIndicator(null);
-      setCursor('crosshair');
-    }
+if (isDrawing) {
+
+  const canvasPoint = getCanvasPoint(e);
+
+  if (!canvasPoint) {
+    setCursor('crosshair');
+    return;
+  }
+
+  // converte canvas -> mundo
+  const worldPoint = canvasToWorld(canvasPoint);
+
+  // aplica snap inteligente
+  let snappedPoint = getBestSnapPoint(worldPoint);
+
+  // aplica snap de ângulo se houver ponto inicial
+  if (drawStart) {
+    snappedPoint = applyAngleSnap(drawStart, snappedPoint);
+  }
+
+  // finaliza parede
+  endDrawing(snappedPoint);
+
+  // limpa indicador de snap
+  setSnapIndicator(null);
+
+  setCursor('crosshair');
+}
   }, [
     getCanvasPoint, 
     isPanning, 
