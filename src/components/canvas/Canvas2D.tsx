@@ -36,10 +36,10 @@ import { Ruler, Grid3X3, Magnet, Maximize2, RotateCcw } from 'lucide-react';
 import {
   createGestureState,
   processTap,
-  checkLongPress,
   resetGesture,
   type TouchPoint
 } from '@/core/interaction/gestureEngine';
+import { pointerEngine } from '@/core/interaction/pointerEngine';
 
 // ============================================
 // CONSTANTES PREMIUM
@@ -50,9 +50,7 @@ const ANGLE_SNAP_THRESHOLD = 8;
 const GRID_CACHE_SIZE = 5000;
 const RENDER_THROTTLE = 16; // ~60fps
 const ZOOM_SENSITIVITY = 0.001;
-const PAN_SENSITIVITY = 1.0;
 const HIT_TEST_THRESHOLD = 0.15; // Distância em metros para hit test
-const HOVER_THROTTLE = 50; // Throttle para hover em ms
 
 // ============================================
 // TIPOS PREMIUM
@@ -151,11 +149,9 @@ const Canvas2D: React.FC = () => {
     centerY: 0,
     devicePixelRatio: 1
   });
-  const hoverThrottleRef = useRef<number>(0);
 
   // Estados locais premium
   const [isPanning, setIsPanning] = useState<boolean>(false);
-  const [panStart, setPanStart] = useState<Point>({ x: 0, y: 0 });
   const [worldMousePos, setWorldMousePos] = useState<Point>({ x: 0, y: 0 });
   const [snapIndicator, setSnapIndicator] = useState<SnapPoint | null>(null);
   const [showMeasurements, setShowMeasurements] = useState<boolean>(true);
@@ -172,11 +168,9 @@ const Canvas2D: React.FC = () => {
   // Estados para drag selection
   const [isDragSelecting, setIsDragSelecting] = useState<boolean>(false);
   const [selectionBox, setSelectionBox] = useState<SelectionBox | null>(null);
-  const [selectionStart, setSelectionStart] = useState<Point | null>(null);
   
   // Estados para drag de objetos
   const [isDraggingElement, setIsDraggingElement] = useState<boolean>(false);
-  const [draggedElement, setDraggedElement] = useState<string | null>(null);
 
   // Store selectors otimizados
     const { 
@@ -188,7 +182,6 @@ const Canvas2D: React.FC = () => {
   selectedElement,
   selectedElementType,
   startDrawing,
-  updateDrawing,
   endDrawing,
   selectElement,
 } = useProjectStore();
@@ -1234,7 +1227,6 @@ const handlePointerDown = useCallback((e: React.PointerEvent<HTMLCanvasElement>)
 
   if (e.button === 1 || (e.button === 0 && e.altKey)) {
     setIsPanning(true);
-    setPanStart(canvasPoint);
     setCursor('grabbing');
     return;
   }
@@ -1269,7 +1261,6 @@ const handlePointerDown = useCallback((e: React.PointerEvent<HTMLCanvasElement>)
     // cancela qualquer seleção
     setIsDragSelecting(false);
     setSelectionBox(null);
-    setSelectionStart(null);
 
     startDrawing(snappedPoint);
     setCursor('crosshair');
@@ -1288,7 +1279,6 @@ const handlePointerDown = useCallback((e: React.PointerEvent<HTMLCanvasElement>)
 
       selectElement(hit.id, hit.type);
 
-      setDraggedElement(hit.id);
       setIsDraggingElement(true);
 
       setCursor('move');
@@ -1299,7 +1289,6 @@ const handlePointerDown = useCallback((e: React.PointerEvent<HTMLCanvasElement>)
       selectElement(null);
 
       setIsDragSelecting(true);
-      setSelectionStart(worldPoint);
 
       setSelectionBox({
         start: worldPoint,
@@ -1360,14 +1349,12 @@ const handlePointerDown = useCallback((e: React.PointerEvent<HTMLCanvasElement>)
       
       setIsDragSelecting(false);
       setSelectionBox(null);
-      setSelectionStart(null);
       setCursor('default');
       return;
     }
     
     if (isDraggingElement) {
       setIsDraggingElement(false);
-      setDraggedElement(null);
       setCursor('default');
       return;
     }
@@ -1572,7 +1559,7 @@ if (isDrawing) {
           cursor: cursor
         }}
         onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
+        onPointerMove={pointerEngine.handlePointerMove}
         onPointerUp={handlePointerUp}
         onPointerCancel={handlePointerUp}
         onPointerLeave={() => {
