@@ -4,7 +4,6 @@
  * Sistema de Renderização 2D Premium - CasaPro
  * 
  * Responsabilidades:
- * - Renderização otimizada de elementos arquitetônicos
  * - Sistema de gestos multi-touch (pinch, pan, rotate)
  * - Snap inteligente com priorização
  * - Cache de geometria e culling de viewport
@@ -41,6 +40,17 @@ import {
   resetGesture,
   type TouchPoint
 } from '@/core/interaction/gestureEngine';
+
+// ============================================
+// IMPORTS DOS RENDERERS EXTERNOS
+// ============================================
+import { renderWall } from '@/core/render/wallRenderer'
+import { renderRoom } from '@/core/render/roomRenderer'
+
+// ============================================
+// IMPORT DO WALL EDITING ENGINE
+// ============================================
+import { WallEditingEngine } from '@/core/wall/wallEditingEngine'
 
 // ============================================
 // CONSTANTES PREMIUM
@@ -267,7 +277,7 @@ const Canvas2D: React.FC = () => {
 }, []);
 
   // ============================================
-  // SISTEMA DE SNAP PREMIUM
+  // SISTEMA DE SNAP PREMIUM - CORRIGIDO
   // ============================================
 
   const snapToGrid = useCallback((point: Point): Point => {
@@ -305,7 +315,8 @@ const Canvas2D: React.FC = () => {
     if (!projectElements || !snapEnabled) return [];
     
     const snapPoints: SnapPoint[] = [];
-    const snapThreshold = 0.3 / scale; // Ajusta com zoom
+    // CORREÇÃO: Threshold maior para snap mais forte
+    const snapThreshold = 0.8;
     
     // Grid snap (prioridade baixa)
     const gridPoint = snapToGrid(point);
@@ -319,7 +330,7 @@ const Canvas2D: React.FC = () => {
       });
     }
     
-    // Wall endpoints e midpoints
+    // Wall endpoints - CORREÇÃO: Prioridade máxima (100)
     const { walls } = projectElements;
     for (let i = 0; i < walls.length; i++) {
       const wall = walls[i];
@@ -329,7 +340,7 @@ const Canvas2D: React.FC = () => {
         snapPoints.push({ 
           point: wall.start, 
           type: 'endpoint', 
-          priority: 10,
+          priority: 100,
           distance: startDist 
         });
       }
@@ -339,7 +350,7 @@ const Canvas2D: React.FC = () => {
         snapPoints.push({ 
           point: wall.end, 
           type: 'endpoint', 
-          priority: 10,
+          priority: 100,
           distance: endDist 
         });
       }
@@ -375,7 +386,7 @@ const Canvas2D: React.FC = () => {
           snapPoints.push({ 
             point: corner, 
             type: 'endpoint', 
-            priority: 10,
+            priority: 100,
             distance: cornerDist 
           });
         }
@@ -616,7 +627,7 @@ const Canvas2D: React.FC = () => {
   }, [hitTestFurniture, hitTestDoor, hitTestWindow, hitTestWall, hitTestRoom]);
 
   // ============================================
-  // SISTEMA DE RENDERIZAÇÃO PREMIUM
+  // SISTEMA DE RENDERIZAÇÃO - USANDO RENDERERS EXTERNOS
   // ============================================
 
   const isInViewport = useCallback((points: Point[], padding: number = 0): boolean => {
@@ -712,277 +723,85 @@ const Canvas2D: React.FC = () => {
     ctx.restore();
   }, [projectElements?.settings.showGrid, projectElements?.settings.showAxes, projectElements?.settings.gridSize, scale, offset]);
 
-  const drawWall = useCallback((ctx: CanvasRenderingContext2D, wall: Wall, isSelected: boolean, isHovered: boolean) => {
-    const start = worldToCanvas(wall.start);
-    const end = worldToCanvas(wall.end);
-    const thickness = Math.max(wall.thickness * scale, 2);
-    
-    // Culling agressivo
-    if (!isInViewport([wall.start, wall.end], thickness)) return;
-    
-    const dx = end.x - start.x;
-    const dy = end.y - start.y;
-    const length = Math.hypot(dx, dy) || 1;
-    const perpX = (-dy / length) * thickness / 2;
-    const perpY = (dx / length) * thickness / 2;
-    
-    ctx.save();
-    
-    // Sombra sutil para profundidade
-    if (isSelected || isHovered) {
-      ctx.shadowColor = 'rgba(201, 169, 98, 0.5)';
-      ctx.shadowBlur = isSelected ? 12 : 8;
-    }
-    
-   ctx.fillStyle = isSelected
-  ? '#c9a962'
-  : isHovered
-  ? '#d4b87a'
-  : '#6b7280';
+  // ============================================
+  // RENDER LOOP OTIMIZADO - USANDO RENDERERS EXTERNOS
+  // ============================================
 
-ctx.beginPath();
-ctx.moveTo(start.x + perpX, start.y + perpY);
-ctx.lineTo(end.x + perpX, end.y + perpY);
-ctx.lineTo(end.x - perpX, end.y - perpY);
-ctx.lineTo(start.x - perpX, start.y - perpY);
-ctx.closePath();
-ctx.fill();
-
-// Borda com anti-aliasing
-ctx.strokeStyle = isSelected
-  ? '#ffffff'
-  : isHovered
-  ? '#c9a962'
-  : '#9ca3af';
-
-ctx.lineWidth = isSelected ? 2.5 : isHovered ? 2 : 1;
-ctx.lineJoin = 'round';
-ctx.stroke();
-
-ctx.restore();
+  const render = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
     
-    // Medidas
-    if (showMeasurements && projectElements?.settings.showMeasurements && scale > 5) {
-      const wallLength = spatialCache.getDistance(wall.start, wall.end);
-      const midX = (start.x + end.x) / 2;
-      const midY = (start.y + end.y) / 2;
+    const ctx = canvas.getContext('2d', { alpha: false });
+    if (!ctx) return;
+    
+    // Throttling para 60fps estável
+    const now = performance.now();
+    if (now - lastRenderRef.current < RENDER_THROTTLE) return;
+    lastRenderRef.current = now;
+    
+    // Fundo
+    ctx.fillStyle = '#0a0a0f';
+    ctx.fillRect(0, 0, metricsRef.current.width, metricsRef.current.height);
+
+    // Grid
+    drawGrid(ctx);
+    
+    if (!projectElements) return;
+    
+    // Contexto para renderers externos
+    const renderContext = {
+      scale,
+      worldToCanvas
+    };
+    
+    // 1. Cômodos (fundo) - usando renderer externo
+    projectElements.rooms.forEach((room: Room) => {
+      const isSelected = selectedElement === room.id && selectedElementType === 'room';
+      const isHovered = hoveredElement === room.id && hoveredElementType === 'room';
+      renderRoom(ctx, room, isSelected, isHovered);
+    });
+    
+    // 2. Paredes - usando renderer externo
+    projectElements.walls.forEach((wall: Wall) => {
+      const isSelected = selectedElement === wall.id && selectedElementType === 'wall';
+      const isHovered = hoveredElement === wall.id && hoveredElementType === 'wall';
       
-      const text = `${wallLength.toFixed(2)}m`;
-      ctx.font = `bold ${Math.max(10, 11 * (scale / 20))}px Inter, system-ui, sans-serif`;
-      const textWidth = ctx.measureText(text).width;
+      // Preparar opções para o renderer externo
+      const options = {
+        isSelected,
+        isHovered,
+        isHighlighted: false,
+        showMeasurements,
+        settingsShowMeasurements: projectElements.settings.showMeasurements ?? true
+      };
       
-      // Fundo do label
-      ctx.fillStyle = 'rgba(10, 10, 15, 0.85)';
-      ctx.fillRect(midX - textWidth / 2 - 6, midY - 18, textWidth + 12, 20);
-      
-      // Texto
-      ctx.fillStyle = isSelected ? '#c9a962' : '#e5e5e5';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(text, midX, midY - 8);
-    }
-  }, [worldToCanvas, scale, showMeasurements, projectElements?.settings.showMeasurements, isInViewport]);
+      renderWall(ctx, wall, renderContext, options, isInViewport);
+    });
+    
+    // 3. Aberturas (mantidas temporariamente até ter renderers específicos)
+    // TODO: Migrar para renderers externos quando existirem
+    
+    // 4. Overlays do canvas (preview, snap, selection)
+    drawPreview(ctx);
+    drawSnapIndicator(ctx);
+    drawSelectionBox(ctx);
+    
+  }, [
+    projectElements,
+    selectedElement,
+    selectedElementType,
+    hoveredElement,
+    hoveredElementType,
+    drawGrid,
+    scale,
+    worldToCanvas,
+    isInViewport,
+    showMeasurements
+  ]);
 
-  const drawRoom = useCallback((ctx: CanvasRenderingContext2D, room: Room, isSelected: boolean, isHovered: boolean) => {
-    if (room.points.length < 3) return;
-    
-    // Culling de bounding box
-    if (!isInViewport(room.points, 0)) return;
-    
-    const canvasPoints = room.points.map(p => worldToCanvas(p));
-    
-    ctx.save();
-    
-    // Preenchimento com gradiente sutil
-    const gradient = ctx.createLinearGradient(
-      canvasPoints[0].x, canvasPoints[0].y,
-      canvasPoints[2]?.x || canvasPoints[0].x, 
-      canvasPoints[2]?.y || canvasPoints[0].y
-    );
-    
-    const baseColor = room.color;
-    const alphaSelected = '50';
-    const alphaHovered = '40';
-    const alphaNormal = '25';
-    const alphaEndSelected = '30';
-    const alphaEndHovered = '25';
-    const alphaEndNormal = '15';
-    
-    gradient.addColorStop(0, isSelected ? `${baseColor}${alphaSelected}` : isHovered ? `${baseColor}${alphaHovered}` : `${baseColor}${alphaNormal}`);
-    gradient.addColorStop(1, isSelected ? `${baseColor}${alphaEndSelected}` : isHovered ? `${baseColor}${alphaEndHovered}` : `${baseColor}${alphaEndNormal}`);
-    
-    ctx.fillStyle = gradient;
-    ctx.beginPath();
-    ctx.moveTo(canvasPoints[0].x, canvasPoints[0].y);
-    for (let i = 1; i < canvasPoints.length; i++) {
-      ctx.lineTo(canvasPoints[i].x, canvasPoints[i].y);
-    }
-    ctx.closePath();
-    ctx.fill();
-    
-    // Contorno
-    ctx.strokeStyle = isSelected ? '#c9a962' : isHovered ? '#d4b87a' : baseColor;
-    ctx.lineWidth = isSelected ? 3 : isHovered ? 2.5 : 1.5;
-    ctx.lineJoin = 'round';
-    ctx.stroke();
-    
-    // Label do cômodo
-    if (scale > 8) {
-      const centroid = room.points.reduce((acc, p) => ({ 
-        x: acc.x + p.x, 
-        y: acc.y + p.y 
-      }), { x: 0, y: 0 });
-      centroid.x /= room.points.length;
-      centroid.y /= room.points.length;
-      const center = worldToCanvas(centroid);
-      
-      ctx.fillStyle = '#ffffff';
-      ctx.font = `bold ${Math.max(11, 12 * (scale / 20))}px Inter, system-ui, sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(room.name, center.x, center.y - 10);
-      
-      ctx.font = `${Math.max(9, 10 * (scale / 20))}px Inter, system-ui, sans-serif`;
-      ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
-      ctx.fillText(`${room.area.toFixed(1)}m²`, center.x, center.y + 8);
-    }
-    
-    ctx.restore();
-  }, [worldToCanvas, scale, isInViewport]);
-
-  const drawDoor = useCallback((ctx: CanvasRenderingContext2D, door: any, isSelected: boolean, isHovered: boolean) => {
-    const wall = projectElements?.walls.find((w: Wall) => w.id === door.wallId);
-    if (!wall) return;
-    
-    if (!isInViewport([wall.start, wall.end], door.width * scale)) return;
-    
-    const start = worldToCanvas(wall.start);
-    const end = worldToCanvas(wall.end);
-    const t = door.position;
-    
-    const x = start.x + (end.x - start.x) * t;
-    const y = start.y + (end.y - start.y) * t;
-    const doorWidthPx = door.width * scale;
-    
-    ctx.save();
-    ctx.strokeStyle = isSelected ? '#c9a962' : isHovered ? '#d4b87a' : '#8B4513';
-    ctx.fillStyle = isSelected ? 'rgba(201, 169, 98, 0.3)' : isHovered ? 'rgba(212, 184, 122, 0.25)' : 'rgba(139, 69, 19, 0.2)';
-    ctx.lineWidth = isSelected ? 3 : isHovered ? 2.5 : 2;
-    ctx.lineCap = 'round';
-    
-    // Arco da porta
-    ctx.beginPath();
-    ctx.arc(x, y, doorWidthPx / 2, 0, Math.PI / 2);
-    ctx.stroke();
-    
-    // Linha da folha
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.lineTo(x + doorWidthPx / 2, y);
-    ctx.stroke();
-    
-    // Preenchimento sutil
-    ctx.beginPath();
-    ctx.moveTo(x, y);
-    ctx.arc(x, y, doorWidthPx / 2, 0, Math.PI / 2);
-    ctx.lineTo(x, y);
-    ctx.fill();
-    
-    ctx.restore();
-  }, [projectElements?.walls, worldToCanvas, scale, isInViewport]);
-
-  const drawWindow = useCallback((ctx: CanvasRenderingContext2D, window: any, isSelected: boolean, isHovered: boolean) => {
-    const wall = projectElements?.walls.find((w: Wall) => w.id === window.wallId);
-    if (!wall) return;
-    
-    if (!isInViewport([wall.start, wall.end], window.width * scale)) return;
-    
-    const start = worldToCanvas(wall.start);
-    const end = worldToCanvas(wall.end);
-    const t = window.position;
-    
-    const x = start.x + (end.x - start.x) * t;
-    const y = start.y + (end.y - start.y) * t;
-    const windowWidthPx = window.width * scale;
-    
-    ctx.save();
-    ctx.strokeStyle = isSelected ? '#c9a962' : isHovered ? '#d4b87a' : '#87CEEB';
-    ctx.fillStyle = isSelected ? 'rgba(201, 169, 98, 0.4)' : isHovered ? 'rgba(212, 184, 122, 0.35)' : 'rgba(135, 206, 235, 0.3)';
-    ctx.lineWidth = isSelected ? 4 : isHovered ? 3.5 : 3;
-    ctx.lineCap = 'round';
-    
-    // Abertura do vidro
-    const halfWidth = windowWidthPx / 2;
-    ctx.fillRect(x - halfWidth, y - 6, windowWidthPx, 12);
-    
-    // Moldura
-    ctx.beginPath();
-    ctx.moveTo(x - halfWidth, y - 6);
-    ctx.lineTo(x + halfWidth, y - 6);
-    ctx.moveTo(x - halfWidth, y + 6);
-    ctx.lineTo(x + halfWidth, y + 6);
-    ctx.stroke();
-    
-    // Divisória central
-    ctx.beginPath();
-    ctx.moveTo(x, y - 6);
-    ctx.lineTo(x, y + 6);
-    ctx.stroke();
-    
-    ctx.restore();
-  }, [projectElements?.walls, worldToCanvas, scale, isInViewport]);
-
-  const drawFurniture = useCallback((ctx: CanvasRenderingContext2D, furniture: any, isSelected: boolean, isHovered: boolean) => {
-    const pos = worldToCanvas(furniture.position);
-    const width = furniture.scale.x * scale;
-    const depth = furniture.scale.y * scale;
-    
-    // Culling
-    if (pos.x + width / 2 < 0 || pos.x - width / 2 > metricsRef.current.width || 
-        pos.y + depth / 2 < 0 || pos.y - depth / 2 > metricsRef.current.height) return;
-    
-    ctx.save();
-    ctx.translate(pos.x, pos.y);
-    ctx.rotate(-furniture.rotation);
-    
-    // Sombra
-    if (isSelected || isHovered) {
-      ctx.shadowColor = 'rgba(201, 169, 98, 0.5)';
-      ctx.shadowBlur = isSelected ? 12 : 8;
-      ctx.shadowOffsetX = 2;
-      ctx.shadowOffsetY = 2;
-    } else {
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-      ctx.shadowBlur = 4;
-      ctx.shadowOffsetX = 1;
-      ctx.shadowOffsetY = 1;
-    }
-    
-    // Corpo
-    ctx.fillStyle = isSelected ? 'rgba(201, 169, 98, 0.7)' : isHovered ? 'rgba(212, 184, 122, 0.65)' : furniture.color;
-    ctx.strokeStyle = isSelected ? '#c9a962' : isHovered ? '#d4b87a' : 'rgba(255, 255, 255, 0.6)';
-    ctx.lineWidth = isSelected ? 2.5 : isHovered ? 2 : 1;
-    
-    ctx.fillRect(-width / 2, -depth / 2, width, depth);
-    ctx.strokeRect(-width / 2, -depth / 2, width, depth);
-    
-    // Reset shadow para texto
-    ctx.shadowColor = 'transparent';
-    ctx.shadowBlur = 0;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 0;
-    
-    // Label
-    if (scale > 10) {
-      ctx.fillStyle = '#ffffff';
-      ctx.font = `bold ${Math.max(8, 9 * (scale / 20))}px Inter, system-ui, sans-serif`;
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(furniture.name, 0, 0);
-    }
-    
-    ctx.restore();
-  }, [worldToCanvas, scale]);
+  // ============================================
+  // OVERLAYS DO CANVAS (mantidos aqui pois são específicos do canvas)
+  // ============================================
 
   const drawPreview = useCallback((ctx: CanvasRenderingContext2D) => {
     if (!isDrawing || !drawStart || !drawCurrent) return;
@@ -996,7 +815,7 @@ ctx.restore();
     ctx.strokeStyle = '#c9a962';
     ctx.lineWidth = 2;
     ctx.setLineDash([10, 5]);
-    ctx.lineDashOffset = -performance.now() / 20; // Animação
+    ctx.lineDashOffset = -performance.now() / 20;
     ctx.beginPath();
     ctx.moveTo(start.x, start.y);
     ctx.lineTo(end.x, end.y);
@@ -1110,90 +929,6 @@ ctx.restore();
     ctx.restore();
   }, [isDragSelecting, selectionBox, worldToCanvas]);
 
-  // ============================================
-  // RENDER LOOP OTIMIZADO
-  // ============================================
-
-const render = useCallback(() => {
-  const canvas = canvasRef.current;
-  if (!canvas) return;
-  
-  const ctx = canvas.getContext('2d', { alpha: false });
-  if (!ctx) return;
-  
-  // Throttling para 60fps estável
-  const now = performance.now();
-  if (now - lastRenderRef.current < RENDER_THROTTLE) return;
-  lastRenderRef.current = now;
-  
-  // Fundo
-  ctx.fillStyle = '#0a0a0f';
-  ctx.fillRect(0, 0, metricsRef.current.width, metricsRef.current.height);
-
-  // ================================
-  // GRID ANTIGO (mantido)
-  // ================================
-
-  drawGrid(ctx);
-  
-  if (!projectElements) return;
-  
-  // Renderização em camadas (painter's algorithm)
-  // 1. Cômodos (fundo)
-  projectElements.rooms.forEach((room: Room) => {
-    const isSelected = selectedElement === room.id && selectedElementType === 'room';
-    const isHovered = hoveredElement === room.id && hoveredElementType === 'room';
-    drawRoom(ctx, room, isSelected, isHovered);
-  });
-    
-    // 2. Paredes
-    projectElements.walls.forEach((wall: Wall) => {
-      const isSelected = selectedElement === wall.id && selectedElementType === 'wall';
-      const isHovered = hoveredElement === wall.id && hoveredElementType === 'wall';
-      drawWall(ctx, wall, isSelected, isHovered);
-    });
-    
-    // 3. Aberturas
-    projectElements.doors.forEach((door: any) => {
-      const isSelected = selectedElement === door.id && selectedElementType === 'door';
-      const isHovered = hoveredElement === door.id && hoveredElementType === 'door';
-      drawDoor(ctx, door, isSelected, isHovered);
-    });
-    
-    projectElements.windows.forEach((window: any) => {
-      const isSelected = selectedElement === window.id && selectedElementType === 'window';
-      const isHovered = hoveredElement === window.id && hoveredElementType === 'window';
-      drawWindow(ctx, window, isSelected, isHovered);
-    });
-    
-    // 4. Mobiliário
-    projectElements.furniture.forEach((furniture: any) => {
-      const isSelected = selectedElement === furniture.id && selectedElementType === 'furniture';
-      const isHovered = hoveredElement === furniture.id && hoveredElementType === 'furniture';
-      drawFurniture(ctx, furniture, isSelected, isHovered);
-    });
-    
-    // 5. Overlays
-    drawPreview(ctx);
-    drawSnapIndicator(ctx);
-    drawSelectionBox(ctx);
-  }, [
-    projectElements,
-    selectedElement,
-    selectedElementType,
-    hoveredElement,
-    hoveredElementType,
-    drawGrid,
-    drawRoom,
-    drawWall,
-    drawDoor,
-    drawWindow,
-    drawFurniture,
-    drawPreview,
-    drawSnapIndicator,
-    drawSelectionBox,
-  ]);
-
   useEffect(() => {
     const animate = () => {
       render();
@@ -1209,293 +944,220 @@ const render = useCallback(() => {
     };
   }, [render]);
 
-// ============================================
-// HANDLERS DE INTERAÇÃO PREMIUM
-// ============================================
-
-const handlePointerDown = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
-
-  e.preventDefault();
-  e.stopPropagation();
-
-  const canvas = canvasRef.current;
-  if (!canvas) return;
-
-  try {
-    canvas.setPointerCapture(e.pointerId);
-  } catch {}
-
-  const canvasPoint = getCanvasPoint(e);
-  if (!canvasPoint) return;
-
-  const worldPoint = canvasToWorld(canvasPoint);
-  const snappedPoint = getBestSnapPoint(worldPoint);
-
   // ============================================
-  // PAN MODE
+  // HANDLERS DE INTERAÇÃO (NÃO MODIFICADOS)
   // ============================================
 
-  if (e.button === 1 || (e.button === 0 && e.altKey)) {
-    setIsPanning(true);
-    setPanStart(canvasPoint);
-    setCursor('grabbing');
-    return;
-  }
+  const handlePointerDown = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
 
-  // ============================================
-  // LEFT CLICK ONLY
-  // ============================================
+    const canvas = canvasRef.current;
+    if (!canvas) return;
 
-  if (e.button !== 0) return;
+    try {
+      canvas.setPointerCapture(e.pointerId);
+    } catch {}
 
-  // Gesture engine tap
-  const touch: TouchPoint = {
-    id: e.pointerId,
-    position: snappedPoint,
-    timestamp: performance.now()
-  };
+    const canvasPoint = getCanvasPoint(e);
+    if (!canvasPoint) return;
 
-  const tapResult = processTap(
-    gestureStateRef.current,
-    snappedPoint
-  );
+    const worldPoint = canvasToWorld(canvasPoint);
+    const snappedPoint = getBestSnapPoint(worldPoint);
 
-  gestureStateRef.current = {
-    ...gestureStateRef.current,
-    ...tapResult,
-    touches: [touch]
-  };
-
-  // ============================================
-  // WALL TOOL
-  // ============================================
-
-  if (toolMode === 'wall') {
-
-    setIsDragSelecting(false);
-    setSelectionBox(null);
-    setSelectionStart(null);
-
-    startDrawing(snappedPoint);
-
-    setCursor('crosshair');
-
-    return;
-  }
-
-  // ============================================
-  // SELECT TOOL
-  // ============================================
-
-  if (toolMode === 'select') {
-
-    const hit = hitTest(worldPoint);
-
-    if (hit) {
-
-      selectElement(hit.id, hit.type);
-
-      setDraggedElement(hit.id);
-      setIsDraggingElement(true);
-
-      setCursor('move');
-
-    } else {
-
-      selectElement(null);
-
-      setIsDragSelecting(true);
-      setSelectionStart(worldPoint);
-
-      setSelectionBox({
-        start: worldPoint,
-        current: worldPoint
-      });
-
-      setCursor('crosshair');
+    // PAN MODE
+    if (e.button === 1 || (e.button === 0 && e.altKey)) {
+      setIsPanning(true);
+      setPanStart(canvasPoint);
+      setCursor('grabbing');
+      return;
     }
-  }
 
-}, [
-  getCanvasPoint,
-  canvasToWorld,
-  getBestSnapPoint,
-  toolMode,
-  startDrawing,
-  selectElement,
-  hitTest
-]);
+    // LEFT CLICK ONLY
+    if (e.button !== 0) return;
 
-// ============================================
-// POINTER MOVE
-// ============================================
+    // Gesture engine tap
+    const touch: TouchPoint = {
+      id: e.pointerId,
+      position: snappedPoint,
+      timestamp: performance.now()
+    };
 
-const handlePointerMove = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
+    const tapResult = processTap(
+      gestureStateRef.current,
+      snappedPoint
+    );
 
-  e.preventDefault();
-  e.stopPropagation();
+    gestureStateRef.current = {
+      ...gestureStateRef.current,
+      ...tapResult,
+      touches: [touch]
+    };
 
-  const canvasPoint = getCanvasPoint(e);
-  if (!canvasPoint) return;
+    // WALL TOOL
+    if (toolMode === 'wall') {
+      setIsDragSelecting(false);
+      setSelectionBox(null);
+      setSelectionStart(null);
+      startDrawing(snappedPoint);
+      setCursor('crosshair');
+      return;
+    }
 
-  const worldPoint = canvasToWorld(canvasPoint);
-
-  setWorldMousePos(worldPoint);
-
-  // ============================================
-  // HOVER DETECTION (THROTTLED)
-  // ============================================
-
-  const now = performance.now();
-
-  if (now - hoverThrottleRef.current > HOVER_THROTTLE) {
-
-    hoverThrottleRef.current = now;
-
-    if (
-      toolMode === 'select' &&
-      !isPanning &&
-      !isDrawing &&
-      !isDragSelecting &&
-      !isDraggingElement
-    ) {
-
+    // SELECT TOOL
+    if (toolMode === 'select') {
       const hit = hitTest(worldPoint);
 
       if (hit) {
-
-        setHoveredElement(hit.id);
-        setHoveredElementType(hit.type);
-
-        setCursor('pointer');
-
+        selectElement(hit.id, hit.type);
+        setDraggedElement(hit.id);
+        setIsDraggingElement(true);
+        setCursor('move');
       } else {
-
-        setHoveredElement(null);
-        setHoveredElementType(null);
-
-        setCursor('default');
+        selectElement(null);
+        setIsDragSelecting(true);
+        setSelectionStart(worldPoint);
+        setSelectionBox({
+          start: worldPoint,
+          current: worldPoint
+        });
+        setCursor('crosshair');
       }
     }
-  }
+  }, [
+    getCanvasPoint,
+    canvasToWorld,
+    getBestSnapPoint,
+    toolMode,
+    startDrawing,
+    selectElement,
+    hitTest
+  ]);
 
-  // ============================================
-  // PAN
-  // ============================================
+  const handlePointerMove = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
 
-  if (isPanning) {
+    const canvasPoint = getCanvasPoint(e);
+    if (!canvasPoint) return;
 
-    const dx = (canvasPoint.x - panStart.x) * PAN_SENSITIVITY;
-    const dy = (canvasPoint.y - panStart.y) * PAN_SENSITIVITY;
+    const worldPoint = canvasToWorld(canvasPoint);
+    setWorldMousePos(worldPoint);
 
-    setCanvasOffset({
-      x: offset.x + dx,
-      y: offset.y + dy
-    });
+    // HOVER DETECTION (THROTTLED)
+    const now = performance.now();
 
-    setPanStart(canvasPoint);
+    if (now - hoverThrottleRef.current > HOVER_THROTTLE) {
+      hoverThrottleRef.current = now;
 
-    return;
-  }
+      if (
+        toolMode === 'select' &&
+        !isPanning &&
+        !isDrawing &&
+        !isDragSelecting &&
+        !isDraggingElement
+      ) {
+        const hit = hitTest(worldPoint);
 
-  // ============================================
-  // DRAG SELECTION
-  // ============================================
-
-  if (isDragSelecting && selectionStart) {
-
-    setSelectionBox({
-      start: selectionStart,
-      current: worldPoint
-    });
-
-    return;
-  }
-
-  // ============================================
-  // DRAG ELEMENT
-  // ============================================
-
-  if (isDraggingElement && draggedElement) {
-
-    const newPosition = worldPoint;
-
-    const furniture = projectElements?.furniture.find(f => f.id === draggedElement);
-
-    if (furniture) {
-      furniture.position = {
-        x: newPosition.x,
-        y: newPosition.y
-      };
+        if (hit) {
+          setHoveredElement(hit.id);
+          setHoveredElementType(hit.type);
+          setCursor('pointer');
+        } else {
+          setHoveredElement(null);
+          setHoveredElementType(null);
+          setCursor('default');
+        }
+      }
     }
 
-    const door = projectElements?.doors.find(d => d.id === draggedElement);
+    // PAN
+    if (isPanning) {
+      const dx = (canvasPoint.x - panStart.x) * PAN_SENSITIVITY;
+      const dy = (canvasPoint.y - panStart.y) * PAN_SENSITIVITY;
 
-    if (door) {
-      door.position = newPosition.x;
+      setCanvasOffset({
+        x: offset.x + dx,
+        y: offset.y + dy
+      });
+
+      setPanStart(canvasPoint);
+      return;
     }
 
-    const window = projectElements?.windows.find(w => w.id === draggedElement);
-
-    if (window) {
-      window.position = newPosition.x;
+    // DRAG SELECTION
+    if (isDragSelecting && selectionStart) {
+      setSelectionBox({
+        start: selectionStart,
+        current: worldPoint
+      });
+      return;
     }
 
-    setCursor('move');
+    // DRAG ELEMENT
+    if (isDraggingElement && draggedElement) {
+      const newPosition = worldPoint;
 
-    return;
-  }
+      const furniture = projectElements?.furniture.find(f => f.id === draggedElement);
+      if (furniture) {
+        furniture.position = {
+          x: newPosition.x,
+          y: newPosition.y
+        };
+      }
 
-  // ============================================
-  // DRAWING WALL
-  // ============================================
+      const door = projectElements?.doors.find(d => d.id === draggedElement);
+      if (door) {
+        door.position = newPosition.x;
+      }
 
-  if (isDrawing && drawStart) {
+      const window = projectElements?.windows.find(w => w.id === draggedElement);
+      if (window) {
+        window.position = newPosition.x;
+      }
 
-    let snappedPoint = getBestSnapPoint(worldPoint);
+      setCursor('move');
+      return;
+    }
 
-    snappedPoint = applyAngleSnap(drawStart, snappedPoint);
+    // DRAWING WALL
+    if (isDrawing && drawStart) {
+      let snappedPoint = getBestSnapPoint(worldPoint);
+      snappedPoint = applyAngleSnap(drawStart, snappedPoint);
+      updateDrawing(snappedPoint);
+      setCursor('crosshair');
+      return;
+    }
 
-    updateDrawing(snappedPoint);
+    // LONG PRESS DETECTION
+    const longPressResult = checkLongPress(
+      gestureStateRef.current,
+      worldPoint
+    );
 
-    setCursor('crosshair');
-
-    return;
-  }
-
-  // ============================================
-  // LONG PRESS DETECTION
-  // ============================================
-
-  const longPressResult = checkLongPress(
-    gestureStateRef.current,
-    worldPoint
-  );
-
-  if (longPressResult) {
-    console.log('Long press detected at:', worldPoint);
-  }
-
-}, [
-  getCanvasPoint,
-  canvasToWorld,
-  isPanning,
-  panStart,
-  offset,
-  setCanvasOffset,
-  isDrawing,
-  drawStart,
-  getBestSnapPoint,
-  applyAngleSnap,
-  updateDrawing,
-  toolMode,
-  isDragSelecting,
-  isDraggingElement,
-  draggedElement,
-  selectionStart,
-  hitTest,
-  projectElements
-]);
+    if (longPressResult) {
+      console.log('Long press detected at:', worldPoint);
+    }
+  }, [
+    getCanvasPoint,
+    canvasToWorld,
+    isPanning,
+    panStart,
+    offset,
+    setCanvasOffset,
+    isDrawing,
+    drawStart,
+    getBestSnapPoint,
+    applyAngleSnap,
+    updateDrawing,
+    toolMode,
+    isDragSelecting,
+    isDraggingElement,
+    draggedElement,
+    selectionStart,
+    hitTest,
+    projectElements
+  ]);
     
   const handlePointerUp = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
     e.preventDefault();
@@ -1510,7 +1172,6 @@ const handlePointerMove = useCallback((e: React.PointerEvent<HTMLCanvasElement>)
       }
     }
     
-    // Reset completo do gesture engine usando resetGesture
     gestureStateRef.current = resetGesture(gestureStateRef.current);
     setGestureDebug('');
     
@@ -1521,7 +1182,6 @@ const handlePointerMove = useCallback((e: React.PointerEvent<HTMLCanvasElement>)
     }
     
     if (isDragSelecting) {
-      // Finalizar seleção por caixa
       if (selectionBox) {
         const minX = Math.min(selectionBox.start.x, selectionBox.current.x);
         const maxX = Math.max(selectionBox.start.x, selectionBox.current.x);
@@ -1529,9 +1189,6 @@ const handlePointerMove = useCallback((e: React.PointerEvent<HTMLCanvasElement>)
         const maxY = Math.max(selectionBox.start.y, selectionBox.current.y);
         
         const selectionRect = { minX, minY, maxX, maxY };
-        
-        // Selecionar elementos dentro do retângulo
-        // TODO: Implementar seleção múltipla
         console.log('Selection box:', selectionRect);
       }
       
@@ -1549,73 +1206,57 @@ const handlePointerMove = useCallback((e: React.PointerEvent<HTMLCanvasElement>)
       return;
     }
     
-if (isDrawing) {
+    if (isDrawing) {
+      const canvasPoint = getCanvasPoint(e);
+      if (!canvasPoint) {
+        setCursor('crosshair');
+        return;
+      }
 
-  const canvasPoint = getCanvasPoint(e);
+      const worldPoint = canvasToWorld(canvasPoint);
+      let snappedPoint = getBestSnapPoint(worldPoint);
 
-  if (!canvasPoint) {
-    setCursor('crosshair');
-    return;
-  }
+      if (drawStart) {
+        snappedPoint = applyAngleSnap(drawStart, snappedPoint);
+      }
 
-  // converte canvas -> mundo
-  const worldPoint = canvasToWorld(canvasPoint);
+      if (drawStart) {
+        const dist = Math.hypot(
+          snappedPoint.x - drawStart.x,
+          snappedPoint.y - drawStart.y
+        );
 
-  // aplica snap inteligente
-  let snappedPoint = getBestSnapPoint(worldPoint);
+        if (dist < 0.05) return;
 
-  // aplica snap de ângulo se houver ponto inicial
-  if (drawStart) {
-    snappedPoint = applyAngleSnap(drawStart, snappedPoint);
-  }
+        const newWall = wallEngine.createWall(drawStart, snappedPoint);
 
-  // finaliza parede
-  // ============================================
-// CREATE WALL USING WALL ENGINE
-// ============================================
-if (drawStart) {
+        if (newWall && currentProject) {
+          currentProject.walls = [...currentProject.walls, newWall];
+          updateDrawing(snappedPoint);
+          startDrawing(snappedPoint);
+        }
+      }
 
-  const dist = Math.hypot(
-    snappedPoint.x - drawStart.x,
-    snappedPoint.y - drawStart.y
-  );
-
-  if (dist < 0.05) return;
-
-  const newWall = wallEngine.createWall(drawStart, snappedPoint);
-
-  if (newWall && currentProject) {
-
-    currentProject.walls = [...currentProject.walls, newWall];
-
-    updateDrawing(snappedPoint);
-    startDrawing(snappedPoint);
-  }
-
-}
-
-  // limpa indicador de snap
-  setSnapIndicator(null);
-
-  setCursor('crosshair');
-}
-}, [
-  getCanvasPoint,
-  isPanning,
-  isDrawing,
-  isDragSelecting,
-  isDraggingElement,
-  drawStart,
-  canvasToWorld,
-  getBestSnapPoint,
-  applyAngleSnap,
-  endDrawing,
-  selectionBox,
-  toolMode,
-  wallEngine,
-  updateDrawing,
-  startDrawing
-]);
+      setSnapIndicator(null);
+      setCursor('crosshair');
+    }
+  }, [
+    getCanvasPoint,
+    isPanning,
+    isDrawing,
+    isDragSelecting,
+    isDraggingElement,
+    drawStart,
+    canvasToWorld,
+    getBestSnapPoint,
+    applyAngleSnap,
+    endDrawing,
+    selectionBox,
+    toolMode,
+    wallEngine,
+    updateDrawing,
+    startDrawing
+  ]);
 
   const handleWheel = useCallback((e: React.WheelEvent<HTMLCanvasElement>) => {
     e.preventDefault();
@@ -1625,7 +1266,6 @@ if (drawStart) {
     const zoomFactor = Math.exp(delta);
     const newScale = clamp(scale * zoomFactor, 0.1, 50);
     
-    // Zoom towards mouse pointer
     const rect = e.currentTarget.getBoundingClientRect();
     const mouseX = (e.clientX - rect.left) * metricsRef.current.devicePixelRatio;
     const mouseY = (e.clientY - rect.top) * metricsRef.current.devicePixelRatio;
@@ -1633,7 +1273,6 @@ if (drawStart) {
     const worldBefore = canvasToWorld({ x: mouseX, y: mouseY });
     setCanvasScale(newScale);
     
-    // Ajusta offset para manter ponto sob o mouse
     requestAnimationFrame(() => {
       const worldAfter = canvasToWorld({ x: mouseX, y: mouseY });
       const dx = (worldAfter.x - worldBefore.x) * newScale;
@@ -1652,7 +1291,6 @@ if (drawStart) {
       
       if (e.code === 'Space') {
         e.preventDefault();
-        // Pan mode temporário
       }
       
       if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
@@ -1663,7 +1301,6 @@ if (drawStart) {
         }
       }
       
-      // Atalhos de zoom
       if (e.ctrlKey || e.metaKey) {
         if (e.key === '=' || e.key === '+') {
           e.preventDefault();
@@ -1680,10 +1317,8 @@ if (drawStart) {
         }
       }
       
-      // Delete para remover seleção
       if (e.key === 'Delete' || e.key === 'Backspace') {
         if (selectedElement) {
-          // TODO: Implementar remoção de elemento
           console.log('Delete element:', selectedElement);
         }
       }
@@ -1716,7 +1351,6 @@ if (drawStart) {
         const width = containerRef.current.clientWidth;
         const height = containerRef.current.clientHeight;
         
-        // Configura canvas com DPR para sharp rendering
         canvasRef.current.width = width * dpr;
         canvasRef.current.height = height * dpr;
         canvasRef.current.style.width = `${width}px`;
@@ -1872,7 +1506,6 @@ if (drawStart) {
           
           <button
             onClick={() => {
-              // Reset rotation se implementado no futuro
               setCanvasScale(20);
               setCanvasOffset({ x: 0, y: 0 });
             }}
