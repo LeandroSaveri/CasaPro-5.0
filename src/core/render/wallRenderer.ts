@@ -252,7 +252,7 @@ export const renderWall = (
   // Desenha borda
   const borderColor = getBorderColor(options);
   const borderWidth = getBorderWidth(options);
-  drawWallBorder(ctx, start, end, perp, borderColor, borderWidth);
+  drawWallBorder(ctx, borderColor, borderWidth);
 
   // Restaura sombra antes de desenhar medidas (sem glow)
   ctx.shadowColor = 'transparent';
