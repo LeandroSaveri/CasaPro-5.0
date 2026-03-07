@@ -255,17 +255,16 @@ const Canvas2D: React.FC = () => {
   }, [scale, offset]);
 
   const getCanvasPoint = useCallback((e: React.PointerEvent | PointerEvent): Point | null => {
-    const canvas = canvasRef.current;
-    if (!canvas) return null;
-    
-    const rect = canvas.getBoundingClientRect();
-    const dpr = metricsRef.current.devicePixelRatio;
-    
-    return {
-      x: (e.clientX - rect.left) * dpr,
-      y: (e.clientY - rect.top) * dpr,
-    };
-  }, []);
+  const canvas = canvasRef.current;
+  if (!canvas) return null;
+
+  const rect = canvas.getBoundingClientRect();
+
+  return {
+    x: e.clientX - rect.left,
+    y: e.clientY - rect.top,
+  };
+}, []);
 
   // ============================================
   // SISTEMA DE SNAP PREMIUM
