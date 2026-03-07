@@ -1589,21 +1589,21 @@ if (drawStart) {
 
   setCursor('crosshair');
 }
-  }, [
-    getCanvasPoint, 
-    isPanning, 
-    isDrawing, 
-    isDragSelecting,
-    isDraggingElement,
-    drawStart, 
-    canvasToWorld, 
-    getBestSnapPoint, 
-    applyAngleSnap, 
-    endDrawing,
-    selectionBox,
-    toolMode
-    wallEngine
-  ]);
+}, [
+  getCanvasPoint,
+  isPanning,
+  isDrawing,
+  isDragSelecting,
+  isDraggingElement,
+  drawStart,
+  canvasToWorld,
+  getBestSnapPoint,
+  applyAngleSnap,
+  endDrawing,
+  selectionBox,
+  toolMode,
+  wallEngine
+]);
 
   const handleWheel = useCallback((e: React.WheelEvent<HTMLCanvasElement>) => {
     e.preventDefault();
