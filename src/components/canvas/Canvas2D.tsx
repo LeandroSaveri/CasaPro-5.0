@@ -1589,8 +1589,6 @@ if (drawStart) {
 
 }
 
-}
-
   // limpa indicador de snap
   setSnapIndicator(null);
 
