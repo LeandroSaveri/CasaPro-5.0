@@ -17,6 +17,16 @@ import type { Point, Wall, Room, Door, Window, Furniture } from '@/types'
 export const HIT_TEST_THRESHOLD = 0.25
 
 /**
+ * Ponto de snap com metadados
+ */
+export interface SnapPoint {
+  point: Point
+  type: 'grid' | 'endpoint' | 'intersection' | 'angle' | 'midpoint' | 'center'
+  priority: number
+  distance: number
+}
+
+/**
  * Resultado de hit test
  */
 export interface HitTestResult {
