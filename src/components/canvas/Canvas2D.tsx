@@ -45,7 +45,6 @@ import { useUIStore } from '@/store/uiStore'
 // ============================================
 
 import { WallEngine } from '@/core/geometry/wallEngine'
-// REMOVIDO: WallEditingEngine não estava sendo usado
 
 // ============================================
 // RENDERERS
@@ -77,6 +76,7 @@ import {
   resetGesture,
   type TouchPoint
 } from '@/core/interaction/gestureEngine'
+
 // ============================================
 // CONSTANTES PREMIUM
 // ============================================
@@ -84,11 +84,11 @@ import {
 const SNAP_ANGLES = [0, 45, 90, 135, 180, 225, 270, 315] as const;
 const ANGLE_SNAP_THRESHOLD = 8;
 const GRID_CACHE_SIZE = 5000;
-const RENDER_THROTTLE = 16; // ~60fps
+const RENDER_THROTTLE = 16;
 const ZOOM_SENSITIVITY = 0.001;
 const PAN_SENSITIVITY = 1.0;
-const HIT_TEST_THRESHOLD = 0.15; // Distância em metros para hit test
-const HOVER_THROTTLE = 50; // Throttle para hover em ms
+const HIT_TEST_THRESHOLD = 0.15;
+const HOVER_THROTTLE = 50;
 
 // ============================================
 // TIPOS PREMIUM
@@ -175,7 +175,6 @@ const clamp = (value: number, min: number, max: number): number =>
 
 const Canvas2D: React.FC = () => {
   const wallEngine = useMemo(() => new WallEngine(), []);
-  // Refs com tipagem rigorosa
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const rafRef = useRef<number | null>(null);
@@ -190,7 +189,6 @@ const Canvas2D: React.FC = () => {
   });
   const hoverThrottleRef = useRef<number>(0);
 
-  // Estados locais premium
   const [isPanning, setIsPanning] = useState<boolean>(false);
   const [panStart, setPanStart] = useState<Point>({ x: 0, y: 0 });
   const [worldMousePos, setWorldMousePos] = useState<Point>({ x: 0, y: 0 });
@@ -201,34 +199,30 @@ const Canvas2D: React.FC = () => {
   const [lockedAngle, setLockedAngle] = useState<number | null>(null);
   const [gestureDebug, setGestureDebug] = useState<string>('');
   
-  // Estados de seleção e hover
   const [hoveredElement, setHoveredElement] = useState<string | null>(null);
   const [hoveredElementType, setHoveredElementType] = useState<HitTestResult['type'] | null>(null);
   const [cursor, setCursor] = useState<string>('default');
   
-  // Estados para drag selection
   const [isDragSelecting, setIsDragSelecting] = useState<boolean>(false);
   const [selectionBox, setSelectionBox] = useState<SelectionBox | null>(null);
   const [selectionStart, setSelectionStart] = useState<Point | null>(null);
   
-  // Estados para drag de objetos
   const [isDraggingElement, setIsDraggingElement] = useState<boolean>(false);
   const [draggedElement, setDraggedElement] = useState<string | null>(null);
 
-  // Store selectors otimizados
-    const { 
-  currentProject, 
-  toolMode, 
-  isDrawing, 
-  drawStart, 
-  drawCurrent,
-  selectedElement,
-  selectedElementType,
-  startDrawing,
-  updateDrawing,
-  endDrawing,
-  selectElement,
-} = useProjectStore();
+  const { 
+    currentProject, 
+    toolMode, 
+    isDrawing, 
+    drawStart, 
+    drawCurrent,
+    selectedElement,
+    selectedElementType,
+    startDrawing,
+    updateDrawing,
+    endDrawing,
+    selectElement,
+  } = useProjectStore();
 
   const {
     canvas2D,
@@ -238,7 +232,6 @@ const Canvas2D: React.FC = () => {
 
   const { scale, offset } = canvas2D;
 
-  // Memoização pesada de elementos
   const projectElements = useMemo(() => {
     if (!currentProject) return null;
     
@@ -269,10 +262,6 @@ const Canvas2D: React.FC = () => {
     currentProject?.settings,
   ]);
 
-  // ============================================
-  // SISTEMA DE COORDENADAS
-  // ============================================
-
   const worldToCanvas = useCallback((point: Point): Point => {
     const metrics = metricsRef.current;
     return {
@@ -290,20 +279,16 @@ const Canvas2D: React.FC = () => {
   }, [scale, offset]);
 
   const getCanvasPoint = useCallback((e: React.PointerEvent | PointerEvent): Point | null => {
-  const canvas = canvasRef.current;
-  if (!canvas) return null;
+    const canvas = canvasRef.current;
+    if (!canvas) return null;
 
-  const rect = canvas.getBoundingClientRect();
+    const rect = canvas.getBoundingClientRect();
 
-  return {
-    x: e.clientX - rect.left,
-    y: e.clientY - rect.top,
-  };
-}, []);
-
-  // ============================================
-  // SISTEMA DE SNAP PREMIUM - CORRIGIDO
-  // ============================================
+    return {
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+    };
+  }, []);
 
   const snapToGrid = useCallback((point: Point): Point => {
     if (!projectElements?.settings.snapToGrid || !snapEnabled) return point;
@@ -340,10 +325,8 @@ const Canvas2D: React.FC = () => {
     if (!projectElements || !snapEnabled) return [];
     
     const snapPoints: SnapPoint[] = [];
-    // CORREÇÃO: Threshold maior para snap mais forte
     const snapThreshold = 0.8;
     
-    // Grid snap (prioridade baixa)
     const gridPoint = snapToGrid(point);
     const gridDist = spatialCache.getDistance(gridPoint, point);
     if (gridDist < snapThreshold) {
@@ -355,7 +338,6 @@ const Canvas2D: React.FC = () => {
       });
     }
     
-    // Wall endpoints - CORREÇÃO: Prioridade máxima (100)
     const { walls } = projectElements;
     for (let i = 0; i < walls.length; i++) {
       const wall = walls[i];
@@ -380,7 +362,6 @@ const Canvas2D: React.FC = () => {
         });
       }
       
-      // Midpoint (prioridade média)
       if (startDist < snapThreshold * 3 || endDist < snapThreshold * 3) {
         const midPoint: Point = {
           x: (wall.start.x + wall.end.x) / 2,
@@ -398,7 +379,6 @@ const Canvas2D: React.FC = () => {
       }
     }
     
-    // Room corners e centroids
     const { rooms } = projectElements;
     for (let i = 0; i < rooms.length; i++) {
       const room = rooms[i];
@@ -417,7 +397,6 @@ const Canvas2D: React.FC = () => {
         }
       }
       
-      // Centro do cômodo (prioridade baixa)
       if (points.length > 2) {
         const centroid = points.reduce((acc, p) => ({ 
           x: acc.x + p.x, 
@@ -438,7 +417,6 @@ const Canvas2D: React.FC = () => {
       }
     }
     
-    // Ordena por prioridade decrescente, depois por distância
     return snapPoints.sort((a, b) => {
       if (b.priority !== a.priority) return b.priority - a.priority;
       return a.distance - b.distance;
@@ -472,10 +450,6 @@ const Canvas2D: React.FC = () => {
     return end;
   }, [snapEnabled, calculateAngle, snapAngle]);
 
-  // ============================================
-  // SISTEMA DE HIT DETECTION (SELEÇÃO)
-  // ============================================
-
   const hitTestFurniture = useCallback((point: Point): HitTestResult | null => {
     if (!projectElements?.furniture) return null;
     
@@ -486,11 +460,9 @@ const Canvas2D: React.FC = () => {
       const halfWidth = furniture.scale.x / 2;
       const halfDepth = furniture.scale.y / 2;
       
-      // Verifica se o ponto está dentro do bounding box rotacionado
       const dx = point.x - furniture.position.x;
       const dy = point.y - furniture.position.y;
       
-      // Rotação inversa
       const cos = Math.cos(furniture.rotation);
       const sin = Math.sin(furniture.rotation);
       const localX = dx * cos + dy * sin;
@@ -567,7 +539,6 @@ const Canvas2D: React.FC = () => {
     let minDist = HIT_TEST_THRESHOLD;
     
     for (const wall of projectElements.walls) {
-      // Distância do ponto ao segmento de linha
       const dx = wall.end.x - wall.start.x;
       const dy = wall.end.y - wall.start.y;
       const len = Math.hypot(dx, dy);
@@ -599,7 +570,6 @@ const Canvas2D: React.FC = () => {
     for (const room of projectElements.rooms) {
       if (room.points.length < 3) continue;
       
-      // Algoritmo ray casting para verificar se ponto está dentro do polígono
       let inside = false;
       for (let i = 0, j = room.points.length - 1; i < room.points.length; j = i++) {
         const xi = room.points[i].x, yi = room.points[i].y;
@@ -612,7 +582,6 @@ const Canvas2D: React.FC = () => {
       }
       
       if (inside) {
-        // Calcula distância ao centro
         const centroid = room.points.reduce((acc, p) => ({ 
           x: acc.x + p.x, 
           y: acc.y + p.y 
@@ -632,7 +601,6 @@ const Canvas2D: React.FC = () => {
   }, [projectElements?.rooms]);
 
   const hitTest = useCallback((point: Point): HitTestResult | null => {
-    // Ordem de prioridade: furniture > doors > windows > walls > rooms
     const furniture = hitTestFurniture(point);
     if (furniture) return furniture;
     
@@ -650,10 +618,6 @@ const Canvas2D: React.FC = () => {
     
     return null;
   }, [hitTestFurniture, hitTestDoor, hitTestWindow, hitTestWall, hitTestRoom]);
-
-  // ============================================
-  // SISTEMA DE RENDERIZAÇÃO - USANDO RENDERERS EXTERNOS
-  // ============================================
 
   const isInViewport = useCallback((points: Point[], padding: number = 0): boolean => {
     const metrics = metricsRef.current;
@@ -675,7 +639,6 @@ const Canvas2D: React.FC = () => {
     const { width, height } = metrics;
     const gridSize = projectElements.settings.gridSize * scale;
     
-    // Early return se zoom muito baixo
     if (gridSize < 2) return;
     
     const startX = offset.x % gridSize;
@@ -706,7 +669,6 @@ const Canvas2D: React.FC = () => {
     
     ctx.stroke();
     
-    // Grid principal (5x)
     if (gridSize > 10) {
       ctx.strokeStyle = 'rgba(201, 169, 98, 0.08)';
       ctx.lineWidth = 1.5;
@@ -733,7 +695,6 @@ const Canvas2D: React.FC = () => {
       ctx.stroke();
     }
     
-    // Eixos de origem
     if (projectElements?.settings.showAxes) {
       ctx.strokeStyle = 'rgba(201, 169, 98, 0.3)';
       ctx.lineWidth = 2;
@@ -748,10 +709,6 @@ const Canvas2D: React.FC = () => {
     ctx.restore();
   }, [projectElements?.settings.showGrid, projectElements?.settings.showAxes, projectElements?.settings.gridSize, scale, offset]);
 
-  // ============================================
-  // RENDER LOOP OTIMIZADO - USANDO RENDERERS EXTERNOS
-  // ============================================
-
   const render = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -759,39 +716,32 @@ const Canvas2D: React.FC = () => {
     const ctx = canvas.getContext('2d', { alpha: false });
     if (!ctx) return;
     
-    // Throttling para 60fps estável
     const now = performance.now();
     if (now - lastRenderRef.current < RENDER_THROTTLE) return;
     lastRenderRef.current = now;
     
-    // Fundo
     ctx.fillStyle = '#0a0a0f';
     ctx.fillRect(0, 0, metricsRef.current.width, metricsRef.current.height);
 
-    // Grid
     drawGrid(ctx);
     
     if (!projectElements) return;
     
-    // Contexto para renderers externos
     const renderContext = {
       scale,
       worldToCanvas
     };
     
-    // 1. Cômodos (fundo) - usando renderer externo
     projectElements.rooms.forEach((room: Room) => {
       const isSelected = selectedElement === room.id && selectedElementType === 'room';
       const isHovered = hoveredElement === room.id && hoveredElementType === 'room';
       renderRoom(ctx, room, isSelected, isHovered);
     });
     
-    // 2. Paredes - usando renderer externo
     projectElements.walls.forEach((wall: Wall) => {
       const isSelected = selectedElement === wall.id && selectedElementType === 'wall';
       const isHovered = hoveredElement === wall.id && hoveredElementType === 'wall';
       
-      // Preparar opções para o renderer externo
       const options = {
         isSelected,
         isHovered,
@@ -800,14 +750,10 @@ const Canvas2D: React.FC = () => {
         settingsShowMeasurements: projectElements.settings.showMeasurements ?? true
       };
       
-      // CORREÇÃO: Passar 5 argumentos conforme assinatura da função
+      // ✅ CORREÇÃO: 5 argumentos conforme assinatura da função
       renderWall(ctx, wall, renderContext, options, isInViewport);
     });
     
-    // 3. Aberturas (mantidas temporariamente até ter renderers específicos)
-    // TODO: Migrar para renderers externos quando existirem
-    
-    // 4. Overlays do canvas (preview, snap, selection)
     drawPreview(ctx);
     drawSnapIndicator(ctx);
     drawSelectionBox(ctx);
@@ -825,10 +771,6 @@ const Canvas2D: React.FC = () => {
     showMeasurements
   ]);
 
-  // ============================================
-  // OVERLAYS DO CANVAS (mantidos aqui pois são específicos do canvas)
-  // ============================================
-
   const drawPreview = useCallback((ctx: CanvasRenderingContext2D) => {
     if (!isDrawing || !drawStart || !drawCurrent) return;
     
@@ -837,7 +779,6 @@ const Canvas2D: React.FC = () => {
     
     ctx.save();
     
-    // Linha de preview animada
     ctx.strokeStyle = '#c9a962';
     ctx.lineWidth = 2;
     ctx.setLineDash([10, 5]);
@@ -848,7 +789,6 @@ const Canvas2D: React.FC = () => {
     ctx.stroke();
     ctx.setLineDash([]);
     
-    // Distância
     const dist = spatialCache.getDistance(drawStart, drawCurrent);
     const midX = (start.x + end.x) / 2;
     const midY = (start.y + end.y) / 2;
@@ -865,7 +805,6 @@ const Canvas2D: React.FC = () => {
     ctx.textBaseline = 'middle';
     ctx.fillText(text, midX, midY - 13);
     
-    // Ângulo
     const angle = calculateAngle(drawStart, drawCurrent);
     const angleText = `${angle.toFixed(0)}°`;
     const angleTextWidth = ctx.measureText(angleText).width;
@@ -876,7 +815,6 @@ const Canvas2D: React.FC = () => {
     ctx.fillStyle = '#ffffff';
     ctx.fillText(angleText, start.x, start.y - 21);
     
-    // Indicador de snap ativo
     if (snapIndicator) {
       ctx.strokeStyle = '#c9a962';
       ctx.lineWidth = 2;
@@ -898,24 +836,20 @@ const Canvas2D: React.FC = () => {
     ctx.fillStyle = 'rgba(201, 169, 98, 0.25)';
     ctx.lineWidth = 2.5;
     
-    // Círculo pulsante maior
     const pulse = 1 + Math.sin(performance.now() / 150) * 0.25;
     const baseRadius = 10;
     
-    // Círculo externo pulsante
     ctx.beginPath();
     ctx.arc(point.x, point.y, baseRadius * pulse, 0, Math.PI * 2);
     ctx.fillStyle = 'rgba(201, 169, 98, 0.15)';
     ctx.fill();
     
-    // Círculo interno
     ctx.beginPath();
     ctx.arc(point.x, point.y, baseRadius, 0, Math.PI * 2);
     ctx.fillStyle = 'rgba(201, 169, 98, 0.35)';
     ctx.fill();
     ctx.stroke();
     
-    // Cruz maior
     const crossSize = 18;
     ctx.beginPath();
     ctx.moveTo(point.x - crossSize, point.y);
@@ -941,11 +875,9 @@ const Canvas2D: React.FC = () => {
     
     ctx.save();
     
-    // Fundo semi-transparente
     ctx.fillStyle = 'rgba(201, 169, 98, 0.15)';
     ctx.fillRect(minX, minY, maxX - minX, maxY - minY);
     
-    // Borda tracejada animada
     ctx.strokeStyle = '#c9a962';
     ctx.lineWidth = 2;
     ctx.setLineDash([8, 4]);
@@ -970,10 +902,6 @@ const Canvas2D: React.FC = () => {
     };
   }, [render]);
 
-  // ============================================
-  // HANDLERS DE INTERAÇÃO (NÃO MODIFICADOS)
-  // ============================================
-
   const handlePointerDown = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
     e.preventDefault();
     e.stopPropagation();
@@ -991,7 +919,6 @@ const Canvas2D: React.FC = () => {
     const worldPoint = canvasToWorld(canvasPoint);
     const snappedPoint = getBestSnapPoint(worldPoint);
 
-    // PAN MODE
     if (e.button === 1 || (e.button === 0 && e.altKey)) {
       setIsPanning(true);
       setPanStart(canvasPoint);
@@ -999,10 +926,8 @@ const Canvas2D: React.FC = () => {
       return;
     }
 
-    // LEFT CLICK ONLY
     if (e.button !== 0) return;
 
-    // Gesture engine tap
     const touch: TouchPoint = {
       id: e.pointerId,
       position: snappedPoint,
@@ -1020,7 +945,6 @@ const Canvas2D: React.FC = () => {
       touches: [touch]
     };
 
-    // WALL TOOL
     if (toolMode === 'wall') {
       setIsDragSelecting(false);
       setSelectionBox(null);
@@ -1030,7 +954,6 @@ const Canvas2D: React.FC = () => {
       return;
     }
 
-    // SELECT TOOL
     if (toolMode === 'select') {
       const hit = hitTest(worldPoint);
 
@@ -1070,7 +993,6 @@ const Canvas2D: React.FC = () => {
     const worldPoint = canvasToWorld(canvasPoint);
     setWorldMousePos(worldPoint);
 
-    // HOVER DETECTION (THROTTLED)
     const now = performance.now();
 
     if (now - hoverThrottleRef.current > HOVER_THROTTLE) {
@@ -1097,7 +1019,6 @@ const Canvas2D: React.FC = () => {
       }
     }
 
-    // PAN
     if (isPanning) {
       const dx = (canvasPoint.x - panStart.x) * PAN_SENSITIVITY;
       const dy = (canvasPoint.y - panStart.y) * PAN_SENSITIVITY;
@@ -1111,7 +1032,6 @@ const Canvas2D: React.FC = () => {
       return;
     }
 
-    // DRAG SELECTION
     if (isDragSelecting && selectionStart) {
       setSelectionBox({
         start: selectionStart,
@@ -1120,7 +1040,6 @@ const Canvas2D: React.FC = () => {
       return;
     }
 
-    // DRAG ELEMENT
     if (isDraggingElement && draggedElement) {
       const newPosition = worldPoint;
 
@@ -1146,7 +1065,6 @@ const Canvas2D: React.FC = () => {
       return;
     }
 
-    // DRAWING WALL
     if (isDrawing && drawStart) {
       let snappedPoint = getBestSnapPoint(worldPoint);
       snappedPoint = applyAngleSnap(drawStart, snappedPoint);
@@ -1155,7 +1073,6 @@ const Canvas2D: React.FC = () => {
       return;
     }
 
-    // LONG PRESS DETECTION
     const longPressResult = checkLongPress(
       gestureStateRef.current,
       worldPoint
@@ -1194,7 +1111,6 @@ const Canvas2D: React.FC = () => {
       try {
         canvas.releasePointerCapture(e.pointerId);
       } catch {
-        // Ignore
       }
     }
     
@@ -1307,10 +1223,6 @@ const Canvas2D: React.FC = () => {
     });
   }, [scale, offset, setCanvasScale, setCanvasOffset, canvasToWorld]);
 
-  // ============================================
-  // KEYBOARD SHORTCUTS
-  // ============================================
-
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.repeat) return;
@@ -1366,10 +1278,6 @@ const Canvas2D: React.FC = () => {
     };
   }, [isDrawing, drawStart, drawCurrent, angleLock, calculateAngle, snapAngle, scale, setCanvasScale, setCanvasOffset, selectedElement]);
 
-  // ============================================
-  // RESIZE HANDLER
-  // ============================================
-
   useLayoutEffect(() => {
     const updateMetrics = () => {
       if (containerRef.current && canvasRef.current) {
@@ -1416,10 +1324,6 @@ const Canvas2D: React.FC = () => {
     };
   }, []);
 
-  // ============================================
-  // RENDER
-  // ============================================
-
   return (
     <div 
       ref={containerRef} 
@@ -1451,9 +1355,7 @@ const Canvas2D: React.FC = () => {
         onWheel={handleWheel}
       />
       
-      {/* Toolbar Flutuante Premium */}
       <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 p-2 bg-[#1a1a1f]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl shadow-black/50">
-        {/* Zoom Controls */}
         <div className="flex items-center gap-1 px-2">
           <button
             onClick={() => setCanvasScale(scale * 1.2)}
@@ -1483,7 +1385,6 @@ const Canvas2D: React.FC = () => {
         
         <div className="w-px h-8 bg-white/10" />
         
-        {/* Toggles */}
         <div className="flex items-center gap-1">
           <button
             onClick={() => setSnapEnabled(!snapEnabled)}
@@ -1516,7 +1417,6 @@ const Canvas2D: React.FC = () => {
         
         <div className="w-px h-8 bg-white/10" />
         
-        {/* View Controls */}
         <div className="flex items-center gap-1">
           <button
             onClick={() => {
@@ -1544,7 +1444,6 @@ const Canvas2D: React.FC = () => {
         </div>
       </div>
       
-      {/* Info Panel */}
       <div className="absolute bottom-6 left-6 p-4 bg-[#1a1a1f]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl min-w-[160px]">
         <div className="space-y-1.5">
           <div className="flex justify-between items-center">
@@ -1598,7 +1497,6 @@ const Canvas2D: React.FC = () => {
         </div>
       </div>
       
-      {/* Scale Indicator */}
       <div className="absolute bottom-6 right-6 px-4 py-3 bg-[#1a1a1f]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl">
         <div className="flex items-center gap-3 text-xs">
           <div className="flex items-center gap-1.5 text-white/50">
