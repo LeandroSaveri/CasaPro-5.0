@@ -4,6 +4,7 @@
  * Sistema de Renderização 2D Premium - CasaPro
  * 
  * Responsabilidades:
+ * - Renderização otimizada de elementos arquitetônicos
  * - Sistema de gestos multi-touch (pinch, pan, rotate)
  * - Snap inteligente com priorização
  * - Cache de geometria e culling de viewport
@@ -20,62 +21,35 @@
  * - Viewport culling agressivo
  */
 
-// ============================================
-// REACT
-// ============================================
-
-import React, {
-  useRef,
-  useEffect,
-  useState,
-  useCallback,
+import React, { 
+  useRef, 
+  useEffect, 
+  useState, 
+  useCallback, 
   useMemo,
   useLayoutEffect
-} from 'react'
-
-// ============================================
-// STORES
-// ============================================
-
-import { useProjectStore } from '@/store/projectStore'
-import { useUIStore } from '@/store/uiStore'
-
-// ============================================
-// CORE ENGINES
-// ============================================
-
-import { WallEngine } from '@/core/geometry/wallEngine'
-
-// ============================================
-// RENDERERS
-// ============================================
-
+} from 'react';
 import { renderWall } from '@/core/render/wallRenderer'
 import { renderRoom } from '@/core/render/roomRenderer'
-
-// ============================================
-// TYPES
-// ============================================
-
-import type { Point, Wall, Room } from '@/types'
-
-// ============================================
-// UI ICONS
-// ============================================
-
-import { Ruler, Grid3X3, Magnet, Maximize2, RotateCcw } from 'lucide-react'
-
-// ============================================
-// GESTURE ENGINE
-// ============================================
-
+import { drawDoor } from '@/core/render/drawDoor'
+import { drawWindow } from '@/core/render/drawWindow'
+import { drawFurniture } from '@/core/render/drawFurniture'
+import { drawPreview } from '@/core/render/drawPreview'
+import { drawSnapIndicator } from '@/core/render/drawSnapIndicator'
+import { drawSelectionBox } from '@/core/render/drawSelectionBox'
+import { useProjectStore } from '@/store/projectStore';
+import { useUIStore } from '@/store/uiStore';
+import { WallEngine } from '@/core/geometry/wallEngine';
+import { WallEditingEngine } from '@/core/wall/wallEditingEngine'
+import type { Point, Wall, Room } from '@/types';
+import { Ruler, Grid3X3, Magnet, Maximize2, RotateCcw } from 'lucide-react';
 import {
   createGestureState,
   processTap,
   checkLongPress,
   resetGesture,
   type TouchPoint
-} from '@/core/interaction/gestureEngine'
+} from '@/core/interaction/gestureEngine';
 
 // ============================================
 // CONSTANTES PREMIUM
@@ -84,11 +58,11 @@ import {
 const SNAP_ANGLES = [0, 45, 90, 135, 180, 225, 270, 315] as const;
 const ANGLE_SNAP_THRESHOLD = 8;
 const GRID_CACHE_SIZE = 5000;
-const RENDER_THROTTLE = 16;
+const RENDER_THROTTLE = 16; // ~60fps
 const ZOOM_SENSITIVITY = 0.001;
 const PAN_SENSITIVITY = 1.0;
-const HIT_TEST_THRESHOLD = 0.15;
-const HOVER_THROTTLE = 50;
+const HIT_TEST_THRESHOLD = 0.15; // Distância em metros para hit test
+const HOVER_THROTTLE = 50; // Throttle para hover em ms
 
 // ============================================
 // TIPOS PREMIUM
@@ -175,6 +149,7 @@ const clamp = (value: number, min: number, max: number): number =>
 
 const Canvas2D: React.FC = () => {
   const wallEngine = useMemo(() => new WallEngine(), []);
+  // Refs com tipagem rigorosa
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const rafRef = useRef<number | null>(null);
@@ -189,6 +164,7 @@ const Canvas2D: React.FC = () => {
   });
   const hoverThrottleRef = useRef<number>(0);
 
+  // Estados locais premium
   const [isPanning, setIsPanning] = useState<boolean>(false);
   const [panStart, setPanStart] = useState<Point>({ x: 0, y: 0 });
   const [worldMousePos, setWorldMousePos] = useState<Point>({ x: 0, y: 0 });
@@ -199,30 +175,34 @@ const Canvas2D: React.FC = () => {
   const [lockedAngle, setLockedAngle] = useState<number | null>(null);
   const [gestureDebug, setGestureDebug] = useState<string>('');
   
+  // Estados de seleção e hover
   const [hoveredElement, setHoveredElement] = useState<string | null>(null);
   const [hoveredElementType, setHoveredElementType] = useState<HitTestResult['type'] | null>(null);
   const [cursor, setCursor] = useState<string>('default');
   
+  // Estados para drag selection
   const [isDragSelecting, setIsDragSelecting] = useState<boolean>(false);
   const [selectionBox, setSelectionBox] = useState<SelectionBox | null>(null);
   const [selectionStart, setSelectionStart] = useState<Point | null>(null);
   
+  // Estados para drag de objetos
   const [isDraggingElement, setIsDraggingElement] = useState<boolean>(false);
   const [draggedElement, setDraggedElement] = useState<string | null>(null);
 
-  const { 
-    currentProject, 
-    toolMode, 
-    isDrawing, 
-    drawStart, 
-    drawCurrent,
-    selectedElement,
-    selectedElementType,
-    startDrawing,
-    updateDrawing,
-    endDrawing,
-    selectElement,
-  } = useProjectStore();
+  // Store selectors otimizados
+    const { 
+  currentProject, 
+  toolMode, 
+  isDrawing, 
+  drawStart, 
+  drawCurrent,
+  selectedElement,
+  selectedElementType,
+  startDrawing,
+  updateDrawing,
+  endDrawing,
+  selectElement,
+} = useProjectStore();
 
   const {
     canvas2D,
@@ -232,6 +212,7 @@ const Canvas2D: React.FC = () => {
 
   const { scale, offset } = canvas2D;
 
+  // Memoização pesada de elementos
   const projectElements = useMemo(() => {
     if (!currentProject) return null;
     
@@ -262,6 +243,10 @@ const Canvas2D: React.FC = () => {
     currentProject?.settings,
   ]);
 
+  // ============================================
+  // SISTEMA DE COORDENADAS
+  // ============================================
+
   const worldToCanvas = useCallback((point: Point): Point => {
     const metrics = metricsRef.current;
     return {
@@ -279,16 +264,20 @@ const Canvas2D: React.FC = () => {
   }, [scale, offset]);
 
   const getCanvasPoint = useCallback((e: React.PointerEvent | PointerEvent): Point | null => {
-    const canvas = canvasRef.current;
-    if (!canvas) return null;
+  const canvas = canvasRef.current;
+  if (!canvas) return null;
 
-    const rect = canvas.getBoundingClientRect();
+  const rect = canvas.getBoundingClientRect();
 
-    return {
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
-    };
-  }, []);
+  return {
+    x: e.clientX - rect.left,
+    y: e.clientY - rect.top,
+  };
+}, []);
+
+  // ============================================
+  // SISTEMA DE SNAP PREMIUM
+  // ============================================
 
   const snapToGrid = useCallback((point: Point): Point => {
     if (!projectElements?.settings.snapToGrid || !snapEnabled) return point;
@@ -325,8 +314,9 @@ const Canvas2D: React.FC = () => {
     if (!projectElements || !snapEnabled) return [];
     
     const snapPoints: SnapPoint[] = [];
-    const snapThreshold = 0.8;
+    const snapThreshold = 0.3 / scale; // Ajusta com zoom
     
+    // Grid snap (prioridade baixa)
     const gridPoint = snapToGrid(point);
     const gridDist = spatialCache.getDistance(gridPoint, point);
     if (gridDist < snapThreshold) {
@@ -338,6 +328,7 @@ const Canvas2D: React.FC = () => {
       });
     }
     
+    // Wall endpoints e midpoints
     const { walls } = projectElements;
     for (let i = 0; i < walls.length; i++) {
       const wall = walls[i];
@@ -347,7 +338,7 @@ const Canvas2D: React.FC = () => {
         snapPoints.push({ 
           point: wall.start, 
           type: 'endpoint', 
-          priority: 100,
+          priority: 10,
           distance: startDist 
         });
       }
@@ -357,11 +348,12 @@ const Canvas2D: React.FC = () => {
         snapPoints.push({ 
           point: wall.end, 
           type: 'endpoint', 
-          priority: 100,
+          priority: 10,
           distance: endDist 
         });
       }
       
+      // Midpoint (prioridade média)
       if (startDist < snapThreshold * 3 || endDist < snapThreshold * 3) {
         const midPoint: Point = {
           x: (wall.start.x + wall.end.x) / 2,
@@ -379,6 +371,7 @@ const Canvas2D: React.FC = () => {
       }
     }
     
+    // Room corners e centroids
     const { rooms } = projectElements;
     for (let i = 0; i < rooms.length; i++) {
       const room = rooms[i];
@@ -391,12 +384,13 @@ const Canvas2D: React.FC = () => {
           snapPoints.push({ 
             point: corner, 
             type: 'endpoint', 
-            priority: 100,
+            priority: 10,
             distance: cornerDist 
           });
         }
       }
       
+      // Centro do cômodo (prioridade baixa)
       if (points.length > 2) {
         const centroid = points.reduce((acc, p) => ({ 
           x: acc.x + p.x, 
@@ -417,6 +411,7 @@ const Canvas2D: React.FC = () => {
       }
     }
     
+    // Ordena por prioridade decrescente, depois por distância
     return snapPoints.sort((a, b) => {
       if (b.priority !== a.priority) return b.priority - a.priority;
       return a.distance - b.distance;
@@ -450,6 +445,10 @@ const Canvas2D: React.FC = () => {
     return end;
   }, [snapEnabled, calculateAngle, snapAngle]);
 
+  // ============================================
+  // SISTEMA DE HIT DETECTION (SELEÇÃO)
+  // ============================================
+
   const hitTestFurniture = useCallback((point: Point): HitTestResult | null => {
     if (!projectElements?.furniture) return null;
     
@@ -460,9 +459,11 @@ const Canvas2D: React.FC = () => {
       const halfWidth = furniture.scale.x / 2;
       const halfDepth = furniture.scale.y / 2;
       
+      // Verifica se o ponto está dentro do bounding box rotacionado
       const dx = point.x - furniture.position.x;
       const dy = point.y - furniture.position.y;
       
+      // Rotação inversa
       const cos = Math.cos(furniture.rotation);
       const sin = Math.sin(furniture.rotation);
       const localX = dx * cos + dy * sin;
@@ -539,6 +540,7 @@ const Canvas2D: React.FC = () => {
     let minDist = HIT_TEST_THRESHOLD;
     
     for (const wall of projectElements.walls) {
+      // Distância do ponto ao segmento de linha
       const dx = wall.end.x - wall.start.x;
       const dy = wall.end.y - wall.start.y;
       const len = Math.hypot(dx, dy);
@@ -570,6 +572,7 @@ const Canvas2D: React.FC = () => {
     for (const room of projectElements.rooms) {
       if (room.points.length < 3) continue;
       
+      // Algoritmo ray casting para verificar se ponto está dentro do polígono
       let inside = false;
       for (let i = 0, j = room.points.length - 1; i < room.points.length; j = i++) {
         const xi = room.points[i].x, yi = room.points[i].y;
@@ -582,6 +585,7 @@ const Canvas2D: React.FC = () => {
       }
       
       if (inside) {
+        // Calcula distância ao centro
         const centroid = room.points.reduce((acc, p) => ({ 
           x: acc.x + p.x, 
           y: acc.y + p.y 
@@ -601,6 +605,7 @@ const Canvas2D: React.FC = () => {
   }, [projectElements?.rooms]);
 
   const hitTest = useCallback((point: Point): HitTestResult | null => {
+    // Ordem de prioridade: furniture > doors > windows > walls > rooms
     const furniture = hitTestFurniture(point);
     if (furniture) return furniture;
     
@@ -618,6 +623,10 @@ const Canvas2D: React.FC = () => {
     
     return null;
   }, [hitTestFurniture, hitTestDoor, hitTestWindow, hitTestWall, hitTestRoom]);
+
+  // ============================================
+  // SISTEMA DE RENDERIZAÇÃO PREMIUM
+  // ============================================
 
   const isInViewport = useCallback((points: Point[], padding: number = 0): boolean => {
     const metrics = metricsRef.current;
@@ -639,6 +648,7 @@ const Canvas2D: React.FC = () => {
     const { width, height } = metrics;
     const gridSize = projectElements.settings.gridSize * scale;
     
+    // Early return se zoom muito baixo
     if (gridSize < 2) return;
     
     const startX = offset.x % gridSize;
@@ -669,6 +679,7 @@ const Canvas2D: React.FC = () => {
     
     ctx.stroke();
     
+    // Grid principal (5x)
     if (gridSize > 10) {
       ctx.strokeStyle = 'rgba(201, 169, 98, 0.08)';
       ctx.lineWidth = 1.5;
@@ -695,6 +706,7 @@ const Canvas2D: React.FC = () => {
       ctx.stroke();
     }
     
+    // Eixos de origem
     if (projectElements?.settings.showAxes) {
       ctx.strokeStyle = 'rgba(201, 169, 98, 0.3)';
       ctx.lineWidth = 2;
@@ -709,183 +721,148 @@ const Canvas2D: React.FC = () => {
     ctx.restore();
   }, [projectElements?.settings.showGrid, projectElements?.settings.showAxes, projectElements?.settings.gridSize, scale, offset]);
 
-  const render = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    const ctx = canvas.getContext('2d', { alpha: false });
-    if (!ctx) return;
-    
-    const now = performance.now();
-    if (now - lastRenderRef.current < RENDER_THROTTLE) return;
-    lastRenderRef.current = now;
-    
-    ctx.fillStyle = '#0a0a0f';
-    ctx.fillRect(0, 0, metricsRef.current.width, metricsRef.current.height);
+  // ============================================
+  // RENDER LOOP OTIMIZADO
+  // ============================================
 
-    drawGrid(ctx);
+const render = useCallback(() => {
+  const canvas = canvasRef.current;
+  if (!canvas) return;
+  
+  const ctx = canvas.getContext('2d', { alpha: false });
+  if (!ctx) return;
+  
+  // Throttling para 60fps estável
+  const now = performance.now();
+  if (now - lastRenderRef.current < RENDER_THROTTLE) return;
+  lastRenderRef.current = now;
+  
+  // Fundo
+  ctx.fillStyle = '#0a0a0f';
+  ctx.fillRect(0, 0, metricsRef.current.width, metricsRef.current.height);
+
+  // ================================
+  // GRID ANTIGO (mantido)
+  // ================================
+
+  drawGrid(ctx);
+  
+  if (!projectElements) return;
+  
+  // Renderização em camadas (painter's algorithm)
+  // 1. Cômodos (fundo)
+  projectElements.rooms.forEach((room: Room) => {
+    const isSelected = selectedElement === room.id && selectedElementType === 'room';
+    const isHovered = hoveredElement === room.id && hoveredElementType === 'room';
+    renderRoom(ctx, room, isSelected, isHovered);
+  });
     
-    if (!projectElements) return;
+  // 2. Paredes
+  projectElements.walls.forEach((wall: Wall) => {
+    const isSelected = selectedElement === wall.id && selectedElementType === 'wall';
+    const isHovered = hoveredElement === wall.id && hoveredElementType === 'wall';
+    renderWall(ctx, wall, isSelected, isHovered);
+  });
     
-    const renderContext = {
+  // 3. Aberturas - Portas
+  projectElements.doors.forEach((door: any) => {
+    const wall = projectElements.walls.find((w: Wall) => w.id === door.wallId);
+    if (!wall) return;
+
+    const isSelected = selectedElement === door.id && selectedElementType === 'door';
+    const isHovered = hoveredElement === door.id && hoveredElementType === 'door';
+
+    drawDoor({
+      ctx,
+      door,
+      wall,
+      isSelected,
+      isHovered,
+      worldToCanvas,
       scale,
-      worldToCanvas
-    };
-    
-    projectElements.rooms.forEach((room: Room) => {
-      const isSelected = selectedElement === room.id && selectedElementType === 'room';
-      const isHovered = hoveredElement === room.id && hoveredElementType === 'room';
-      renderRoom(ctx, room, isSelected, isHovered);
+      isInViewport
     });
+  });
     
-    projectElements.walls.forEach((wall: Wall) => {
-      const isSelected = selectedElement === wall.id && selectedElementType === 'wall';
-      const isHovered = hoveredElement === wall.id && hoveredElementType === 'wall';
-      
-      const options = {
-        isSelected,
-        isHovered,
-        isHighlighted: false,
-        showMeasurements,
-        settingsShowMeasurements: projectElements.settings.showMeasurements ?? true
-      };
-      
-      // ✅ CORREÇÃO: 5 argumentos conforme assinatura da função
-      renderWall(ctx, wall, renderContext, options, isInViewport);
+  // 4. Aberturas - Janelas
+  projectElements.windows.forEach((window: any) => {
+    const wall = projectElements.walls.find((w: Wall) => w.id === window.wallId);
+    if (!wall) return;
+
+    const isSelected = selectedElement === window.id && selectedElementType === 'window';
+    const isHovered = hoveredElement === window.id && hoveredElementType === 'window';
+
+    drawWindow({
+      ctx,
+      window,
+      wall,
+      isSelected,
+      isHovered,
+      worldToCanvas,
+      scale,
+      isInViewport
     });
+  });
     
-    drawPreview(ctx);
-    drawSnapIndicator(ctx);
-    drawSelectionBox(ctx);
+  // 5. Mobiliário
+  projectElements.furniture.forEach((furniture: any) => {
+    const isSelected = selectedElement === furniture.id && selectedElementType === 'furniture';
+    const isHovered = hoveredElement === furniture.id && hoveredElementType === 'furniture';
+
+    drawFurniture({
+      ctx,
+      furniture,
+      isSelected,
+      isHovered,
+      worldToCanvas,
+      scale,
+      canvasWidth: metricsRef.current.width,
+      canvasHeight: metricsRef.current.height
+    });
+  });
     
-  }, [
-    projectElements,
-    selectedElement,
-    selectedElementType,
-    hoveredElement,
-    hoveredElementType,
-    drawGrid,
-    scale,
+  // 6. Overlays
+  drawPreview({
+    ctx,
+    isDrawing,
+    drawStart,
+    drawCurrent,
     worldToCanvas,
-    isInViewport,
-    showMeasurements
-  ]);
+    snapIndicator,
+    calculateAngle,
+    getDistance: spatialCache.getDistance.bind(spatialCache)
+  });
 
-  const drawPreview = useCallback((ctx: CanvasRenderingContext2D) => {
-    if (!isDrawing || !drawStart || !drawCurrent) return;
-    
-    const start = worldToCanvas(drawStart);
-    const end = worldToCanvas(drawCurrent);
-    
-    ctx.save();
-    
-    ctx.strokeStyle = '#c9a962';
-    ctx.lineWidth = 2;
-    ctx.setLineDash([10, 5]);
-    ctx.lineDashOffset = -performance.now() / 20;
-    ctx.beginPath();
-    ctx.moveTo(start.x, start.y);
-    ctx.lineTo(end.x, end.y);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    
-    const dist = spatialCache.getDistance(drawStart, drawCurrent);
-    const midX = (start.x + end.x) / 2;
-    const midY = (start.y + end.y) / 2;
-    
-    const text = `${dist.toFixed(2)}m`;
-    ctx.font = 'bold 13px Inter, system-ui, sans-serif';
-    const textWidth = ctx.measureText(text).width;
-    
-    ctx.fillStyle = 'rgba(10, 10, 15, 0.95)';
-    ctx.fillRect(midX - textWidth / 2 - 8, midY - 26, textWidth + 16, 26);
-    
-    ctx.fillStyle = '#c9a962';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(text, midX, midY - 13);
-    
-    const angle = calculateAngle(drawStart, drawCurrent);
-    const angleText = `${angle.toFixed(0)}°`;
-    const angleTextWidth = ctx.measureText(angleText).width;
-    
-    ctx.fillStyle = 'rgba(10, 10, 15, 0.95)';
-    ctx.fillRect(start.x - angleTextWidth / 2 - 8, start.y - 32, angleTextWidth + 16, 22);
-    
-    ctx.fillStyle = '#ffffff';
-    ctx.fillText(angleText, start.x, start.y - 21);
-    
-    if (snapIndicator) {
-      ctx.strokeStyle = '#c9a962';
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.arc(end.x, end.y, 6, 0, Math.PI * 2);
-      ctx.stroke();
-    }
-    
-    ctx.restore();
-  }, [isDrawing, drawStart, drawCurrent, worldToCanvas, calculateAngle, snapIndicator]);
+  drawSnapIndicator({
+    ctx,
+    snapIndicator,
+    worldToCanvas
+  });
 
-  const drawSnapIndicator = useCallback((ctx: CanvasRenderingContext2D) => {
-    if (!snapIndicator) return;
-    
-    const point = worldToCanvas(snapIndicator.point);
-    
-    ctx.save();
-    ctx.strokeStyle = '#c9a962';
-    ctx.fillStyle = 'rgba(201, 169, 98, 0.25)';
-    ctx.lineWidth = 2.5;
-    
-    const pulse = 1 + Math.sin(performance.now() / 150) * 0.25;
-    const baseRadius = 10;
-    
-    ctx.beginPath();
-    ctx.arc(point.x, point.y, baseRadius * pulse, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(201, 169, 98, 0.15)';
-    ctx.fill();
-    
-    ctx.beginPath();
-    ctx.arc(point.x, point.y, baseRadius, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(201, 169, 98, 0.35)';
-    ctx.fill();
-    ctx.stroke();
-    
-    const crossSize = 18;
-    ctx.beginPath();
-    ctx.moveTo(point.x - crossSize, point.y);
-    ctx.lineTo(point.x + crossSize, point.y);
-    ctx.moveTo(point.x, point.y - crossSize);
-    ctx.lineTo(point.x, point.y + crossSize);
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    
-    ctx.restore();
-  }, [snapIndicator, worldToCanvas]);
-
-  const drawSelectionBox = useCallback((ctx: CanvasRenderingContext2D) => {
-    if (!isDragSelecting || !selectionBox) return;
-    
-    const start = worldToCanvas(selectionBox.start);
-    const end = worldToCanvas(selectionBox.current);
-    
-    const minX = Math.min(start.x, end.x);
-    const maxX = Math.max(start.x, end.x);
-    const minY = Math.min(start.y, end.y);
-    const maxY = Math.max(start.y, end.y);
-    
-    ctx.save();
-    
-    ctx.fillStyle = 'rgba(201, 169, 98, 0.15)';
-    ctx.fillRect(minX, minY, maxX - minX, maxY - minY);
-    
-    ctx.strokeStyle = '#c9a962';
-    ctx.lineWidth = 2;
-    ctx.setLineDash([8, 4]);
-    ctx.lineDashOffset = -performance.now() / 30;
-    ctx.strokeRect(minX, minY, maxX - minX, maxY - minY);
-    
-    ctx.restore();
-  }, [isDragSelecting, selectionBox, worldToCanvas]);
+  drawSelectionBox({
+    ctx,
+    isDragSelecting,
+    selectionBox,
+    worldToCanvas
+  });
+}, [
+  projectElements,
+  selectedElement,
+  selectedElementType,
+  hoveredElement,
+  hoveredElementType,
+  drawGrid,
+  isDrawing,
+  drawStart,
+  drawCurrent,
+  snapIndicator,
+  isDragSelecting,
+  selectionBox,
+  worldToCanvas,
+  scale,
+  isInViewport,
+  calculateAngle
+]);
 
   useEffect(() => {
     const animate = () => {
@@ -902,205 +879,293 @@ const Canvas2D: React.FC = () => {
     };
   }, [render]);
 
-  const handlePointerDown = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
+// ============================================
+// HANDLERS DE INTERAÇÃO PREMIUM
+// ============================================
 
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+const handlePointerDown = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
 
-    try {
-      canvas.setPointerCapture(e.pointerId);
-    } catch {}
+  e.preventDefault();
+  e.stopPropagation();
 
-    const canvasPoint = getCanvasPoint(e);
-    if (!canvasPoint) return;
+  const canvas = canvasRef.current;
+  if (!canvas) return;
 
-    const worldPoint = canvasToWorld(canvasPoint);
-    const snappedPoint = getBestSnapPoint(worldPoint);
+  try {
+    canvas.setPointerCapture(e.pointerId);
+  } catch {}
 
-    if (e.button === 1 || (e.button === 0 && e.altKey)) {
-      setIsPanning(true);
-      setPanStart(canvasPoint);
-      setCursor('grabbing');
-      return;
-    }
+  const canvasPoint = getCanvasPoint(e);
+  if (!canvasPoint) return;
 
-    if (e.button !== 0) return;
+  const worldPoint = canvasToWorld(canvasPoint);
+  const snappedPoint = getBestSnapPoint(worldPoint);
 
-    const touch: TouchPoint = {
-      id: e.pointerId,
-      position: snappedPoint,
-      timestamp: performance.now()
-    };
+  // ============================================
+  // PAN MODE
+  // ============================================
 
-    const tapResult = processTap(
-      gestureStateRef.current,
-      snappedPoint
-    );
+  if (e.button === 1 || (e.button === 0 && e.altKey)) {
+    setIsPanning(true);
+    setPanStart(canvasPoint);
+    setCursor('grabbing');
+    return;
+  }
 
-    gestureStateRef.current = {
-      ...gestureStateRef.current,
-      ...tapResult,
-      touches: [touch]
-    };
+  // ============================================
+  // LEFT CLICK ONLY
+  // ============================================
 
-    if (toolMode === 'wall') {
-      setIsDragSelecting(false);
-      setSelectionBox(null);
-      setSelectionStart(null);
-      startDrawing(snappedPoint);
+  if (e.button !== 0) return;
+
+  // Gesture engine tap
+  const touch: TouchPoint = {
+    id: e.pointerId,
+    position: snappedPoint,
+    timestamp: performance.now()
+  };
+
+  const tapResult = processTap(
+    gestureStateRef.current,
+    snappedPoint
+  );
+
+  gestureStateRef.current = {
+    ...gestureStateRef.current,
+    ...tapResult,
+    touches: [touch]
+  };
+
+  // ============================================
+  // WALL TOOL
+  // ============================================
+
+  if (toolMode === 'wall') {
+
+    setIsDragSelecting(false);
+    setSelectionBox(null);
+    setSelectionStart(null);
+
+    startDrawing(snappedPoint);
+
+    setCursor('crosshair');
+
+    return;
+  }
+
+  // ============================================
+  // SELECT TOOL
+  // ============================================
+
+  if (toolMode === 'select') {
+
+    const hit = hitTest(worldPoint);
+
+    if (hit) {
+
+      selectElement(hit.id, hit.type);
+
+      setDraggedElement(hit.id);
+      setIsDraggingElement(true);
+
+      setCursor('move');
+
+    } else {
+
+      selectElement(null);
+
+      setIsDragSelecting(true);
+      setSelectionStart(worldPoint);
+
+      setSelectionBox({
+        start: worldPoint,
+        current: worldPoint
+      });
+
       setCursor('crosshair');
-      return;
     }
+  }
 
-    if (toolMode === 'select') {
+}, [
+  getCanvasPoint,
+  canvasToWorld,
+  getBestSnapPoint,
+  toolMode,
+  startDrawing,
+  selectElement,
+  hitTest
+]);
+
+// ============================================
+// POINTER MOVE
+// ============================================
+
+const handlePointerMove = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
+
+  e.preventDefault();
+  e.stopPropagation();
+
+  const canvasPoint = getCanvasPoint(e);
+  if (!canvasPoint) return;
+
+  const worldPoint = canvasToWorld(canvasPoint);
+
+  setWorldMousePos(worldPoint);
+
+  // ============================================
+  // HOVER DETECTION (THROTTLED)
+  // ============================================
+
+  const now = performance.now();
+
+  if (now - hoverThrottleRef.current > HOVER_THROTTLE) {
+
+    hoverThrottleRef.current = now;
+
+    if (
+      toolMode === 'select' &&
+      !isPanning &&
+      !isDrawing &&
+      !isDragSelecting &&
+      !isDraggingElement
+    ) {
+
       const hit = hitTest(worldPoint);
 
       if (hit) {
-        selectElement(hit.id, hit.type);
-        setDraggedElement(hit.id);
-        setIsDraggingElement(true);
-        setCursor('move');
+
+        setHoveredElement(hit.id);
+        setHoveredElementType(hit.type);
+
+        setCursor('pointer');
+
       } else {
-        selectElement(null);
-        setIsDragSelecting(true);
-        setSelectionStart(worldPoint);
-        setSelectionBox({
-          start: worldPoint,
-          current: worldPoint
-        });
-        setCursor('crosshair');
+
+        setHoveredElement(null);
+        setHoveredElementType(null);
+
+        setCursor('default');
       }
     }
-  }, [
-    getCanvasPoint,
-    canvasToWorld,
-    getBestSnapPoint,
-    toolMode,
-    startDrawing,
-    selectElement,
-    hitTest
-  ]);
+  }
 
-  const handlePointerMove = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
-    e.preventDefault();
-    e.stopPropagation();
+  // ============================================
+  // PAN
+  // ============================================
 
-    const canvasPoint = getCanvasPoint(e);
-    if (!canvasPoint) return;
+  if (isPanning) {
 
-    const worldPoint = canvasToWorld(canvasPoint);
-    setWorldMousePos(worldPoint);
+    const dx = (canvasPoint.x - panStart.x) * PAN_SENSITIVITY;
+    const dy = (canvasPoint.y - panStart.y) * PAN_SENSITIVITY;
 
-    const now = performance.now();
+    setCanvasOffset({
+      x: offset.x + dx,
+      y: offset.y + dy
+    });
 
-    if (now - hoverThrottleRef.current > HOVER_THROTTLE) {
-      hoverThrottleRef.current = now;
+    setPanStart(canvasPoint);
 
-      if (
-        toolMode === 'select' &&
-        !isPanning &&
-        !isDrawing &&
-        !isDragSelecting &&
-        !isDraggingElement
-      ) {
-        const hit = hitTest(worldPoint);
+    return;
+  }
 
-        if (hit) {
-          setHoveredElement(hit.id);
-          setHoveredElementType(hit.type);
-          setCursor('pointer');
-        } else {
-          setHoveredElement(null);
-          setHoveredElementType(null);
-          setCursor('default');
-        }
-      }
+  // ============================================
+  // DRAG SELECTION
+  // ============================================
+
+  if (isDragSelecting && selectionStart) {
+
+    setSelectionBox({
+      start: selectionStart,
+      current: worldPoint
+    });
+
+    return;
+  }
+
+  // ============================================
+  // DRAG ELEMENT
+  // ============================================
+
+  if (isDraggingElement && draggedElement) {
+
+    const newPosition = worldPoint;
+
+    const furniture = projectElements?.furniture.find(f => f.id === draggedElement);
+
+    if (furniture) {
+      furniture.position = {
+        x: newPosition.x,
+        y: newPosition.y
+      };
     }
 
-    if (isPanning) {
-      const dx = (canvasPoint.x - panStart.x) * PAN_SENSITIVITY;
-      const dy = (canvasPoint.y - panStart.y) * PAN_SENSITIVITY;
+    const door = projectElements?.doors.find(d => d.id === draggedElement);
 
-      setCanvasOffset({
-        x: offset.x + dx,
-        y: offset.y + dy
-      });
-
-      setPanStart(canvasPoint);
-      return;
+    if (door) {
+      door.position = newPosition.x;
     }
 
-    if (isDragSelecting && selectionStart) {
-      setSelectionBox({
-        start: selectionStart,
-        current: worldPoint
-      });
-      return;
+    const window = projectElements?.windows.find(w => w.id === draggedElement);
+
+    if (window) {
+      window.position = newPosition.x;
     }
 
-    if (isDraggingElement && draggedElement) {
-      const newPosition = worldPoint;
+    setCursor('move');
 
-      const furniture = projectElements?.furniture.find(f => f.id === draggedElement);
-      if (furniture) {
-        furniture.position = {
-          x: newPosition.x,
-          y: newPosition.y
-        };
-      }
+    return;
+  }
 
-      const door = projectElements?.doors.find(d => d.id === draggedElement);
-      if (door) {
-        door.position = newPosition.x;
-      }
+  // ============================================
+  // DRAWING WALL
+  // ============================================
 
-      const window = projectElements?.windows.find(w => w.id === draggedElement);
-      if (window) {
-        window.position = newPosition.x;
-      }
+  if (isDrawing && drawStart) {
 
-      setCursor('move');
-      return;
-    }
+    let snappedPoint = getBestSnapPoint(worldPoint);
 
-    if (isDrawing && drawStart) {
-      let snappedPoint = getBestSnapPoint(worldPoint);
-      snappedPoint = applyAngleSnap(drawStart, snappedPoint);
-      updateDrawing(snappedPoint);
-      setCursor('crosshair');
-      return;
-    }
+    snappedPoint = applyAngleSnap(drawStart, snappedPoint);
 
-    const longPressResult = checkLongPress(
-      gestureStateRef.current,
-      worldPoint
-    );
+    updateDrawing(snappedPoint);
 
-    if (longPressResult) {
-      console.log('Long press detected at:', worldPoint);
-    }
-  }, [
-    getCanvasPoint,
-    canvasToWorld,
-    isPanning,
-    panStart,
-    offset,
-    setCanvasOffset,
-    isDrawing,
-    drawStart,
-    getBestSnapPoint,
-    applyAngleSnap,
-    updateDrawing,
-    toolMode,
-    isDragSelecting,
-    isDraggingElement,
-    draggedElement,
-    selectionStart,
-    hitTest,
-    projectElements
-  ]);
+    setCursor('crosshair');
+
+    return;
+  }
+
+  // ============================================
+  // LONG PRESS DETECTION
+  // ============================================
+
+  const longPressResult = checkLongPress(
+    gestureStateRef.current,
+    worldPoint
+  );
+
+  if (longPressResult) {
+    console.log('Long press detected at:', worldPoint);
+  }
+
+}, [
+  getCanvasPoint,
+  canvasToWorld,
+  isPanning,
+  panStart,
+  offset,
+  setCanvasOffset,
+  isDrawing,
+  drawStart,
+  getBestSnapPoint,
+  applyAngleSnap,
+  updateDrawing,
+  toolMode,
+  isDragSelecting,
+  isDraggingElement,
+  draggedElement,
+  selectionStart,
+  hitTest,
+  projectElements
+]);
     
   const handlePointerUp = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
     e.preventDefault();
@@ -1111,9 +1176,11 @@ const Canvas2D: React.FC = () => {
       try {
         canvas.releasePointerCapture(e.pointerId);
       } catch {
+        // Ignore
       }
     }
     
+    // Reset completo do gesture engine usando resetGesture
     gestureStateRef.current = resetGesture(gestureStateRef.current);
     setGestureDebug('');
     
@@ -1124,6 +1191,7 @@ const Canvas2D: React.FC = () => {
     }
     
     if (isDragSelecting) {
+      // Finalizar seleção por caixa
       if (selectionBox) {
         const minX = Math.min(selectionBox.start.x, selectionBox.current.x);
         const maxX = Math.max(selectionBox.start.x, selectionBox.current.x);
@@ -1131,6 +1199,9 @@ const Canvas2D: React.FC = () => {
         const maxY = Math.max(selectionBox.start.y, selectionBox.current.y);
         
         const selectionRect = { minX, minY, maxX, maxY };
+        
+        // Selecionar elementos dentro do retângulo
+        // TODO: Implementar seleção múltipla
         console.log('Selection box:', selectionRect);
       }
       
@@ -1148,57 +1219,73 @@ const Canvas2D: React.FC = () => {
       return;
     }
     
-    if (isDrawing) {
-      const canvasPoint = getCanvasPoint(e);
-      if (!canvasPoint) {
-        setCursor('crosshair');
-        return;
-      }
+if (isDrawing) {
 
-      const worldPoint = canvasToWorld(canvasPoint);
-      let snappedPoint = getBestSnapPoint(worldPoint);
+  const canvasPoint = getCanvasPoint(e);
 
-      if (drawStart) {
-        snappedPoint = applyAngleSnap(drawStart, snappedPoint);
-      }
+  if (!canvasPoint) {
+    setCursor('crosshair');
+    return;
+  }
 
-      if (drawStart) {
-        const dist = Math.hypot(
-          snappedPoint.x - drawStart.x,
-          snappedPoint.y - drawStart.y
-        );
+  // converte canvas -> mundo
+  const worldPoint = canvasToWorld(canvasPoint);
 
-        if (dist < 0.05) return;
+  // aplica snap inteligente
+  let snappedPoint = getBestSnapPoint(worldPoint);
 
-        const newWall = wallEngine.createWall(drawStart, snappedPoint);
+  // aplica snap de ângulo se houver ponto inicial
+  if (drawStart) {
+    snappedPoint = applyAngleSnap(drawStart, snappedPoint);
+  }
 
-        if (newWall && currentProject) {
-          currentProject.walls = [...currentProject.walls, newWall];
-          updateDrawing(snappedPoint);
-          startDrawing(snappedPoint);
-        }
-      }
+  // finaliza parede
+  // ============================================
+// CREATE WALL USING WALL ENGINE
+// ============================================
+if (drawStart) {
 
-      setSnapIndicator(null);
-      setCursor('crosshair');
-    }
-  }, [
-    getCanvasPoint,
-    isPanning,
-    isDrawing,
-    isDragSelecting,
-    isDraggingElement,
-    drawStart,
-    canvasToWorld,
-    getBestSnapPoint,
-    applyAngleSnap,
-    endDrawing,
-    selectionBox,
-    toolMode,
-    wallEngine,
-    updateDrawing,
-    startDrawing
-  ]);
+  const dist = Math.hypot(
+    snappedPoint.x - drawStart.x,
+    snappedPoint.y - drawStart.y
+  );
+
+  if (dist < 0.05) return;
+
+  const newWall = wallEngine.createWall(drawStart, snappedPoint);
+
+  if (newWall && currentProject) {
+
+    currentProject.walls = [...currentProject.walls, newWall];
+
+    updateDrawing(snappedPoint);
+    startDrawing(snappedPoint);
+  }
+
+}
+
+  // limpa indicador de snap
+  setSnapIndicator(null);
+
+  setCursor('crosshair');
+}
+}, [
+  getCanvasPoint,
+  isPanning,
+  isDrawing,
+  isDragSelecting,
+  isDraggingElement,
+  drawStart,
+  canvasToWorld,
+  getBestSnapPoint,
+  applyAngleSnap,
+  endDrawing,
+  selectionBox,
+  toolMode,
+  wallEngine,
+  updateDrawing,
+  startDrawing
+]);
 
   const handleWheel = useCallback((e: React.WheelEvent<HTMLCanvasElement>) => {
     e.preventDefault();
@@ -1208,6 +1295,7 @@ const Canvas2D: React.FC = () => {
     const zoomFactor = Math.exp(delta);
     const newScale = clamp(scale * zoomFactor, 0.1, 50);
     
+    // Zoom towards mouse pointer
     const rect = e.currentTarget.getBoundingClientRect();
     const mouseX = (e.clientX - rect.left) * metricsRef.current.devicePixelRatio;
     const mouseY = (e.clientY - rect.top) * metricsRef.current.devicePixelRatio;
@@ -1215,6 +1303,7 @@ const Canvas2D: React.FC = () => {
     const worldBefore = canvasToWorld({ x: mouseX, y: mouseY });
     setCanvasScale(newScale);
     
+    // Ajusta offset para manter ponto sob o mouse
     requestAnimationFrame(() => {
       const worldAfter = canvasToWorld({ x: mouseX, y: mouseY });
       const dx = (worldAfter.x - worldBefore.x) * newScale;
@@ -1223,12 +1312,17 @@ const Canvas2D: React.FC = () => {
     });
   }, [scale, offset, setCanvasScale, setCanvasOffset, canvasToWorld]);
 
+  // ============================================
+  // KEYBOARD SHORTCUTS
+  // ============================================
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.repeat) return;
       
       if (e.code === 'Space') {
         e.preventDefault();
+        // Pan mode temporário
       }
       
       if (e.code === 'ShiftLeft' || e.code === 'ShiftRight') {
@@ -1239,6 +1333,7 @@ const Canvas2D: React.FC = () => {
         }
       }
       
+      // Atalhos de zoom
       if (e.ctrlKey || e.metaKey) {
         if (e.key === '=' || e.key === '+') {
           e.preventDefault();
@@ -1255,8 +1350,10 @@ const Canvas2D: React.FC = () => {
         }
       }
       
+      // Delete para remover seleção
       if (e.key === 'Delete' || e.key === 'Backspace') {
         if (selectedElement) {
+          // TODO: Implementar remoção de elemento
           console.log('Delete element:', selectedElement);
         }
       }
@@ -1278,6 +1375,10 @@ const Canvas2D: React.FC = () => {
     };
   }, [isDrawing, drawStart, drawCurrent, angleLock, calculateAngle, snapAngle, scale, setCanvasScale, setCanvasOffset, selectedElement]);
 
+  // ============================================
+  // RESIZE HANDLER
+  // ============================================
+
   useLayoutEffect(() => {
     const updateMetrics = () => {
       if (containerRef.current && canvasRef.current) {
@@ -1285,6 +1386,7 @@ const Canvas2D: React.FC = () => {
         const width = containerRef.current.clientWidth;
         const height = containerRef.current.clientHeight;
         
+        // Configura canvas com DPR para sharp rendering
         canvasRef.current.width = width * dpr;
         canvasRef.current.height = height * dpr;
         canvasRef.current.style.width = `${width}px`;
@@ -1324,6 +1426,10 @@ const Canvas2D: React.FC = () => {
     };
   }, []);
 
+  // ============================================
+  // RENDER
+  // ============================================
+
   return (
     <div 
       ref={containerRef} 
@@ -1355,7 +1461,9 @@ const Canvas2D: React.FC = () => {
         onWheel={handleWheel}
       />
       
+      {/* Toolbar Flutuante Premium */}
       <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 p-2 bg-[#1a1a1f]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-2xl shadow-black/50">
+        {/* Zoom Controls */}
         <div className="flex items-center gap-1 px-2">
           <button
             onClick={() => setCanvasScale(scale * 1.2)}
@@ -1385,6 +1493,7 @@ const Canvas2D: React.FC = () => {
         
         <div className="w-px h-8 bg-white/10" />
         
+        {/* Toggles */}
         <div className="flex items-center gap-1">
           <button
             onClick={() => setSnapEnabled(!snapEnabled)}
@@ -1417,6 +1526,7 @@ const Canvas2D: React.FC = () => {
         
         <div className="w-px h-8 bg-white/10" />
         
+        {/* View Controls */}
         <div className="flex items-center gap-1">
           <button
             onClick={() => {
@@ -1432,6 +1542,7 @@ const Canvas2D: React.FC = () => {
           
           <button
             onClick={() => {
+              // Reset rotation se implementado no futuro
               setCanvasScale(20);
               setCanvasOffset({ x: 0, y: 0 });
             }}
@@ -1444,6 +1555,7 @@ const Canvas2D: React.FC = () => {
         </div>
       </div>
       
+      {/* Info Panel */}
       <div className="absolute bottom-6 left-6 p-4 bg-[#1a1a1f]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl min-w-[160px]">
         <div className="space-y-1.5">
           <div className="flex justify-between items-center">
@@ -1497,6 +1609,7 @@ const Canvas2D: React.FC = () => {
         </div>
       </div>
       
+      {/* Scale Indicator */}
       <div className="absolute bottom-6 right-6 px-4 py-3 bg-[#1a1a1f]/95 backdrop-blur-xl border border-white/10 rounded-2xl shadow-xl">
         <div className="flex items-center gap-3 text-xs">
           <div className="flex items-center gap-1.5 text-white/50">
