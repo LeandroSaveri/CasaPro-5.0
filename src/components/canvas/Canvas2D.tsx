@@ -45,7 +45,7 @@ import { useUIStore } from '@/store/uiStore'
 // ============================================
 
 import { WallEngine } from '@/core/geometry/wallEngine'
-import { WallEditingEngine } from '@/core/wall/wallEditingEngine'
+// REMOVIDO: WallEditingEngine não estava sendo usado
 
 // ============================================
 // RENDERERS
@@ -800,6 +800,7 @@ const Canvas2D: React.FC = () => {
         settingsShowMeasurements: projectElements.settings.showMeasurements ?? true
       };
       
+      // CORREÇÃO: Passar 5 argumentos conforme assinatura da função
       renderWall(ctx, wall, renderContext, options, isInViewport);
     });
     
