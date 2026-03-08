@@ -2,22 +2,16 @@
  * FILE: renderEngine.ts
  *
  * Motor de Renderização 2D Premium
- * Responsabilidades:
- * • Renderizar grid e eixos
- * • Renderizar paredes, cômodos, portas, janelas, móveis
- * • Renderizar preview de desenho
- * • Renderizar indicadores de snap e seleção
- * • Otimizações de viewport culling
  */
 
 import type { Point, Wall, Room, Door, Window, Furniture } from '@/types'
-import { spatialCache } from './spatialCache'
+import { spatialCache } from '@/core/cache/spatialCache'
 import type {
   SnapPoint,
   SelectionBox,
   SelectedElement,
   CanvasProjectElements
-} from './canvasTypes'
+} from '@/core/types/canvasTypes'
 
 export interface RenderContext {
   ctx: CanvasRenderingContext2D
