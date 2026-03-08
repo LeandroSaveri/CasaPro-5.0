@@ -20,38 +20,63 @@
  * - Viewport culling agressivo
  */
 
-import React, { 
-  useRef, 
-  useEffect, 
-  useState, 
-  useCallback, 
+// ============================================
+// REACT
+// ============================================
+
+import React, {
+  useRef,
+  useEffect,
+  useState,
+  useCallback,
   useMemo,
   useLayoutEffect
-} from 'react';
-import { useProjectStore } from '@/store/projectStore';
-import { useUIStore } from '@/store/uiStore';
-import { WallEngine } from '@/core/geometry/wallEngine';
-import type { Point, Wall, Room } from '@/types';
-import { Ruler, Grid3X3, Magnet, Maximize2, RotateCcw } from 'lucide-react';
+} from 'react'
+
+// ============================================
+// STORES
+// ============================================
+
+import { useProjectStore } from '@/store/projectStore'
+import { useUIStore } from '@/store/uiStore'
+
+// ============================================
+// CORE ENGINES
+// ============================================
+
+import { WallEngine } from '@/core/geometry/wallEngine'
+import { WallEditingEngine } from '@/core/wall/wallEditingEngine'
+
+// ============================================
+// RENDERERS
+// ============================================
+
+import { renderWall } from '@/core/render/wallRenderer'
+import { renderRoom } from '@/core/render/roomRenderer'
+
+// ============================================
+// TYPES
+// ============================================
+
+import type { Point, Wall, Room } from '@/types'
+
+// ============================================
+// UI ICONS
+// ============================================
+
+import { Ruler, Grid3X3, Magnet, Maximize2, RotateCcw } from 'lucide-react'
+
+// ============================================
+// GESTURE ENGINE
+// ============================================
+
 import {
   createGestureState,
   processTap,
   checkLongPress,
   resetGesture,
   type TouchPoint
-} from '@/core/interaction/gestureEngine';
-
-// ============================================
-// IMPORTS DOS RENDERERS EXTERNOS
-// ============================================
-import { renderWall } from '@/core/render/wallRenderer'
-import { renderRoom } from '@/core/render/roomRenderer'
-
-// ============================================
-// IMPORT DO WALL EDITING ENGINE
-// ============================================
-import { WallEditingEngine } from '@/core/wall/wallEditingEngine'
-
+} from '@/core/interaction/gestureEngine'
 // ============================================
 // CONSTANTES PREMIUM
 // ============================================
